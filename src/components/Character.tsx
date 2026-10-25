@@ -40,8 +40,17 @@ export function Character() {
       if (mesh.isMesh) {
         // El modelo viene "sin iluminación" (unlit). Lo pasamos a un material
         // que reacciona a la luz para que se integre con la noche y el amanecer.
+        // Al optimizarlo se quedó sin "normales" (la info que dice hacia dónde mira
+        // cada cara), y sin ellas la luz no puede pintarla: las recalculamos.
+        if (!mesh.geometry.getAttribute('normal')) mesh.geometry.computeVertexNormals()
         const old = mesh.material as THREE.MeshBasicMaterial
-        mesh.material = new THREE.MeshStandardMaterial({ map: old.map, roughness: 0.85, metalness: 0 })
+        if (old.map) old.map.colorSpace = THREE.SRGBColorSpace
+        mesh.material = new THREE.MeshStandardMaterial({
+          map: old.map,
+          roughness: 0.8,
+          metalness: 0,
+          side: THREE.DoubleSide,
+        })
       }
     })
     return s
