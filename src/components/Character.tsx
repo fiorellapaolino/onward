@@ -58,21 +58,22 @@ const SIDE_TURN = Math.PI / 2 // al nacer mira hacia su izquierda: la cámara la
  * Entre un punto y el siguiente se pasa suavemente.
  */
 const HEAD_KEYS: [number, number, number, number][] = [
+  // (al nacer está de costado: giro negativo = mira hacia delante, al sendero; positivo = hacia la cámara)
   [0, 0, 0.45, 0], // cabeza baja: acaba de nacer
   [1.5, 0, 0.4, 0],
-  [3.2, 0.1, 0.05, 0], // la levanta despacio
-  [4.4, 0.65, -0.05, 0.05], // mira a un lado
-  [5.4, 0.6, 0, 0.28], // ladea la cabeza: ¿qué es esto?
-  [5.9, 0.25, -0.2, 0.1], // aparece el primer elemento: lo mira
-  [7.2, -0.6, 0, -0.05], // mira al otro lado
-  [8.2, -0.55, 0.05, -0.25], // ladea, confundida
-  [9.2, 0, 0.5, 0], // se mira las manos
-  [9.7, 0.2, -0.25, 0], // otro elemento: levanta la vista
-  [11.5, -0.3, -0.1, 0.12],
-  [13.6, 0.35, -0.3, -0.08], // otro elemento
-  [15.5, -0.15, 0.1, 0.1],
-  [17.6, -0.35, -0.3, 0], // el último elemento
-  [19.5, 0.1, -0.2, 0],
+  [3.2, -0.1, 0.05, 0], // la levanta despacio
+  [4.4, -0.7, -0.05, 0.05], // mira hacia delante, al bosque
+  [5.4, -0.65, 0, 0.28], // ladea la cabeza: ¿qué es esto?
+  [5.9, -0.2, -0.2, 0.1], // aparece el primer elemento: lo mira
+  [7.2, 0.25, 0, -0.05], // un vistazo al otro lado
+  [8.2, -0.4, 0.05, -0.25], // vuelve a mirar delante, confundida
+  [9.2, -0.1, 0.5, 0], // se mira las manos
+  [9.7, -0.3, -0.25, 0], // otro elemento: levanta la vista
+  [11.5, -0.6, -0.1, 0.12], // mira el sendero
+  [13.6, 0.15, -0.3, -0.08], // otro elemento
+  [15.5, -0.5, 0.1, 0.1],
+  [17.6, -0.3, -0.3, 0], // el último elemento
+  [19.5, -0.4, -0.2, 0], // mira hacia delante: va a levantarse
   [21.5, 0, -0.1, 0],
 ]
 const smoothT = (t: number) => t * t * (3 - 2 * t)
