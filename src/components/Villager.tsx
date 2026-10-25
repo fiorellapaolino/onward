@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
@@ -6,7 +6,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { clamp01 } from '../game/config'
 import { game } from '../game/state'
 import { CLIPS, makeSample, sampleAt } from '../game/anim'
-import { ELDER, GIRL } from '../game/village'
+import { ELDER, GIRL, MUSICIAN } from '../game/village'
 
 /*
  * La gente de la aldea. Usan los personajes de Quaternius (CC0) con ropa de campesino,
@@ -30,6 +30,8 @@ type Spec = {
   hairColor: string
   pose: [string, Axis, number][]
   spot: { x: number; z: number; rot: number }
+  /** Si devuelve false, no se ve (p. ej. la mujer de la música, escondida en su casa). */
+  visible?: () => boolean
   /** Gestos de cada frame. near = 0..1 cuánto se ha acercado la elfa; yaw = hacia dónde está ella. */
   gestures: (rot: Rot, t: number, near: number, yaw: number) => void
 }
@@ -105,14 +107,42 @@ const ELDER_SPEC: Spec = {
   },
 }
 
+// ── La mujer de la música: escondida en su casa; cuando se atreve, sale a su puerta y toca ──
+const MUSICIAN_SPEC: Spec = {
+  parts: ['elf/body', 'woman/outfit', 'woman/hair'],
+  scale: 1.08 / 1.777,
+  headScale: 1,
+  ground: -0.025,
+  hairColor: '#3b2418',
+  pose: [
+    // manos juntas delante (como sosteniendo una flauta)
+    ['upperarm_l', 'left', -0.5],
+    ['upperarm_r', 'left', -0.5],
+    ['lowerarm_l', 'fwd', -1.1],
+    ['lowerarm_r', 'fwd', 1.1],
+  ],
+  spot: MUSICIAN,
+  visible: () => game.freedAt >= 0,
+  gestures: (rot, t, near, yaw) => {
+    // se mece despacio con su música, y mira a la elfa
+    const sway = game.freedAt >= 0 ? Math.sin((t - game.freedAt) * 2.6) * 0.05 : 0
+    rot('spine_01', 'fwd', sway)
+    rot('Head', 'fwd', -sway * 0.8)
+    rot('neck_01', 'up', yaw * 0.35 * near)
+    rot('Head', 'up', yaw * 0.45 * near)
+  },
+}
+
 const TMP_Q = new THREE.Quaternion()
 
+export const Musician = () => <Villager spec={MUSICIAN_SPEC} />
 export const Girl = () => <Villager spec={GIRL_SPEC} nearKey="girlNear" />
 export const Elder = () => <Villager spec={ELDER_SPEC} nearKey="elderNear" />
 
-function Villager({ spec, nearKey }: { spec: Spec; nearKey: 'girlNear' | 'elderNear' }) {
+function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elderNear' }) {
   const gltfs = useGLTF(spec.parts.map(url))
   const S = useMemo(() => ({ near: 0, yaw: 0 }), [])
+  const root = useRef<THREE.Group>(null!)
 
   const { model, bones, axes, posed } = useMemo(() => {
     // los cuerpos se comparten (la elfa usa el mismo): hay que clonarlos con su esqueleto
@@ -177,7 +207,12 @@ function Villager({ spec, nearKey }: { spec: Spec; nearKey: 'girlNear' | 'elderN
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
     const g = game
-    S.near += (g[nearKey] - S.near) * (1 - Math.exp(-3 * dt))
+    if (spec.visible) {
+      root.current.visible = spec.visible()
+      if (!root.current.visible) return
+    }
+    const nearT = nearKey ? g[nearKey] : Math.hypot(g.x - spec.spot.x, g.z - spec.spot.z) < 5 ? 1 : 0
+    S.near += (nearT - S.near) * (1 - Math.exp(-3 * dt))
 
     for (const [name, q] of Object.entries(posed)) bones[name].quaternion.copy(q)
     const rot: Rot = (name, axis, angle) => {
@@ -192,7 +227,7 @@ function Villager({ spec, nearKey }: { spec: Spec; nearKey: 'girlNear' | 'elderN
   })
 
   return (
-    <group position={[spec.spot.x, 0, spec.spot.z]} rotation-y={spec.spot.rot}>
+    <group ref={root} position={[spec.spot.x, 0, spec.spot.z]} rotation-y={spec.spot.rot}>
       <primitive object={model} />
     </group>
   )
@@ -200,3 +235,4 @@ function Villager({ spec, nearKey }: { spec: Spec; nearKey: 'girlNear' | 'elderN
 
 useGLTF.preload(GIRL_SPEC.parts.map(url))
 useGLTF.preload(ELDER_SPEC.parts.map(url))
+useGLTF.preload(MUSICIAN_SPEC.parts.map(url))

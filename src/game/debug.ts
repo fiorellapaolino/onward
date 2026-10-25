@@ -10,6 +10,7 @@ import { game, input, setUi } from './state'
  *   ?at=60&help     … después de hablar con la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
+ *   ?at=80&music    … con el gran farol ya arriba, para el reto de las campanas
  * Sin parámetros, el juego es normal.
  */
 const params = new URLSearchParams(location.search)
@@ -38,11 +39,20 @@ export function applyDebug() {
     game.girlNear = 1
     setUi({ say: GIRL_LINES[game.line] })
   }
-  if (params.has('help') || params.has('fear') || params.has('plates')) {
+  if (params.has('help') || params.has('fear') || params.has('plates') || params.has('music')) {
     game.story = 'help'
     setUi({ goal: 'Help the people of the village.' })
   }
   if (params.has('fear')) game.story = 'fear'
+  if (params.has('music')) {
+    game.story = 'music'
+    game.shadowOn = true
+    game.shadowAt = game.time - 5
+    game.liftAt = game.time - 3
+    game.lightAwake = true
+    game.awakeAt = game.time - 4.9
+    game.lit = game.lit.map(() => game.time)
+  }
   if (params.has('plates')) {
     game.story = 'plates'
     game.shadowOn = true

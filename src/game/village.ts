@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { GIRL_DIST, GIRL_S, GIRL_SIDE, VILLAGE_S, besidePath, headingAt, pathAt, rng } from './config'
+import { GIRL_DIST, GIRL_S, GIRL_SIDE, VILLAGE_S, besidePath, headingAt, pathAt, rng, sideAt, tangentAt } from './config'
 import HOUSE_TYPES from './houseTypes.json'
 
 /*
@@ -95,6 +95,36 @@ export const ELDER = (() => {
 export const POLE = besidePath(VILLAGE_S + 2.8, 1, 0.2)
 export const PLATES = [besidePath(VILLAGE_S - 2, 1, 2.6), besidePath(VILLAGE_S + 4, -1, 2.4)]
 export const PLATE_R = 0.75 // radio de cada piedra
+
+/*
+ * La música escondida: una mujer toca a escondidas en la casa de la izquierda, al fondo de la aldea.
+ * Delante de su casa hay un círculo de campanas de piedra: cada una suena con una nota al pisarla.
+ * Hay que tocar su melodía… y la sombra la repite detrás, como un canon.
+ */
+export const MUSIC_HUT = 3
+// en un arco alrededor de un punto del sendero (así, al ir de una campana a otra no se pisa la de en medio)
+const BELL_S = VILLAGE_S + 11.5
+export const BELL_R = 0.38 // radio de cada campana
+export const BELLS = Array.from({ length: 5 }, (_, i) => {
+  const c = pathAt(BELL_S)
+  const sd = sideAt(BELL_S)
+  const t = tangentAt(BELL_S)
+  const a = (i - 2) * 0.6 // de un extremo del arco al otro
+  const r = 3.0
+  // hacia la izquierda del sendero (donde está su casa), abriéndose hacia delante y hacia atrás
+  return { x: c.x + (sd.x * Math.cos(a) + t.x * Math.sin(a)) * r, z: c.z + (sd.z * Math.cos(a) + t.z * Math.sin(a)) * r }
+})
+/** Su melodía: índices de las campanas (Mi, La, Sol, Do). */
+export const MELODY = [2, 4, 3, 0]
+/** Ella, cuando se atreve: de pie en su puerta. */
+export const MUSICIAN = (() => {
+  const h = buildHuts()[MUSIC_HUT]
+  const fx = Math.sin(h.rot)
+  const fz = Math.cos(h.rot)
+  const d = h.hz + 0.35
+  const side = -1.0 * h.scale // delante de la puerta (en su X local negativa)
+  return { x: h.x + fx * d + fz * side, z: h.z + fz * d - fx * side, rot: h.rot }
+})()
 
 /** Cosas sólidas de la aldea (círculos en el suelo): la elfa no las atraviesa. */
 export const COLLIDERS: { x: number; z: number; r: number }[] = [

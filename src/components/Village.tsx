@@ -4,7 +4,7 @@ import { Clone, Sparkles, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { SHADOW_S, VILLAGE_R, VILLAGE_S, damp, natureUrl, pathAt, rng, sideAt } from '../game/config'
 import { game, litFraction } from '../game/state'
-import { ELDER, GIRL, GIRL_TREE, LANTERNS, PLATES, PLATE_R, POLE, buildHuts, type Hut, type Lantern } from '../game/village'
+import { BELLS, BELL_R, ELDER, GIRL, GIRL_TREE, LANTERNS, MUSICIAN, PLATES, PLATE_R, POLE, buildHuts, type Hut, type Lantern } from '../game/village'
 import { useGlowTexture } from './TheLight'
 import HOUSE_TYPES from '../game/houseTypes.json'
 
@@ -77,6 +77,7 @@ export function Village() {
       <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} />
 
       <Square />
+      <StoneBells />
       <ShadowMist />
       <FearRing />
     </group>
@@ -402,6 +403,67 @@ function Square() {
           </mesh>
         </group>
       ))}
+    </group>
+  )
+}
+
+/*
+ * Las campanas de piedra: piedras planas en arco junto al sendero, delante de la casa de la música.
+ * Al pisarlas suenan y brillan: dorado si la toca la elfa, violeta si la toca su sombra,
+ * y un brillo blanco suave cuando suena la nota de la mujer que toca a escondidas.
+ */
+const BELL_COLORS = [new THREE.Color('#000000'), new THREE.Color('#ffcf7a'), new THREE.Color('#b79bff'), new THREE.Color('#dfe9ff')]
+function StoneBells() {
+  const tex = useGlowTexture()
+  const parts = useMemo(
+    () =>
+      BELLS.map(() => ({
+        mat: new THREE.MeshStandardMaterial({ color: '#9b958c', roughness: 0.9, flatShading: true, emissive: '#000000' }),
+        halo: new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+      })),
+    [tex],
+  )
+  const halos = useRef<(THREE.Sprite | null)[]>([])
+  const glowWindow = useRef<THREE.PointLight>(null!)
+
+  useFrame(() => {
+    const g = game
+    const active = g.story === 'music' || g.story === 'next'
+    BELLS.forEach((_, i) => {
+      const t = g.time - g.bellAt[i]
+      const k = Math.max(0, 1 - t / 1.6)
+      const by = g.bellBy[i]
+      const { mat, halo } = parts[i]
+      mat.emissive.copy(BELL_COLORS[by] ?? BELL_COLORS[1]).multiplyScalar(k * 1.4 + (active ? 0.05 : 0))
+      halo.color.copy(BELL_COLORS[by] ?? BELL_COLORS[1])
+      halo.opacity = k * 0.9
+      const h = halos.current[i]
+      if (h) h.scale.setScalar(0.8 + (1 - k) * 1.2)
+    })
+    // la ventana de la mujer brilla mientras toca (a escondidas) y del todo cuando sale
+    const playing = BELLS.some((_, i) => g.bellBy[i] === 3 && g.time - g.bellAt[i] < 0.8)
+    const target = g.freedAt >= 0 ? 6 : playing ? 3 : 0
+    glowWindow.current.intensity += (target - glowWindow.current.intensity) * 0.08
+  })
+
+  return (
+    <group>
+      {BELLS.map((b, i) => (
+        <group key={i} position={[b.x, 0, b.z]}>
+          <mesh material={parts[i].mat} position={[0, 0.05, 0]} rotation-y={i * 1.3}>
+            <cylinderGeometry args={[BELL_R, BELL_R + 0.06, 0.12, 9]} />
+          </mesh>
+          <sprite
+            ref={(el) => {
+              halos.current[i] = el
+            }}
+            material={parts[i].halo}
+            position={[0, 0.25, 0]}
+          />
+        </group>
+      ))}
+      {/* luz cálida que sale de la casa de la música */}
+      <pointLight ref={glowWindow} position={[MUSICIAN.x, 1.3, MUSICIAN.z]} color="#ffc98a" distance={7} intensity={0} />
     </group>
   )
 }

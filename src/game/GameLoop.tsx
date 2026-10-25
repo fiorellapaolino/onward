@@ -7,15 +7,18 @@ import {
 import * as THREE from 'three'
 import { ECHO_DELAY, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime } from './music'
-import { BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, PLATES, PLATE_R, POLE } from './village'
+import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
+import { NOTES, bell, flute } from './sfx'
 import {
-  ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_LANTERN, LIT_MSG, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
+  ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
 
 const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
 const TMP2 = new THREE.Vector3()
+
+let blockMsg = false // se está mostrando "la sombra es demasiado espesa"
 
 function setPhase(phase: Phase) {
   game.phase = phase
@@ -209,7 +212,11 @@ export function GameLoop() {
         if (g.blocked && moving && MOVE.z > 0.3) {
           g.speed = Math.min(g.speed, 0.2)
           setUi({ msg: SHADOW_BLOCK })
-        } else if (g.z < maxZ - 2 && g.story !== 'fear' && g.time - g.awakeAt > 4) setUi({ msg: null })
+          blockMsg = true
+        } else if (blockMsg && g.z < maxZ - 2) {
+          setUi({ msg: null }) // (solo quita su propio mensaje)
+          blockMsg = false
+        }
 
         // ── La gente de la aldea ──
         g.girlNear += ((gd < 6 ? 1 : 0) - g.girlNear) * damp(1.5, dt)
@@ -245,7 +252,7 @@ export function GameLoop() {
 
         // ── Las dos piedras de la plaza: el gran farol sube si están pisadas a la vez ──
         if (g.story === 'plates' && g.time - g.awakeAt > 5) setUi({ msg: null })
-        if (g.story === 'plates' || g.story === 'next') {
+        if (g.story !== 'seek' && g.story !== 'help' && g.story !== 'fear') {
           PLATES.forEach((pl, i) => {
             const me = Math.hypot(g.x - pl.x, g.z - pl.z) < PLATE_R && g.jumpY < 0.15
             const sh = g.shadowOn && Math.hypot(shadow.x - pl.x, shadow.z - pl.z) < PLATE_R && shadow.jumpY < 0.15
@@ -253,7 +260,7 @@ export function GameLoop() {
           })
           if (g.story === 'plates' && g.plates.every(Boolean)) {
             // ¡sube! y los faroles de la aldea se encienden en cadena desde la plaza
-            g.story = 'next'
+            g.story = 'music'
             g.liftAt = g.awakeAt = g.time
             g.lightAwake = true
             g.pulse = 1
@@ -262,7 +269,75 @@ export function GameLoop() {
             setUi({ goal: GOAL_HELP, msg: LIT_MSG })
           }
         }
-        if (g.story === 'next' && g.time - g.awakeAt > 5) setUi({ msg: null })
+        // ── La música escondida: tocar su melodía en las campanas; la sombra la repite detrás (canon) ──
+        if (g.story === 'music' || g.story === 'next') {
+          const since = g.time - g.awakeAt
+          if (g.story === 'music' && since > 5 && since < 5.2) setUi({ msg: MUSIC_HINT, goal: GOAL_MUSIC })
+          if (g.story === 'music' && since > 10 && since < 10.2) setUi({ msg: null })
+          const ring = (i: number, who: 1 | 2) => {
+            g.bellAt[i] = g.time
+            g.bellBy[i] = who
+            bell(NOTES[i], who === 2)
+          }
+          BELLS.forEach((b, i) => {
+            const me = Math.hypot(g.x - b.x, g.z - b.z) < BELL_R && g.jumpY < 0.2
+            if (me && !g.bellIn[i]) {
+              ring(i, 1)
+              g.mySeq.push(i)
+              if (g.mySeq.length > 8) g.mySeq.shift()
+            }
+            g.bellIn[i] = me
+            const sh = g.shadowOn && Math.hypot(shadow.x - b.x, shadow.z - b.z) < BELL_R && shadow.jumpY < 0.2
+            if (sh && !g.bellInShadow[i]) {
+              ring(i, 2)
+              g.shadowSeq.push(i)
+              if (g.shadowSeq.length > 8) g.shadowSeq.shift()
+            }
+            g.bellInShadow[i] = sh
+          })
+          const endsWith = (seq: number[]) => seq.length >= MELODY.length && MELODY.every((n, k) => seq[seq.length - MELODY.length + k] === n)
+
+          if (g.story === 'music') {
+            // ella toca su melodía a escondidas cada pocos segundos (si la elfa está cerca),
+            // y las campanas brillan suave con cada nota: así se ve qué campana es cada nota
+            const near = Math.hypot(g.x - MUSICIAN.x, g.z - MUSICIAN.z) < 16
+            if (near && g.time - g.tuneAt > 9 && since > 6) g.tuneAt = g.time
+            MELODY.forEach((n, k) => {
+              const at = g.tuneAt + 0.5 + k * 0.6
+              if (g.time - dt < at && g.time >= at) {
+                const dist = Math.hypot(g.x - MUSICIAN.x, g.z - MUSICIAN.z)
+                flute(NOTES[n], 0.45, Math.max(0.25, 1 - dist / 16))
+                g.bellAt[n] = g.time
+                g.bellBy[n] = 3
+              }
+            })
+            // la elfa tocó la melodía… y cuando su sombra la repite detrás, suenan las dos: ella se atreve
+            if (endsWith(g.mySeq) && endsWith(g.shadowSeq)) {
+              g.story = 'next'
+              g.freedAt = g.awakeAt = g.time
+              g.pulse = 1
+              g.c = Math.min(1, g.c + 0.15)
+              setUi({ msg: MUSIC_DONE, goal: GOAL_HELP })
+            }
+          }
+          // al salir, toca su melodía con la elfa y la sombra: tres voces en canon, dos veces
+          if (g.freedAt >= 0) {
+            for (let rep = 0; rep < 2; rep++)
+              MELODY.forEach((n, k) => {
+                const base = g.freedAt + 1.2 + rep * 3.2 + k * 0.6
+                for (const [off, voice] of [[0, 0], [1.2, 1], [2.4, 2]] as const) {
+                  const at = base + off
+                  if (g.time - dt < at && g.time >= at) {
+                    if (voice === 0) flute(NOTES[n], 0.5)
+                    else bell(NOTES[n], voice === 2)
+                    g.bellAt[n] = g.time
+                    g.bellBy[n] = voice === 0 ? 3 : voice === 1 ? 1 : 2
+                  }
+                }
+              })
+          }
+        }
+        if (g.story === 'next' && g.time - g.awakeAt > 6) setUi({ msg: null })
 
         if (g.z >= PATH_LEN - 0.01) setPhase('end')
         break

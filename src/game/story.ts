@@ -42,6 +42,13 @@ export const GOAL_LANTERN = 'Raise the great lantern: both stones at once.'
 /** Cuando sube el farol. "La aldea recuerda su luz." */
 export const LIT_MSG = 'The village remembers its light.'
 
+/** Después de subir el farol: se oye una melodía escondida. "Alguien toca música a escondidas…" */
+export const MUSIC_HINT = 'Someone is playing music in secret…'
+/** Objetivo: "Toca su melodía en las campanas de piedra." */
+export const GOAL_MUSIC = 'Play her melody on the stone bells.'
+/** Cuando la mujer sale a tocar. "Su música vuelve a la aldea." */
+export const MUSIC_DONE = 'Her music returns to the village.'
+
 /** Qué hay que hacer después de hablar con la niña. "Ayuda a la gente de la aldea." */
 export const GOAL_HELP = 'Help the people of the village.'
 
