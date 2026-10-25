@@ -16,7 +16,7 @@ export const GATE_HOLD = 1.6 // segundos insistiendo para usar la herramienta
 
 // ── Tiempos de las animaciones ───────────────────────────────────
 export const BIRTH_TIME = 2.2 // nace de la luz (en postura del niño)
-export const RISE_TIME = 2.2 // se incorpora desde la postura del niño
+export const RISE_TIME = 3.2 // se incorpora desde la postura del niño (animación "Standing Up")
 export const GATHER_TIME = 2.4 // agarra las herramientas
 export const LOOK_TIME = 2.6 // mira a los costados antes de andar
 export const LOOK_BACK_TIME = 1.6 // se gira, mira atrás y vuelve

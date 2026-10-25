@@ -12,6 +12,10 @@ Changes: mesh simplified and texture resized for real-time use.
 **Stylized Nature MegaKit** — by [Quaternius](https://quaternius.com) (CC0 1.0)
 Trees, plants, flowers, rocks and path stones. Textures resized for real-time use.
 
+## Animation
+
+Character animations (walk, run, idle, looking around, standing up) from [Mixamo](https://www.mixamo.com) by Adobe, retargeted to the character.
+
 ## AI disclosure
 
 This game contains AI-generated content: parts of the code were written with the help of Claude (AI).

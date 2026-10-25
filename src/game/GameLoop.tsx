@@ -77,7 +77,7 @@ export function GameLoop() {
         if (forward) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
 
-        const target = forward ? 0.9 + 3.4 * g.c : 0 // metros por segundo
+        const target = forward ? 0.85 + 2.15 * g.c : 0 // metros por segundo (caminar 0.85 → correr 3)
         g.speed += (target - g.speed) * damp(5, dt)
 
         // ¿Hay un obstáculo más adelante?
@@ -119,7 +119,7 @@ export function GameLoop() {
         // Llega arriba… y descubre que hay más camino. Sigue corriendo.
         g.blocked = false
         g.c += (1 - g.c) * dt
-        g.speed += (3.2 - g.speed) * damp(2, dt)
+        g.speed += (2.8 - g.speed) * damp(2, dt)
         g.p = Math.min(g.p + g.speed * dt, PATH_END - 4)
         // "Siempre hay un paso más."
         if (g.phaseT > 2.5 && g.phaseT <= 8) setUi({ msg: 'There is always one more step.' })
