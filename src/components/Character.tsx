@@ -113,9 +113,11 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
   // Montaje: cuerpo + ropa + pelo sobre un solo esqueleto, y orejas en la cabeza
   const { model, bones, axes } = useMemo(() => {
-    // la sombra usa copias (los modelos originales son de la elfa)
+    // la sombra usa copias (los modelos originales son de la elfa).
+    // La ropa y el pelo se copian sin su esqueleto: abajo se atan por nombre a los huesos del cuerpo copiado
+    // (la elfa ya los ató a SU cuerpo, y SkeletonUtils no encontraría esos huesos dentro de la ropa)
     const [bodyS, outfitS, hairS] = echo
-      ? [cloneSkinned(bodyG.scene), cloneSkinned(outfitG.scene), cloneSkinned(hairG.scene)]
+      ? [cloneSkinned(bodyG.scene), outfitG.scene.clone(), hairG.scene.clone()]
       : [bodyG.scene, outfitG.scene, hairG.scene]
     if (echo) {
       // (si la copia ya trae las orejas de la elfa, se quitan: se añaden abajo)
