@@ -80,11 +80,16 @@ export function CameraRig() {
       if (first) endSide.current = perp.dot(tmpV.copy(camera.position).sub(mid)) >= 0 ? 1 : -1
       const T = g.phaseT
       const close = clamp01((T - 4) / 2) // se acerca para el abrazo
-      target.copy(mid).addScaledVector(perp, (3.4 - close * 1.2) * endSide.current)
+      target.copy(mid).addScaledVector(perp, (3.2 - close * 1.1) * endSide.current)
       target.y = 1.1 - close * 0.35
       look.set(mid.x, 0.7 - close * 0.15, mid.z)
-      camera.position.lerp(target, damp(first ? 20 : 1.6, dt))
-      lookSmooth.current.lerp(look, damp(first ? 20 : 2, dt))
+      if (first) {
+        // corte de cámara al plano de las dos
+        camera.position.copy(target)
+        lookSmooth.current.copy(look)
+      }
+      camera.position.lerp(target, damp(1.6, dt))
+      lookSmooth.current.lerp(look, damp(2, dt))
       camera.lookAt(lookSmooth.current)
       input.camYaw = headingAt(g.z) // (al levantarse, la cámara vuelve detrás, mirando hacia adelante)
       return
