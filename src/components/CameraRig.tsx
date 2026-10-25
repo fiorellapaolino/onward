@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { clamp01, damp } from '../game/config'
+import { GIRL_S, clamp01, damp, tangentAt } from '../game/config'
 import { game, input } from '../game/state'
 import { GIRL } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
@@ -47,10 +47,10 @@ export function CameraRig() {
       const k = g.time - g.giftAt
       mid.set((g.x + GIRL.x) / 2, 0, (g.z + GIRL.z) / 2)
       perp.set(GIRL.z - g.z, 0, -(GIRL.x - g.x)).normalize()
-      // del lado en que ya está la cámara (sin saltar al otro lado)
-      if (cineSide.current === 0) cineSide.current = perp.dot(tmpV.copy(camera.position).sub(mid)) >= 0 ? 1 : -1
+      // del lado de la aldea (ahí solo hay pasto: nada tapa la vista)
+      if (cineSide.current === 0) cineSide.current = perp.dot(tangentAt(GIRL_S, tmpV)) >= 0 ? 1 : -1
       const rise = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 3))
-      const dist = 1.9 + rise * 0.9
+      const dist = 1.7 + rise * 0.8
       target.copy(mid).addScaledVector(perp, dist * cineSide.current)
       target.y = 0.85 + rise * 0.3
       camera.position.lerp(target, damp(2.2, dt))

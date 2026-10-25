@@ -153,7 +153,7 @@ export function inBox(b: { x: number; z: number; rot: number; hx: number; hz: nu
 export function blockedByVillage(x: number, z: number) {
   for (const b of BOXES) if (inBox(b, x, z, 0.6)) return true
   if (Math.hypot(x - GIRL_TREE.x, z - GIRL_TREE.z) < 2.2) return true
-  if (Math.hypot(x - GIRL.x, z - GIRL.z) < 2) return true // (sin pasto alto que la tape)
+  if (Math.hypot(x - GIRL.x, z - GIRL.z) < 3.5) return true // (sin plantas que la tapen: ahí se ve la escena de la semilla)
   if (Math.hypot(x - ELDER.x, z - ELDER.z) < 1.2) return true
   return false
 }
