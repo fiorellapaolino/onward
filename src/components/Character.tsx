@@ -34,6 +34,10 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0)
 const TMP_V = new THREE.Vector3()
 const TMP_V3 = new THREE.Vector3()
 const TMP_V4 = new THREE.Vector3()
+const TMP_P1 = new THREE.Vector3()
+const TMP_P2 = new THREE.Vector3()
+// cuánto se mueven los gestos de la cabeza al nacer (1 = los ángulos de HEAD_KEYS)
+const HEAD_SCALE = 0.5
 const TMP_Q = new THREE.Quaternion()
 const TMP_Q2 = new THREE.Quaternion()
 const TMP_Q3 = new THREE.Quaternion()
@@ -300,10 +304,15 @@ export function Character() {
       root.current.updateMatrixWorld(true)
       const right = TMP_V4.copy(X_AXIS).applyQuaternion(root.current.quaternion)
       const fwd = TMP_V3.copy(Z_AXIS).applyQuaternion(root.current.quaternion)
-      rotateBoneWorld(bones.neck_01, Y_AXIS, yaw * 0.35 * fade)
-      rotateBoneWorld(bones.Head, Y_AXIS, yaw * 0.65 * fade)
-      rotateBoneWorld(bones.Head, right, pitch * fade)
-      rotateBoneWorld(bones.Head, fwd, roll * fade)
+      // girar sobre el eje de su propio cuello (no el vertical del mundo: está inclinada y la retorcería)
+      bones.neck_01.getWorldPosition(TMP_P1)
+      bones.Head.getWorldPosition(TMP_P2)
+      const neckUp = TMP_P2.sub(TMP_P1).normalize()
+      const k = HEAD_SCALE * fade
+      rotateBoneWorld(bones.neck_01, neckUp, yaw * 0.4 * k)
+      rotateBoneWorld(bones.Head, neckUp, yaw * 0.6 * k)
+      rotateBoneWorld(bones.Head, right, pitch * k)
+      rotateBoneWorld(bones.Head, fwd, roll * k)
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
