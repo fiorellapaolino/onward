@@ -1,4 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
 guide ?at=20   14
-spot ?at=62&gift&dx=1&yaw=0.6   14
-jump ?at=20   12   state:0,Space:60,wait:500,state:1
+spot ?at=60&gift   14
+spotin ?at=60&gift   10   KeyD:900,wait:6000

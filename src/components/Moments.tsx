@@ -488,7 +488,7 @@ useGLTF.preload(TREE_URL)
  * al entrar se ilumina, y se va llenando mientras está quieta (así se entiende sin leer
  * que hay que esperar). Cuando baja la semilla se llena del todo y se apaga.
  */
-const RING_GEO = new THREE.RingGeometry(SPOT_R * 0.9, SPOT_R, 48).rotateX(-Math.PI / 2)
+const RING_GEO = new THREE.RingGeometry(SPOT_R * 0.78, SPOT_R, 48).rotateX(-Math.PI / 2)
 const FILL_GEO = new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2)
 type SpotState = { show: boolean; still: number; fall: number }
 function StillSpot({ at, state }: { at: { x: number; z: number }; state: () => SpotState }) {
@@ -498,9 +498,9 @@ function StillSpot({ at, state }: { at: { x: number; z: number }; state: () => S
   const tex = useGlowTexture()
   const mats = useMemo(
     () => ({
-      ring: new THREE.MeshBasicMaterial({ color: '#ffe2a6', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
-      fill: new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
-      glow: new THREE.SpriteMaterial({ map: tex, color: '#ffe2a6', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+      ring: new THREE.MeshBasicMaterial({ color: '#fff1c9', transparent: true, opacity: 0, depthWrite: false }),
+      fill: new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false }),
+      glow: new THREE.SpriteMaterial({ map: tex, color: '#ffe9b8', transparent: true, opacity: 0, depthWrite: false }),
     }),
     [tex],
   )
@@ -517,18 +517,18 @@ function StillSpot({ at, state }: { at: { x: number; z: number }; state: () => S
     prog.current += (p - prog.current) * Math.min(1, dt * 6)
     const v = vis.current
     const beat = 0.5 + 0.5 * Math.sin(g.time * 2.4)
-    mats.ring.opacity = v * (inside ? 0.95 : 0.45 + 0.35 * beat)
+    mats.ring.opacity = v * (inside ? 1 : 0.6 + 0.35 * beat)
     ring.current.scale.setScalar(inside ? 1 : 1 + 0.06 * beat)
-    mats.fill.opacity = v * 0.45
-    fill.current.scale.setScalar(Math.max(0.001, SPOT_R * 0.9 * prog.current))
-    mats.glow.opacity = v * (inside ? 0.55 : 0.25 + 0.15 * beat)
+    mats.fill.opacity = v * 0.6
+    fill.current.scale.setScalar(Math.max(0.001, SPOT_R * 0.78 * prog.current))
+    mats.glow.opacity = v * (inside ? 0.5 : 0.3 + 0.15 * beat)
     ring.current.visible = fill.current.visible = glow.current.visible = v > 0.01
   })
   return (
     <group position={[at.x, 0.03, at.z]}>
       <mesh ref={ring} geometry={RING_GEO} material={mats.ring} renderOrder={2} />
       <mesh ref={fill} geometry={FILL_GEO} material={mats.fill} position-y={0.005} renderOrder={2} />
-      <sprite ref={glow} material={mats.glow} position-y={0.5} scale={[2.2, 1.4, 1]} />
+      <sprite ref={glow} material={mats.glow} position-y={0.9} scale={[1.6, 2.4, 1]} />
     </group>
   )
 }

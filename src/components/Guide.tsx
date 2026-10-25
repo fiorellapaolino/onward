@@ -55,9 +55,9 @@ export function Guide() {
   const trail = useRef<(THREE.Sprite | null)[]>([])
   const mats = useMemo(
     () => ({
-      core: new THREE.SpriteMaterial({ map: tex, color: '#fff6dc', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
-      halo: new THREE.SpriteMaterial({ map: tex, color: '#ffd98a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
-      trail: new THREE.SpriteMaterial({ map: tex, color: '#ffe7b0', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+      core: new THREE.SpriteMaterial({ map: tex, color: '#fffaf0', transparent: true, opacity: 0, depthWrite: false }),
+      halo: new THREE.SpriteMaterial({ map: tex, color: '#ffc95e', transparent: true, opacity: 0, depthWrite: false }),
+      trail: new THREE.SpriteMaterial({ map: tex, color: '#ffe7b0', transparent: true, opacity: 0, depthWrite: false }),
     }),
     [tex],
   )
@@ -115,15 +115,15 @@ export function Guide() {
     halo.current.position.copy(st.pos)
     light.current.position.copy(st.pos)
     mats.core.opacity = v * 0.95
-    mats.halo.opacity = v * 0.35 * beat
-    mats.trail.opacity = v * 0.25
-    halo.current.scale.setScalar(0.9 * beat)
+    mats.halo.opacity = v * 0.55 * beat
+    mats.trail.opacity = v * 0.5
+    halo.current.scale.setScalar(1.1 * beat)
     light.current.intensity = v * 0.9
     trail.current.forEach((o, i) => {
       if (!o) return
       const h = st.hist[Math.min(st.hist.length - 1, (i + 1) * 2 - 1)] ?? st.pos
       o.position.copy(h)
-      o.scale.setScalar(0.16 * (1 - (i + 1) / (TRAIL + 1)))
+      o.scale.setScalar(0.3 * (1 - (i + 1) / (TRAIL + 1)))
     })
     core.current.visible = halo.current.visible = v > 0.01
     trail.current.forEach((o) => o && (o.visible = v > 0.01))
@@ -131,7 +131,7 @@ export function Guide() {
 
   return (
     <group>
-      <sprite ref={core} material={mats.core} scale={0.22} />
+      <sprite ref={core} material={mats.core} scale={0.38} />
       <sprite ref={halo} material={mats.halo} scale={0.9} />
       {Array.from({ length: TRAIL }, (_, i) => (
         <sprite key={i} ref={(el) => (trail.current[i] = el)} material={mats.trail} />
