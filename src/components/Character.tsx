@@ -31,7 +31,6 @@ const pos = new THREE.Vector3()
 const X_AXIS = new THREE.Vector3(1, 0, 0)
 const Z_AXIS = new THREE.Vector3(0, 0, 1)
 const TMP_V = new THREE.Vector3()
-const TMP_V2 = new THREE.Vector3()
 const TMP_V3 = new THREE.Vector3()
 const TMP_Q = new THREE.Quaternion()
 const TMP_Q2 = new THREE.Quaternion()
@@ -75,7 +74,7 @@ export function Character() {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, prevSpeed: 0, accel: 0, yawRate: 0 })
+  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, lookOn: false })
   const S = useMemo(() => ({ base: makeSample(), tmp: makeSample(), tmp2: makeSample(), smooth: makeSample() }), [])
 
   const bodyG = useGLTF(BODY_URL)
@@ -158,8 +157,11 @@ export function Character() {
     a.run += (smoothstep(1.5, 2.6, g.speed) - a.run) * damp(4, dt) // 0 camina → 1 corre
 
     // mirar alrededor: al empezar, y cuando se detiene a dudar (al 65%: el original gira mucho)
-    const lookTarget = g.phase === 'look' || (g.phase === 'play' && (g.idle > 0.6 || g.blocked)) ? 0.65 : 0
-    a.look += (lookTarget - a.look) * damp(3, dt)
+    // (con margen: se activa tras 1 s quieta y no se apaga hasta que de verdad camina, sin parpadeos)
+    if (g.phase === 'look' || (g.phase === 'play' && (g.idle > 1 || g.blocked))) a.lookOn = true
+    else if (g.speed > 0.4 || g.phase !== 'play') a.lookOn = false
+    const lookTarget = a.lookOn ? 0.65 : 0
+    a.look += (lookTarget - a.look) * damp(2.5, dt)
     if (a.look > 0.01) a.lookT += dt
     else a.lookT = 0
 
@@ -205,17 +207,13 @@ export function Character() {
     }
     body.current.position.lerp(TMP_V.copy(base.offset).multiplyScalar(WS), snap ? 1 : damp(20, dt))
 
-    // Peso del cuerpo: se inclina hacia delante al arrancar (atrás al frenar) y hacia dentro en las curvas
-    a.accel += ((g.speed - a.prevSpeed) / Math.max(dt, 1e-3) - a.accel) * damp(5, dt)
-    a.prevSpeed = g.speed
-    const yawRate = (headingAt(g.p + 0.5) - headingAt(g.p)) * 2 * g.speed // radianes por segundo
-    a.yawRate += (yawRate - a.yawRate) * damp(4, dt)
-    if (!snap) {
+    // Peso del cuerpo: se ladea un poco hacia dentro en las curvas del sendero (muy suavizado, sin tirones)
+    const yawRate = (headingAt(g.p + 1) - headingAt(g.p)) * Math.min(g.speed, 3) // radianes por segundo
+    a.yawRate += (yawRate - a.yawRate) * damp(1.5, dt)
+    if (!snap && a.move > 0.01) {
       root.current.updateMatrixWorld(true)
-      const right = TMP_V2.copy(X_AXIS).applyQuaternion(root.current.quaternion)
       const fwd = TMP_V3.copy(Z_AXIS).applyQuaternion(root.current.quaternion)
-      rotateBoneWorld(bones.spine_01, right, THREE.MathUtils.clamp(a.accel * 0.05, -0.1, 0.14))
-      rotateBoneWorld(bones.pelvis, fwd, THREE.MathUtils.clamp(-a.yawRate * 0.12, -0.08, 0.08) * a.move)
+      rotateBoneWorld(bones.pelvis, fwd, THREE.MathUtils.clamp(-a.yawRate * 0.1, -0.06, 0.06) * a.move)
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
