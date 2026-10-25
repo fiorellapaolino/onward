@@ -65,7 +65,9 @@ export function Tools() {
         case 'around': {
           aroundPos(k, obj.position)
           // aparecen un poco después de que nace
-          scale = g.phase === 'intro' ? clamp01((g.phaseT - BIRTH_TIME * 0.4) / 1.2) : 1
+          // aparecen poco a poco desde que nace (sin saltos al pasar de una fase a otra)
+          const since = g.phase === 'intro' ? g.phaseT : g.phase === 'rise' ? BIRTH_TIME * 0.9 + g.phaseT : 99
+          scale = clamp01((since - 0.3) / 1.2)
           break
         }
         case 'flyingIn': {
