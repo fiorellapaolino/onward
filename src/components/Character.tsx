@@ -174,9 +174,10 @@ export function Character() {
     if (a.look > 0.01) a.lookT += dt
     else a.lookT = 0
 
-    // postura del niño al nacer → se incorpora con la animación "Standing Up"
-    const childW = g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01(g.phaseT / 0.8)) : 0
-    const standW = g.phase === 'rise' ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.85) / (RISE_TIME * 0.15))) : 0
+    // Al nacer está en la pose inicial de "Standing Up" (de rodillas); al empezar, se levanta con esa animación
+    const childW = 0 // (postura del niño desactivada; se puede volver a usar cambiando este valor)
+    const standW =
+      g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.85) / (RISE_TIME * 0.15))) : 0
 
     // pose del Mago: al terminar de incorporarse alza el brazo, hasta que agarra las herramientas
     const magoTarget = (g.phase === 'rise' && g.phaseT > RISE_TIME * 0.8) || (g.phase === 'gather' && g.phaseT < 1.6) ? 1 : 0
@@ -196,8 +197,10 @@ export function Character() {
       blendInto(base, loco, a.move)
     }
     if (standW > 0.001) {
-      const t = (g.phaseT / RISE_TIME) * duration(CLIPS.standup)
+      const t = g.phase === 'rise' ? (g.phaseT / RISE_TIME) * duration(CLIPS.standup) : 0
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
+      // respira mientras espera de rodillas
+      if (g.phase === 'intro') base.q.spine?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, Math.sin(g.time * 1.7) * 0.03))
     }
     if (childW > 0.001) {
       blendInto(base, CHILD, childW)
