@@ -7,7 +7,7 @@ import {
 import * as THREE from 'three'
 import { ECHO_DELAY, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime } from './music'
-import { COLLIDERS, ELDER, GIRL, LANTERNS, PLATES, PLATE_R, POLE } from './village'
+import { BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, PLATES, PLATE_R, POLE } from './village'
 import {
   ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_LANTERN, LIT_MSG, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
@@ -181,6 +181,23 @@ export function GameLoop() {
           if (cd < c.r && cd > 1e-4) {
             g.x = c.x + (cdx / cd) * c.r
             g.z = c.z + (cdz / cd) * c.r
+          }
+        }
+        // las casas: rectángulos girados; si queda dentro, sale por el lado más cercano
+        for (const b of BOXES) {
+          const dx = g.x - b.x
+          const dz = g.z - b.z
+          const c = Math.cos(b.rot)
+          const s = Math.sin(b.rot)
+          let lx = dx * c - dz * s
+          let lz = dx * s + dz * c
+          const px = b.hx - Math.abs(lx)
+          const pz = b.hz - Math.abs(lz)
+          if (px > 0 && pz > 0) {
+            if (px < pz) lx = Math.sign(lx || 1) * b.hx
+            else lz = Math.sign(lz || 1) * b.hz
+            g.x = b.x + lx * c + lz * s
+            g.z = b.z - lx * s + lz * c
           }
         }
         const gd = Math.hypot(g.x - GIRL.x, g.z - GIRL.z)

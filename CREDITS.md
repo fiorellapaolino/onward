@@ -8,6 +8,9 @@ Fiorella Paolino
 **Universal Base Characters** and **Modular Character Outfits – Fantasy** — by [Quaternius](https://quaternius.com) (CC0 1.0)
 Character body, Ranger outfit and hairstyle. Recolored; elf ears added.
 
+**Medieval Village MegaKit** — by [Quaternius](https://quaternius.com) (CC0 1.0)
+Village houses, assembled from the kit's modular pieces. Textures resized for real-time use.
+
 **Stylized Nature MegaKit** — by [Quaternius](https://quaternius.com) (CC0 1.0)
 Trees, plants, flowers, rocks and path stones. Textures resized for real-time use.
 

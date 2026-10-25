@@ -1,3 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-girlfront  ?at=62&dx=-1.5&yaw=1.15&zoom=0.6&noelf   15
-girlside   ?at=66&dx=1.8&yaw=3.3&zoom=0.45&noelf   15
+village   ?at=55   15
+village2  ?at=70&yaw=0.6&zoom=1.3   15
+elder     ?at=66&dx=-0.5&yaw=-0.9&zoom=0.8   15

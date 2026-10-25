@@ -8,12 +8,13 @@ import { ELDER, GIRL, GIRL_TREE, LANTERNS, PLATES, PLATE_R, POLE, buildHuts, typ
 import { useGlowTexture } from './TheLight'
 
 /*
- * La aldea: casitas redondas con techo de paja, faroles apagados y una sombra
- * que la cubre. A la salida, la sombra es tan espesa que no se puede pasar.
- * (Las casas y faroles están hechos con formas simples, no con modelos.)
+ * La aldea: casas de entramado y piedra (Medieval Village MegaKit de Quaternius, CC0),
+ * faroles apagados y una sombra que la cubre. A la salida, la sombra es tan espesa que no se puede pasar.
+ * (Los faroles, el poste y la piedra están hechos con formas simples.)
  */
 
 const TREE_URL = natureUrl('CommonTree_3')
+const HOUSES_URL = `${import.meta.env.BASE_URL}models/village/houses.gltf`
 
 // Materiales compartidos (sombreado plano: se ve "hecho a mano", como el resto del bosque)
 const mats = {
@@ -23,8 +24,6 @@ const mats = {
   thatch: new THREE.MeshStandardMaterial({ color: '#9a7a45', roughness: 1, flatShading: true }),
   thatchDark: new THREE.MeshStandardMaterial({ color: '#7d6136', roughness: 1, flatShading: true }),
   stone: new THREE.MeshStandardMaterial({ color: '#8d8a84', roughness: 1, flatShading: true }),
-  // ventanas: apagadas; se van encendiendo a medida que la elfa enciende los faroles
-  window: new THREE.MeshStandardMaterial({ color: '#2a2833', roughness: 0.4, emissive: '#ffb45e', emissiveIntensity: 0 }),
 }
 const GLASS_OFF = new THREE.Color('#2a2833')
 const GLASS_ON = new THREE.Color('#ffe2b0')
@@ -33,19 +32,25 @@ const GLASS_ON = new THREE.Color('#ffe2b0')
 export function Village() {
   const huts = useMemo(buildHuts, [])
   const { scene: tree } = useGLTF(TREE_URL)
+  const { materials } = useGLTF(HOUSES_URL)
 
-  // las ventanas se encienden con los faroles
+  // las ventanas de las casas: oscuras mientras la sombra cubre la aldea; se encienden con los faroles
+  const glass = materials.MI_WindowGlass as THREE.MeshStandardMaterial | undefined
   useFrame((_, rawDt) => {
+    if (!glass) return
     const dt = Math.min(rawDt, 0.05)
-    const target = litFraction() * 1.6
-    mats.window.emissiveIntensity += (target - mats.window.emissiveIntensity) * damp(1.5, dt)
-    mats.window.color.lerpColors(GLASS_OFF, GLASS_ON, Math.min(1, mats.window.emissiveIntensity))
+    const on = litFraction()
+    glass.emissive.set('#ffb45e')
+    glass.emissiveIntensity += (on * 1.8 - glass.emissiveIntensity) * damp(1.5, dt)
+    glass.color.lerpColors(GLASS_OFF, GLASS_ON, Math.min(1, on))
+    glass.opacity = 0.75 + 0.25 * on
+    glass.transparent = true
   })
 
   return (
     <group>
       {huts.map((h, i) => (
-        <HutMesh key={i} hut={h} />
+        <HouseMesh key={i} hut={h} />
       ))}
       {LANTERNS.map((l, i) => (
         <LanternPost key={i} lantern={l} index={i} />
@@ -155,65 +160,13 @@ function LanternLamp({ position, isLit }: { position: [number, number, number]; 
   )
 }
 
-/** Una casita: base de piedra, paredes encaladas con vigas, techo cónico de paja, puerta y ventana. */
-function HutMesh({ hut }: { hut: Hut }) {
-  const { tilt, roofH, beams } = useMemo(() => {
-    const r = rng(hut.seed)
-    return {
-      tilt: (r() - 0.5) * 0.08,
-      roofH: 1.9 + r() * 0.6,
-      beams: Array.from({ length: 8 }, (_, k) => (k / 8) * Math.PI * 2 + Math.PI / 8),
-    }
-  }, [hut.seed])
-  const R = 1.5
-  const WALL = 1.7
-  return (
-    <group position={[hut.x, 0, hut.z]} rotation-y={hut.rot} scale={hut.scale}>
-      <mesh material={mats.stone} position={[0, 0.12, 0]}>
-        <cylinderGeometry args={[R + 0.12, R + 0.18, 0.24, 14]} />
-      </mesh>
-      <mesh material={mats.plaster} position={[0, 0.24 + WALL / 2, 0]}>
-        <cylinderGeometry args={[R, R, WALL, 14]} />
-      </mesh>
-      {beams.map((a, k) => (
-        <mesh key={k} material={mats.wood} position={[Math.sin(a) * (R + 0.02), 0.24 + WALL / 2, Math.cos(a) * (R + 0.02)]} rotation-y={a}>
-          <boxGeometry args={[0.13, WALL, 0.08]} />
-        </mesh>
-      ))}
-      {/* viga alrededor, bajo el techo */}
-      <mesh material={mats.wood} position={[0, 0.24 + WALL - 0.08, 0]}>
-        <cylinderGeometry args={[R + 0.06, R + 0.06, 0.16, 14]} />
-      </mesh>
-      {/* techo de paja en dos capas, algo torcido */}
-      <group position={[0, 0.24 + WALL, 0]} rotation={[tilt, 0, tilt * 0.7]}>
-        <mesh material={mats.thatch} position={[0, roofH / 2 - 0.1, 0]}>
-          <coneGeometry args={[R + 0.6, roofH, 12]} />
-        </mesh>
-        <mesh material={mats.thatchDark} position={[0, -0.12, 0]}>
-          <cylinderGeometry args={[R + 0.55, R + 0.68, 0.22, 12]} />
-        </mesh>
-        <mesh material={mats.darkWood} position={[0, roofH - 0.05, 0]}>
-          <cylinderGeometry args={[0.04, 0.06, 0.4, 5]} />
-        </mesh>
-      </group>
-      {/* puerta, mirando al sendero */}
-      <mesh material={mats.darkWood} position={[0, 0.24 + 0.62, R - 0.02]}>
-        <boxGeometry args={[0.72, 1.24, 0.12]} />
-      </mesh>
-      <mesh material={mats.wood} position={[0, 0.24 + 1.28, R + 0.02]}>
-        <boxGeometry args={[0.9, 0.1, 0.12]} />
-      </mesh>
-      {/* ventana a un lado */}
-      <group rotation-y={1.1}>
-        <mesh material={mats.window} position={[0, 0.24 + 1.0, R - 0.01]}>
-          <boxGeometry args={[0.42, 0.38, 0.06]} />
-        </mesh>
-        <mesh material={mats.wood} position={[0, 0.24 + 1.0, R + 0.03]}>
-          <boxGeometry args={[0.06, 0.44, 0.06]} />
-        </mesh>
-      </group>
-    </group>
-  )
+/**
+ * Una casa del kit (Medieval Village MegaKit de Quaternius, CC0), ya armada por tools/bake_houses.py.
+ * Las copias comparten geometría y materiales con el original.
+ */
+function HouseMesh({ hut }: { hut: Hut }) {
+  const { nodes } = useGLTF(HOUSES_URL)
+  return <Clone object={nodes['House_' + hut.type]} position={[hut.x, 0, hut.z]} rotation-y={hut.rot} scale={hut.scale} />
 }
 
 /*
@@ -443,3 +396,4 @@ function Square() {
 }
 
 useGLTF.preload(TREE_URL)
+useGLTF.preload(HOUSES_URL)
