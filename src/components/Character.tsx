@@ -403,7 +403,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
       light.current.intensity = 0 // la sombra no da luz
       return
     }
-    light.current.intensity = (1.2 + g.c * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
+    light.current.intensity = (1.2 + g.c * 3 + g.spark * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
   })
 
   return (

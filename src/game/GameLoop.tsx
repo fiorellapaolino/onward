@@ -13,6 +13,7 @@ import {
   ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
+import { updateMoments } from './moments'
 
 const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
@@ -338,6 +339,9 @@ export function GameLoop() {
           }
         }
         if (g.story === 'next' && g.time - g.awakeAt > 6) setUi({ msg: null })
+
+        // ── Momentos de estar viva (semilla, charcos, luciérnagas, flores…) ──
+        updateMoments(dt)
 
         if (g.z >= PATH_LEN - 0.01) setPhase('end')
         break

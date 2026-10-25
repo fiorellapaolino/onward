@@ -16,6 +16,9 @@ const GROUND = ['#f2f7ee', '#ffffff', '#ffffff', '#fffbe8', '#fff4d6', '#ffefcc'
 // la sombra de la aldea apaga los colores: cielo gris, luz débil
 const GLOOM_SKY = new THREE.Color('#646a76')
 const GLOOM_GROUND = new THREE.Color('#9a9c9e')
+// sin chispa el mundo está algo apagado (menos color); cada momento vivido se lo devuelve
+const DULL_SKY = new THREE.Color('#b7bcc0')
+const DULL_GROUND = new THREE.Color('#c9cdc4')
 
 const tmp = new THREE.Color()
 
@@ -40,7 +43,9 @@ export function World() {
     gloomRef.current += (gloomTarget - gloomRef.current) * Math.min(1, dt * 1.2)
     const gl = gloomRef.current
 
+    const dull = 1 - Math.min(1, game.spark * 1.4)
     gradient(SKY, f, tmp)
+    tmp.lerp(DULL_SKY, dull * 0.45)
     tmp.lerp(GLOOM_SKY, gl * 0.8)
     if (scene.background instanceof THREE.Color) scene.background.copy(tmp)
     if (scene.fog instanceof THREE.Fog) {
@@ -54,7 +59,7 @@ export function World() {
       scene.fog.far = ((12 + o * 98) + f * 60) * (1 - 0.45 * gl)
     }
 
-    if (ground.current) gradient(GROUND, f, ground.current.color).lerp(GLOOM_GROUND, gl * 0.7)
+    if (ground.current) gradient(GROUND, f, ground.current.color).lerp(DULL_GROUND, dull * 0.35).lerp(GLOOM_GROUND, gl * 0.7)
     hemi.current.intensity = (1.6 + f * 0.4) * (1 - 0.45 * gl)
     sun.current.intensity = (2.6 + f * 0.8) * (1 - 0.6 * gl)
 

@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { PATH_END, PATH_LEN, VILLAGE_R, distToVillage, pathAt, rng, sideAt, smoothstep } from './config'
 import { blockedByVillage } from './village'
+import { MEADOW, MEADOW_R, SEED_TREE } from './moments'
 import { placeMatrix } from '../components/instancing'
 
 /*
@@ -47,12 +48,19 @@ function placer(out: Placement[], r: () => number, keep: Keep = () => true) {
 const oneOf = <T,>(list: T[], r: () => number) => list[Math.floor(r() * list.length)]
 
 // En el claro de la aldea no hay árboles (los grandes de las filas de atrás sí, rodeándola)
-const treeKeep: Keep = (x, z, model) => distToVillage(x, z) > VILLAGE_R + (model.startsWith('Twisted') ? 6 : 1)
+// (ni junto al árbol de las semillas ni dentro del prado de flores)
+const inMeadow = (x: number, z: number, extra = 0) => Math.hypot(x - MEADOW.x, z - MEADOW.z) < MEADOW_R + extra
+const treeKeep: Keep = (x, z, model) =>
+  distToVillage(x, z) > VILLAGE_R + (model.startsWith('Twisted') ? 6 : 1) &&
+  Math.hypot(x - SEED_TREE.x, z - SEED_TREE.z) > 3.5 &&
+  !inMeadow(x, z, 2.5)
 // Plantas: nunca encima de una casa; dentro de la aldea, solo pasto (nada de hongos, arbustos ni rocas)
 const plantKeep: Keep = (x, z, model) =>
-  !blockedByVillage(x, z) && (distToVillage(x, z) > VILLAGE_R || model.startsWith('Grass') || model === 'Clover_1')
+  !blockedByVillage(x, z) &&
+  (distToVillage(x, z) > VILLAGE_R || model.startsWith('Grass') || model === 'Clover_1') &&
+  (!inMeadow(x, z, 0.5) || model === 'Grass_Common_Short' || model === 'Grass_Wispy_Short')
 // Flores: la sombra las apagó
-const flowerKeep: Keep = (x, z) => distToVillage(x, z) > VILLAGE_R + 4
+const flowerKeep: Keep = (x, z) => distToVillage(x, z) > VILLAGE_R + 4 && !inMeadow(x, z, 1)
 
 export function buildTrees(): Placement[] {
   const r = rng(7)

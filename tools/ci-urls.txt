@@ -1,2 +1,5 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-bells   ?at=80&music&yaw=0.5&zoom=1.2   15
+seed     ?at=10&yaw=-0.6&zoom=1.1   15
+puddles  ?at=21&zoom=0.9   15
+grove    ?at=33&yaw=0.5   15
+meadow   ?at=45&yaw=-0.5&zoom=1.2   15

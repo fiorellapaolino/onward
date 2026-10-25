@@ -93,3 +93,41 @@ export function flute(freq: number, dur = 0.5, volume = 1) {
   o.stop(t + dur + 0.4)
   vib.stop(t + dur + 0.4)
 }
+
+/** Un momento vivido: un pequeño arpegio de campanas, hacia arriba. */
+export function chord() {
+  const a = audio()
+  if (!a) return
+  ;[0, 2, 4, 1].forEach((n, k) => setTimeout(() => bell(NOTES[n] * (k === 3 ? 2 : 1), k % 2 === 1), k * 140))
+}
+
+/** Salpicadura: ruido filtrado muy corto, con un "plop" grave. */
+export function splash() {
+  const a = audio()
+  if (!a || !master) return
+  const t = a.currentTime
+  const len = Math.floor(a.sampleRate * 0.45)
+  const buf = a.createBuffer(1, len, a.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3)
+  const src = a.createBufferSource()
+  src.buffer = buf
+  const bp = a.createBiquadFilter()
+  bp.type = 'bandpass'
+  bp.frequency.value = 1400
+  bp.Q.value = 0.7
+  const g = a.createGain()
+  g.gain.value = 0.7
+  src.connect(bp).connect(g).connect(master)
+  src.start(t)
+  // plop
+  const o = a.createOscillator()
+  const og = a.createGain()
+  o.frequency.setValueAtTime(380, t)
+  o.frequency.exponentialRampToValueAtTime(120, t + 0.12)
+  og.gain.setValueAtTime(0.35, t)
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.15)
+  o.connect(og).connect(master)
+  o.start(t)
+  o.stop(t + 0.2)
+}

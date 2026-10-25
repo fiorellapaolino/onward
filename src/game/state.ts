@@ -41,6 +41,7 @@ export const game = {
   z: 0,
   yaw: 0, // hacia dónde mira (radianes)
   c: 0, // confianza 0..1 → de dudar a correr
+  spark: 0, // 0..1: su chispa (momentos de estar viva que ha vivido); su luz y el color del mundo crecen con ella
   speed: 0, // metros por segundo
   idle: 0, // segundos sin moverse
   blocked: false, // empuja contra la sombra (no puede pasar)
