@@ -9,7 +9,7 @@ import { game, input, setUi } from './state'
  *   ?at=60&talk=2   … escuchando la frase 2 de la niña
  *   ?at=60&help     … después de hablar con la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
- *   ?at=66&lanterns … con la luz ya despierta, para encender los faroles
+ *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
  * Sin parámetros, el juego es normal.
  */
 const params = new URLSearchParams(location.search)
@@ -38,14 +38,16 @@ export function applyDebug() {
     game.girlNear = 1
     setUi({ say: GIRL_LINES[game.line] })
   }
-  if (params.has('help') || params.has('fear') || params.has('lanterns')) {
+  if (params.has('help') || params.has('fear') || params.has('plates')) {
     game.story = 'help'
     setUi({ goal: 'Help the people of the village.' })
   }
   if (params.has('fear')) game.story = 'fear'
-  if (params.has('lanterns')) {
-    game.story = 'lanterns'
-    game.lightAwake = true
+  if (params.has('plates')) {
+    game.story = 'plates'
+    game.shadowOn = true
+    game.shadowAt = game.time
+    setUi({ goal: 'Raise the great lantern: both stones at once.' })
   }
 }
 

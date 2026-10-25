@@ -78,6 +78,15 @@ export const ELDER = (() => {
   return { x: h.x + fx * d + fz * 0.8, z: h.z + fz * d - fx * 0.8, rot: h.rot }
 })()
 
+/*
+ * La plaza: el gran farol cuelga bajo, apagado, de un poste con una polea.
+ * Dos cuerdas bajan hasta dos piedras, una a cada lado del sendero:
+ * solo sube si se pisan las dos A LA VEZ (ella sola no llega: necesita a su sombra).
+ */
+export const POLE = besidePath(VILLAGE_S + 2.8, 1, 0.2)
+export const PLATES = [besidePath(VILLAGE_S - 2, 1, 2.6), besidePath(VILLAGE_S + 4, -1, 2.4)]
+export const PLATE_R = 0.75 // radio de cada piedra
+
 /** Cosas sólidas de la aldea (círculos en el suelo): la elfa no las atraviesa. */
 export const COLLIDERS: { x: number; z: number; r: number }[] = [
   ...buildHuts().map((h) => ({ x: h.x, z: h.z, r: 1.75 * h.scale })),
@@ -85,6 +94,7 @@ export const COLLIDERS: { x: number; z: number; r: number }[] = [
   { x: GIRL.x, z: GIRL.z, r: 0.75 },
   { x: ELDER.x, z: ELDER.z, r: 0.8 },
   ...LANTERNS.map((l) => ({ x: l.x, z: l.z, r: 0.2 })),
+  { x: POLE.x, z: POLE.z, r: 0.3 },
 ]
 
 /** ¿Este punto cae encima de una casa, del árbol de la niña o de ella? (para no poner plantas encima) */

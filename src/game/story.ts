@@ -25,19 +25,21 @@ export const ELDER_LINES = [
   'My lantern went out when the shadow came.',
   // "Soy viejo… y tengo miedo de salir ahí fuera."
   "I'm old… and I'm afraid to go out there.",
-  // "Sin luz, nadie encontrará el camino a casa."
-  'Without light, nobody will find the way home.',
+  // "El gran farol de la plaza se cayó. Hacen falta dos para subirlo…"
+  'The great lantern in the square fell. It takes two to raise it…',
+  // "…y aquí todos estamos solos."
+  '…and everyone here is alone.',
 ]
 
 /** La oscuridad la rodea. "Mantén E · Quédate" (en el móvil: mantén el dedo) */
 export const PROMPT_STAY = 'Stay'
 /** Mensaje mientras la rodea la oscuridad. "La oscuridad se acerca." */
 export const FEAR_MSG = 'The dark closes in.'
-/** Cuando despierta su luz. "Algo despierta dentro de ti." */
-export const AWAKE_MSG = 'Something wakes up inside you.'
-/** Encender los faroles. "Enciende los faroles" + contador */
-export const goalLanterns = (n: number, total: number) => `Light the lanterns  ${n} / ${total}`
-/** Cuando están todos encendidos. "La aldea recuerda su luz." */
+/** Cuando la oscuridad toma su forma. "Tu sombra despierta. Camina por donde tú caminaste." */
+export const SHADOW_MSG = 'Your shadow wakes up. It walks where you walked.'
+/** Objetivo con la sombra. "Sube el gran farol (pisa las dos piedras a la vez)" */
+export const GOAL_LANTERN = 'Raise the great lantern: both stones at once.'
+/** Cuando sube el farol. "La aldea recuerda su luz." */
 export const LIT_MSG = 'The village remembers its light.'
 
 /** Qué hay que hacer después de hablar con la niña. "Ayuda a la gente de la aldea." */

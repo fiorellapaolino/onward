@@ -3,7 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRTH_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
-import { game } from '../game/state'
+import { game, shadow } from '../game/state'
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { MUSIC, musicLevel } from '../game/music'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
 
@@ -85,7 +86,21 @@ function makeEar(side: 1 | -1, material: THREE.Material) {
   return ear
 }
 
-export function Character() {
+// Material de su sombra: casi negra, con un leve brillo violeta y algo transparente
+const SHADOW_MAT = new THREE.MeshStandardMaterial({
+  color: '#07060c',
+  emissive: '#2b1f48',
+  emissiveIntensity: 0.55,
+  roughness: 1,
+  transparent: true,
+  opacity: 0.82,
+  depthWrite: true,
+})
+
+/** Su sombra: el mismo personaje, oscuro, que repite lo que ella hizo segundos antes (state.shadow). */
+export const ShadowSelf = () => <Character echo />
+
+export function Character({ echo = false }: { echo?: boolean }) {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
@@ -98,18 +113,30 @@ export function Character() {
 
   // Montaje: cuerpo + ropa + pelo sobre un solo esqueleto, y orejas en la cabeza
   const { model, bones, axes } = useMemo(() => {
+    // la sombra usa copias (los modelos originales son de la elfa)
+    const [bodyS, outfitS, hairS] = echo
+      ? [cloneSkinned(bodyG.scene), cloneSkinned(outfitG.scene), cloneSkinned(hairG.scene)]
+      : [bodyG.scene, outfitG.scene, hairG.scene]
+    if (echo) {
+      // (si la copia ya trae las orejas de la elfa, se quitan: se añaden abajo)
+      const extra: THREE.Object3D[] = []
+      bodyS.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh && !(o as THREE.SkinnedMesh).isSkinnedMesh && (o.parent as THREE.Bone)?.isBone) extra.push(o)
+      })
+      extra.forEach((o) => o.removeFromParent())
+    }
     const model = new THREE.Group()
-    model.add(bodyG.scene, outfitG.scene, hairG.scene)
+    model.add(bodyS, outfitS, hairS)
     model.updateMatrixWorld(true)
 
     // huesos del cuerpo, por nombre
     const bones: Record<string, THREE.Bone> = {}
-    bodyG.scene.traverse((o) => {
+    bodyS.traverse((o) => {
       if ((o as THREE.Bone).isBone) bones[o.name] = o as THREE.Bone
     })
 
     // la ropa y el pelo pasan a usar los huesos del cuerpo
-    for (const part of [outfitG.scene, hairG.scene]) {
+    for (const part of [outfitS, hairS]) {
       part.traverse((o) => {
         const m = o as THREE.SkinnedMesh
         if (!m.isSkinnedMesh) return
@@ -126,11 +153,15 @@ export function Character() {
       if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace
       // el pelo y las cejas vienen en gris: les damos color
       if (mat.name.startsWith('MI_Hair')) mat.color.set(HAIR_COLOR)
+      if (echo) {
+        m.material = SHADOW_MAT
+        m.renderOrder = 1
+      }
     })
 
     // orejas de elfa pegadas al hueso de la cabeza
     const head = bones.Head
-    const skin = new THREE.MeshStandardMaterial({ color: SKIN_COLOR, roughness: 0.75 })
+    const skin = echo ? SHADOW_MAT : new THREE.MeshStandardMaterial({ color: SKIN_COLOR, roughness: 0.75 })
     const headInv = head.matrixWorld.clone().invert()
     for (const side of [1, -1] as const) {
       const ear = makeEar(side, skin)
@@ -154,12 +185,19 @@ export function Character() {
     const axes = { head: axesOf(bones.Head), neck: axesOf(bones.neck_01) }
 
     return { model, bones, axes }
-  }, [bodyG, outfitG, hairG])
+  }, [bodyG, outfitG, hairG, echo])
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
-    const g = game
+    // (la sombra lee el pasado de la elfa; solo se ve cuando ya nació)
+    const g = echo ? shadow : game
     const a = anim.current
+    if (echo) {
+      const born = game.shadowOn ? Math.min(1, (game.time - game.shadowAt) / 1.5) : 0
+      root.current.visible = born > 0
+      SHADOW_MAT.opacity = 0.82 * born
+      if (!born) return
+    }
 
     // ── Posición y hacia dónde mira ─────────────────────────────
     root.current.position.set(g.x, 0, g.z)
@@ -311,6 +349,10 @@ export function Character() {
     // con miedo su luz casi se apaga; al quedarse (mantener E) crece, y al despertar estalla
     const dim = 1 - 0.85 * g.fear * (1 - g.courage)
     const awake = Math.max(0, 1 - (g.time - g.awakeAt) / 2.5)
+    if (echo) {
+      light.current.intensity = 0 // la sombra no da luz
+      return
+    }
     light.current.intensity = (1.2 + g.c * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
   })
 

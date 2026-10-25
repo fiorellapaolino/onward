@@ -9,7 +9,7 @@ import { Flowers } from './components/Flowers'
 import { Village } from './components/Village'
 import { Elder, Girl } from './components/Villager'
 import { TheLight, OtherPaths } from './components/TheLight'
-import { Character } from './components/Character'
+import { Character, ShadowSelf } from './components/Character'
 import { Tools } from './components/Tools'
 import { CameraRig } from './components/CameraRig'
 import { Hud } from './components/Hud'
@@ -27,6 +27,7 @@ export default function App() {
         <CameraRig />
         <Suspense fallback={null}>
           <Character />
+          <ShadowSelf />
           <Girl />
           <Elder />
         </Suspense>

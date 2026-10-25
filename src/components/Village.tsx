@@ -4,7 +4,7 @@ import { Clone, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { SHADOW_S, VILLAGE_R, VILLAGE_S, damp, natureUrl, pathAt, rng, sideAt } from '../game/config'
 import { game, litFraction } from '../game/state'
-import { ELDER, GIRL_TREE, LANTERNS, buildHuts, type Hut, type Lantern } from '../game/village'
+import { ELDER, GIRL_TREE, LANTERNS, PLATES, PLATE_R, POLE, buildHuts, type Hut, type Lantern } from '../game/village'
 import { useGlowTexture } from './TheLight'
 
 /*
@@ -56,12 +56,13 @@ export function Village() {
         <mesh material={mats.wood} position={[0, 0.14, -0.05]}>
           <cylinderGeometry args={[0.2, 0.18, 0.28, 8]} />
         </mesh>
-        <LanternLamp position={[0.45, 0, 0.1]} isLit={() => (game.lightAwake ? game.awakeAt : -1)} />
+        <LanternLamp position={[0.45, 0, 0.1]} isLit={() => game.liftAt} />
       </group>
 
       {/* El árbol de la niña */}
       <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} />
 
+      <Square />
       <ShadowMist />
       <FearRing />
     </group>
@@ -102,7 +103,7 @@ function LanternLamp({ position, isLit }: { position: [number, number, number]; 
 
   useFrame(() => {
     const at = isLit()
-    if (at < 0) {
+    if (at < 0 || game.time < at) {
       glass.emissiveIntensity = 0
       glass.color.copy(GLASS_OFF)
       halo.opacity = 0
@@ -259,7 +260,7 @@ function ShadowMist() {
 
 /*
  * El miedo: cuando el anciano cuenta lo de la oscuridad, manchas de sombra rodean a la elfa
- * y se van cerrando. Si se queda (mantener E), su luz las empuja; al despertar, salen volando.
+ * y se van cerrando. Si se queda (mantener E), se cierran sobre ella y toman su forma: su sombra.
  */
 const RING = 22
 function FearRing() {
@@ -276,10 +277,11 @@ function FearRing() {
 
   useFrame(() => {
     const g = game
-    const blast = g.lightAwake ? Math.min(1, (g.time - g.awakeAt) / 1.2) : 0 // al despertar salen volando
-    const show = g.fear * (1 - blast)
+    // al quedarse, la oscuridad se cierra sobre ella y toma su forma (nace su sombra)
+    const gather = g.shadowOn ? Math.min(1, (g.time - g.shadowAt) / 1.2) : 0
+    const show = g.fear * (1 - gather * gather)
     material.opacity = 0.85 * show
-    const radius = (5.5 - 3.6 * g.fear) * (1 + g.courage * 0.6) + blast * 14
+    const radius = (5.5 - 3.6 * g.fear) * (1 - g.courage * 0.35) * (1 - gather)
     seeds.forEach((sd, i) => {
       const s = refs.current[i]
       if (!s) return
@@ -304,6 +306,118 @@ function FearRing() {
         />
       ))}
     </>
+  )
+}
+
+/*
+ * La plaza: un poste alto con una polea. El gran farol cuelga casi en el suelo, apagado.
+ * Dos cuerdas bajan hasta dos piedras redondas, una a cada lado del sendero.
+ * Cada piedra pisada tensa su cuerda y brilla; con una sola, el farol apenas se levanta y vuelve a caer.
+ * Con las dos a la vez, sube hasta arriba y se enciende.
+ */
+const POLE_H = 4.6
+const ARM = 1.1 // el brazo de la polea sale hacia el lado del sendero
+function Square() {
+  const tex = useGlowTexture()
+  const plateMats = useMemo(
+    () => PLATES.map(() => new THREE.MeshStandardMaterial({ color: '#8f8b84', roughness: 0.9, flatShading: true, emissive: '#c9a4ff', emissiveIntensity: 0 })),
+    [],
+  )
+  const ropeMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b39a6e', roughness: 1 }), [])
+  const lantern = useRef<THREE.Group>(null!)
+  const glass = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2a2833', emissive: '#ffb45e', emissiveIntensity: 0, roughness: 0.4 }), [])
+  const halo = useMemo(
+    () => new THREE.SpriteMaterial({ map: tex, color: '#ffc77a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+    [tex],
+  )
+  const light = useRef<THREE.PointLight>(null!)
+  const ropes = useRef<(THREE.Mesh | null)[]>([])
+  const H = useRef({ h: 0, press: [0, 0] })
+
+  // la punta del brazo (de donde cuelga el farol)
+  const tip = useMemo(() => new THREE.Vector3(POLE.x, POLE_H, POLE.z + ARM), [])
+  const up = new THREE.Vector3(0, 1, 0)
+
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05)
+    const g = game
+    const st = H.current
+    const pressedN = g.plates.filter(Boolean).length
+    // altura del farol: 0 en el suelo … 1 arriba
+    const target = g.liftAt >= 0 ? 1 : pressedN * 0.12
+    st.h += (target - st.h) * damp(g.liftAt >= 0 ? 1.2 : 4, dt)
+    const y = 0.35 + st.h * (POLE_H - 1.0)
+    lantern.current.position.set(tip.x, y, tip.z)
+    lantern.current.rotation.z = Math.sin(g.time * 1.3) * 0.04 * (1 - st.h * 0.5)
+
+    PLATES.forEach((pl, i) => {
+      st.press[i] += ((g.plates[i] ? 1 : 0) - st.press[i]) * damp(8, dt)
+      plateMats[i].emissiveIntensity = st.press[i] * 1.4 + (g.story === 'plates' ? 0.12 + 0.08 * Math.sin(g.time * 2 + i * 2) : 0)
+      // cada cuerda va del farol a su piedra (se ve tensa cuando la pisan)
+      const r = ropes.current[i]
+      if (!r) return
+      const from = new THREE.Vector3(tip.x, POLE_H, tip.z)
+      const to = new THREE.Vector3(pl.x, 0.25 - st.press[i] * 0.06, pl.z)
+      const mid = from.clone().add(to).multiplyScalar(0.5)
+      const len = from.distanceTo(to)
+      r.position.copy(mid)
+      r.quaternion.setFromUnitVectors(up, to.clone().sub(from).normalize())
+      r.scale.set(1, len, 1)
+    })
+
+    const on = g.liftAt >= 0 ? Math.min(1, (g.time - g.liftAt) / 1.2) : 0
+    glass.emissiveIntensity = on * 3
+    glass.color.lerpColors(GLASS_OFF, GLASS_ON, on)
+    halo.opacity = on * 0.9
+    light.current.intensity = on * 18
+  })
+
+  return (
+    <group>
+      {/* poste y brazo */}
+      <mesh material={mats.darkWood} position={[POLE.x, POLE_H / 2, POLE.z]}>
+        <cylinderGeometry args={[0.1, 0.16, POLE_H, 7]} />
+      </mesh>
+      <mesh material={mats.darkWood} position={[POLE.x, POLE_H - 0.05, POLE.z + ARM / 2]}>
+        <boxGeometry args={[0.1, 0.1, ARM + 0.2]} />
+      </mesh>
+      <mesh material={mats.wood} position={[POLE.x, POLE_H - 0.05, POLE.z + ARM]} rotation-z={Math.PI / 2}>
+        <cylinderGeometry args={[0.14, 0.14, 0.08, 10]} />
+      </mesh>
+      {/* el gran farol */}
+      <group ref={lantern}>
+        <mesh material={glass} position={[0, 0.35, 0]}>
+          <cylinderGeometry args={[0.24, 0.24, 0.5, 6]} />
+        </mesh>
+        <mesh material={mats.darkWood} position={[0, 0.7, 0]}>
+          <coneGeometry args={[0.36, 0.28, 6]} />
+        </mesh>
+        <mesh material={mats.darkWood} position={[0, 0.08, 0]}>
+          <cylinderGeometry args={[0.3, 0.26, 0.06, 6]} />
+        </mesh>
+        <sprite material={halo} position={[0, 0.35, 0]} scale={4} />
+        <pointLight ref={light} position={[0, 0.35, 0]} color="#ffcf8a" distance={22} intensity={0} />
+      </group>
+      {/* piedras y cuerdas */}
+      {PLATES.map((pl, i) => (
+        <group key={i}>
+          <mesh material={plateMats[i]} position={[pl.x, 0.06, pl.z]}>
+            <cylinderGeometry args={[PLATE_R, PLATE_R + 0.08, 0.14, 12]} />
+          </mesh>
+          <mesh material={mats.darkWood} position={[pl.x, 0.2, pl.z]}>
+            <cylinderGeometry args={[0.07, 0.09, 0.2, 6]} />
+          </mesh>
+          <mesh
+            ref={(el) => {
+              ropes.current[i] = el
+            }}
+            material={ropeMat}
+          >
+            <cylinderGeometry args={[0.018, 0.018, 1, 5]} />
+          </mesh>
+        </group>
+      ))}
+    </group>
   )
 }
 

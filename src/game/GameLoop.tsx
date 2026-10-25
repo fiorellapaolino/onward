@@ -5,11 +5,11 @@ import {
   smoothstep, damp, headingAt, pathAt, tangentAt,
 } from './config'
 import * as THREE from 'three'
-import { game, input, setUi, type Phase } from './state'
+import { ECHO_DELAY, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime } from './music'
-import { COLLIDERS, ELDER, GIRL, LANTERNS } from './village'
+import { COLLIDERS, ELDER, GIRL, LANTERNS, PLATES, PLATE_R, POLE } from './village'
 import {
-  AWAKE_MSG, ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, LIT_MSG, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, goalLanterns,
+  ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_LANTERN, LIT_MSG, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
 
@@ -209,42 +209,43 @@ export function GameLoop() {
         if (g.story === 'seek' || g.story === 'help') setUi({ prompt: listen ? PROMPT_LISTEN : null, hold: -1 })
         if (listen && input.interact) startTalk(listen, listen === 'girl' ? GIRL_LINES : ELDER_LINES)
 
-        // ── El miedo: la oscuridad la rodea. Si se queda (mantener E, quieta), despierta su luz ──
+        // ── El miedo: la oscuridad la rodea. Si se queda (mantener E, quieta), la oscuridad toma su forma ──
         if (g.story === 'fear') {
           g.fear += (1 - g.fear) * damp(0.7, dt)
           const staying = input.hold && g.speed < 0.4
           g.courage = staying ? Math.min(1, g.courage + dt / 2.6) : Math.max(0, g.courage - dt / 1.5)
           setUi({ prompt: PROMPT_STAY, hold: Math.round(g.courage * 40) / 40 })
           if (g.courage >= 1) {
-            g.story = 'lanterns'
-            g.lightAwake = true
-            g.awakeAt = g.time
+            // nace su sombra: desde ahora repite lo que ella hizo unos segundos antes
+            g.story = 'plates'
+            g.shadowOn = true
+            g.shadowAt = g.awakeAt = g.time
+            trail.length = 0
             g.pulse = 1
-            g.c = Math.min(1, g.c + 0.2)
-            setUi({ prompt: null, hold: -1, msg: AWAKE_MSG })
+            setUi({ prompt: null, hold: -1, msg: SHADOW_MSG, goal: GOAL_LANTERN })
           }
         } else g.fear += (0 - g.fear) * damp(1.2, dt)
 
-        // ── Los faroles: con su luz despierta, se encienden al pasar a su lado ──
-        if (g.story === 'lanterns') {
-          if (g.time - g.awakeAt > 3.5) setUi({ msg: null })
-          LANTERNS.forEach((l, i) => {
-            if (g.lit[i] < 0 && Math.hypot(g.x - l.x, g.z - l.z) < 1.7) {
-              g.lit[i] = g.time
-              g.pulse = Math.max(g.pulse, 0.5)
-            }
+        // ── Las dos piedras de la plaza: el gran farol sube si están pisadas a la vez ──
+        if (g.story === 'plates' && g.time - g.awakeAt > 5) setUi({ msg: null })
+        if (g.story === 'plates' || g.story === 'next') {
+          PLATES.forEach((pl, i) => {
+            const me = Math.hypot(g.x - pl.x, g.z - pl.z) < PLATE_R && g.jumpY < 0.15
+            const sh = g.shadowOn && Math.hypot(shadow.x - pl.x, shadow.z - pl.z) < PLATE_R && shadow.jumpY < 0.15
+            g.plates[i] = me || sh
           })
-          const n = g.lit.filter((t) => t >= 0).length
-          setUi({ goal: goalLanterns(n, LANTERNS.length) })
-          if (n === LANTERNS.length) {
+          if (g.story === 'plates' && g.plates.every(Boolean)) {
+            // ¡sube! y los faroles de la aldea se encienden en cadena desde la plaza
             g.story = 'next'
+            g.liftAt = g.awakeAt = g.time
+            g.lightAwake = true
             g.pulse = 1
-            g.c = Math.min(1, g.c + 0.15)
+            g.c = Math.min(1, g.c + 0.2)
+            LANTERNS.forEach((l, i) => (g.lit[i] = g.time + 1.2 + Math.hypot(l.x - POLE.x, l.z - POLE.z) * 0.12))
             setUi({ goal: GOAL_HELP, msg: LIT_MSG })
-            g.awakeAt = g.time // (para quitar el mensaje después)
           }
         }
-        if (g.story === 'next' && g.time - g.awakeAt > 4) setUi({ msg: null })
+        if (g.story === 'next' && g.time - g.awakeAt > 5) setUi({ msg: null })
 
         if (g.z >= PATH_LEN - 0.01) setPhase('end')
         break
@@ -285,6 +286,26 @@ export function GameLoop() {
     } else g.jumpY = 0
 
     g.idle = g.speed < 0.15 && g.jumpT < 0 ? g.idle + dt : 0
+
+    // ── La sombra: guarda lo que hace ella y la sombra lo repite ECHO_DELAY segundos después ──
+    trail.push({ t: g.time, x: g.x, z: g.z, yaw: g.yaw, speed: g.speed, jumpT: g.jumpT, jumpY: g.jumpY, idle: g.idle })
+    const past = g.time - ECHO_DELAY
+    while (trail.length > 2 && trail[1].t <= past) trail.shift() // (solo hace falta desde ahí)
+    Object.assign(shadow, g)
+    const a = trail[0]
+    const b = trail[1] ?? a
+    const u = b.t > a.t ? Math.min(1, Math.max(0, (past - a.t) / (b.t - a.t))) : 0
+    shadow.x = a.x + (b.x - a.x) * u
+    shadow.z = a.z + (b.z - a.z) * u
+    shadow.yaw = a.yaw + Math.atan2(Math.sin(b.yaw - a.yaw), Math.cos(b.yaw - a.yaw)) * u
+    shadow.speed = a.speed
+    shadow.jumpT = a.jumpT
+    shadow.jumpY = a.jumpY + (b.jumpY - a.jumpY) * u
+    shadow.idle = a.idle
+    shadow.talk = null
+    shadow.fear = 0
+    shadow.blocked = false
+    shadow.phase = 'play'
   }, -1)
 
   return null

@@ -17,9 +17,10 @@ export type ToolState = 'around' | 'flyingIn' | 'carried' | 'absorbing' | 'insid
 // seek      → todavía no habló con la niña
 // help      → la niña le contó lo de la sombra: hay que ayudar a la gente de la aldea
 // fear      → el anciano le contó su miedo; la oscuridad la rodea y tiene que quedarse (mantener E)
-// lanterns  → se despertó su luz: enciende los faroles de la aldea
+// plates    → la oscuridad tomó su forma: nace su sombra, que repite lo que ella hizo segundos antes.
+//             Con ella hay que pisar a la vez las dos piedras que suben el gran farol de la plaza
 // next      → la aldea recuperó la luz (lo siguiente: el niño y su perrito)
-export type Story = 'seek' | 'help' | 'fear' | 'lanterns' | 'next'
+export type Story = 'seek' | 'help' | 'fear' | 'plates' | 'next'
 // Con quién está hablando (mientras alguien habla, la elfa se queda quieta escuchando)
 export type Talker = 'girl' | 'elder' | null
 
@@ -50,8 +51,12 @@ export const game = {
   elderNear: 0, // 0..1: lo mismo con el anciano
   fear: 0, // 0..1: la oscuridad la rodea (al escuchar al anciano)
   courage: 0, // 0..1: se queda aunque tenga miedo (mantener E); al llegar a 1 despierta su luz
-  lightAwake: false, // ya despertó la magia de la luz
-  awakeAt: -99, // momento (game.time) en que despertó
+  lightAwake: false, // ya volvió la luz a la aldea (subió el gran farol)
+  awakeAt: -99, // momento (game.time) del último gran momento (nace la sombra, sube el farol…), para los mensajes
+  shadowOn: false, // ya nació su sombra
+  shadowAt: -99, // momento en que nació
+  plates: [false, false], // qué piedras de la plaza están pisadas ahora (por ella o por su sombra)
+  liftAt: -1, // momento en que subió el gran farol (-1 = todavía no)
   lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
   shadowOpen: false, // la sombra de la salida ya deja pasar
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
@@ -64,8 +69,18 @@ export const game = {
 export function litFraction() {
   const lit = game.lit
   if (!lit.length) return 0
-  return lit.filter((t) => t >= 0).length / lit.length
+  return lit.filter((t) => t >= 0 && t <= game.time).length / lit.length
 }
+
+/*
+ * La sombra: repite lo que hizo la elfa ECHO_DELAY segundos antes.
+ * Cada frame se guarda dónde estaba y qué hacía; la sombra lee el pasado.
+ * "shadow" tiene la misma forma que "game" para poder dibujarla con el mismo personaje.
+ */
+export const ECHO_DELAY = 3.5
+type Frame = { t: number; x: number; z: number; yaw: number; speed: number; jumpT: number; jumpY: number; idle: number }
+export const trail: Frame[] = []
+export const shadow = { ...game }
 
 // Controles
 export const input = {
