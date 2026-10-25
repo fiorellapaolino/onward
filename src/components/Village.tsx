@@ -60,7 +60,7 @@ export function Village() {
       </group>
 
       {/* La piedra donde se sienta la niña (medio enterrada, detrás de sus piernas: solo bajo la cadera) */}
-      <mesh material={mats.stone} position={[GIRL.x - Math.sin(GIRL.rot) * 0.17, 0, GIRL.z - Math.cos(GIRL.rot) * 0.17]} rotation-y={GIRL.rot} scale={[1.15, 0.97, 0.85]}>
+      <mesh material={mats.stone} position={[GIRL.x - Math.sin(GIRL.rot) * 0.13, 0, GIRL.z - Math.cos(GIRL.rot) * 0.13]} rotation-y={GIRL.rot} scale={[1.15, 0.97, 0.85]}>
         <dodecahedronGeometry args={[0.24, 1]} />
       </mesh>
 
