@@ -1,0 +1,32 @@
+# Herramienta de desarrollo: compila el juego, lo abre en un navegador sin pantalla
+# y guarda capturas + errores de consola en la rama "ci-out".
+name: Shots
+
+on:
+  push:
+    branches: ['dev/**']
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - run: |
+          npx vite preview --port 4173 &
+          sleep 3
+          node tools/ci-shots.mjs http://localhost:4173/ || true
+      - run: |
+          cd ci-out
+          git init -q -b ci-out
+          git config user.name ci && git config user.email ci@example.com
+          git add -A && git commit -qm "capturas ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" ci-out
