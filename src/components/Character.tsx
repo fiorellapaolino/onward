@@ -23,6 +23,7 @@ const easeOutBack = (t: number) => {
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t)
+const SIDE_TURN = Math.PI / 2 // al nacer mira hacia su izquierda: la cámara la ve de perfil
 
 /** Postura del niño. Ángulos probados en una vista previa del modelo. */
 const CHILD_POSE: Pose = {
@@ -97,7 +98,10 @@ export function Character() {
       const t = 1 - g.lookBack / LOOK_BACK_TIME
       turn = Math.sin(t * Math.PI) * Math.PI * 0.85
     }
-    root.current.rotation.y = headingAt(g.p) + turn
+    // Al empezar está de costado (la vemos de perfil); al incorporarse gira para mirar al camino
+    const sideways =
+      g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.35) / (RISE_TIME * 0.6))) : 0
+    root.current.rotation.y = headingAt(g.p) + turn + SIDE_TURN * sideways
 
     // ── Nacer: crece desde la luz ──────────────────────────────
     const birth = g.phase === 'intro' ? clamp01(g.phaseT / BIRTH_TIME) : 1
