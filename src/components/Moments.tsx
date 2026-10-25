@@ -24,12 +24,12 @@ export function Moments() {
 
 // ── La semilla que gira ─────────────────────────────────────────
 const TREE_URL = natureUrl('CommonTree_2')
-const seedMat = new THREE.MeshStandardMaterial({ color: '#d9b26a', roughness: 0.8, side: THREE.DoubleSide, emissive: '#ffcf7a', emissiveIntensity: 0 })
+const seedMat = new THREE.MeshStandardMaterial({ color: '#f0c46a', roughness: 0.8, side: THREE.DoubleSide, emissive: '#ffcf7a', emissiveIntensity: 0.25 })
 
 /** Una semilla con alas (como las del arce): dos alitas planas que la hacen girar al caer. */
 function Samara({ refFn }: { refFn: (g: THREE.Group | null) => void }) {
   return (
-    <group ref={refFn}>
+    <group ref={refFn} scale={2}>
       <mesh material={seedMat}>
         <sphereGeometry args={[0.022, 8, 6]} />
       </mesh>
@@ -70,6 +70,7 @@ function SeedTree() {
       const swirl = sd.a + u * 5
       o.position.set(SEED_TREE.x + Math.cos(swirl) * sd.d * (0.4 + u * 0.6), Math.max(0.02, y), SEED_TREE.z + Math.sin(swirl) * sd.d * (0.4 + u * 0.6))
       o.rotation.set(0.3, t * 9 + i, 0) // gira como una hélice
+      o.scale.setScalar(2)
     })
 
     // la que baja a su mano
@@ -83,8 +84,8 @@ function SeedTree() {
       const k = clamp01((t - done) / 1.2)
       s.visible = k < 1
       s.position.set(hand.x + (g.x - hand.x) * k, hand.y + 0.05 * k, hand.z + (g.z - hand.z) * k)
-      s.scale.setScalar(1 - k * 0.8)
-      seedMat.emissiveIntensity = 2 * (1 - k)
+      s.scale.setScalar(2.6 * (1 - k * 0.8))
+      seedMat.emissiveIntensity = 0.25 + 2 * (1 - k)
       glowMat.opacity = 0.9 * (1 - k)
       glow.current.position.copy(s.position)
     } else if (m.seedT >= 0) {
@@ -95,8 +96,8 @@ function SeedTree() {
       s.visible = true
       s.position.set(hand.x + Math.cos(swirl) * rad, 4.5 + (hand.y - 4.5) * e, hand.z + Math.sin(swirl) * rad)
       s.rotation.set(0.3, t * 9 * (1 - u * 0.7), 0)
-      s.scale.setScalar(1.4)
-      seedMat.emissiveIntensity = u * 0.6
+      s.scale.setScalar(2.6)
+      seedMat.emissiveIntensity = 0.25 + u * 0.6
       glowMat.opacity = u * 0.5
       glow.current.position.copy(s.position)
     } else {
@@ -128,7 +129,7 @@ function SeedTree() {
 
 // ── Charcos ─────────────────────────────────────────────────────
 const DROPS = 14
-const waterMat = new THREE.MeshStandardMaterial({ color: '#7d9cb8', roughness: 0.08, metalness: 0.35, transparent: true, opacity: 0.8 })
+const waterMat = new THREE.MeshStandardMaterial({ color: '#a8c8e2', roughness: 0.05, metalness: 0.4, transparent: true, opacity: 0.85, emissive: '#3c5a74', emissiveIntensity: 0.3 })
 const ringMat = new THREE.MeshBasicMaterial({ color: '#e8f4ff', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
 const dropMat = new THREE.MeshBasicMaterial({ color: '#dff0ff', transparent: true, opacity: 0.9 })
 function Puddles() {
