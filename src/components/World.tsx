@@ -4,6 +4,7 @@ import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
 import { PATH_LEN, clamp01, gradient } from '../game/config'
 import { game } from '../game/state'
+import { MUSIC } from '../game/music'
 import { Ground } from './Ground'
 
 // Versión iluminada (de día). La oscuridad del principio se añadirá más adelante.
@@ -31,8 +32,8 @@ export function World() {
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.color.copy(tmp)
       // la niebla se abre: cada vez ve más lejos
-      // al nacer hay niebla espesa; cuando entran los graves en la canción, se abre de golpe
-      const open = game.phase !== 'intro' ? 1 : 0
+      // al nacer hay niebla espesa; cuando entran los graves en la canción (ella ya camina), se abre de golpe
+      const open = game.started && game.musicT >= MUSIC.BASS_IN ? 1 : 0
       fogOpen.current += (open - fogOpen.current) * Math.min(1, dt * (open ? 0.9 : 5))
       const o = fogOpen.current
       scene.fog.near = (2 + o * 23) + f * 20

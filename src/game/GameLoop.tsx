@@ -69,7 +69,7 @@ export function GameLoop() {
         // Nace de rodillas y respira con la música; cuando entran los graves, se levanta sola
         // (el jugador toma el control cuando ella ya está de pie)
         if (!g.started) g.phaseT = 0 // espera al clic de inicio
-        if (g.musicT >= MUSIC.BASS_IN) setPhase('rise')
+        if (g.musicT >= MUSIC.RISE_AT) setPhase('rise')
         break
 
       case 'rise':

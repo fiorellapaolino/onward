@@ -16,10 +16,10 @@ export const GATE_HOLD = 1.6 // segundos insistiendo para usar la herramienta
 
 // ── Tiempos de las animaciones ───────────────────────────────────
 export const BIRTH_TIME = 1.0 // nace de la luz (de rodillas)
-export const RISE_TIME = 3.2 // se incorpora desde la postura del niño (animación "Standing Up")
-export const GATHER_TIME = 2.4 // agarra las herramientas
-export const LOOK_TIME = 2.6 // mira a los costados antes de andar
-export const TOOL_DELAY = 0.45 // separación entre que agarra una herramienta y la siguiente
+export const RISE_TIME = 2.2 // termina de levantarse (animación "Standing Up")
+export const GATHER_TIME = 1.8 // agarra las herramientas
+export const LOOK_TIME = 1.4 // mira a los costados antes de andar
+export const TOOL_DELAY = 0.3 // separación entre que agarra una herramienta y la siguiente
 export const TOOL_FLY = 0.7 // lo que tarda cada una en llegar a sus manos
 export const TOOL_TO_GATE = 0.9 // lo que tarda en volar hasta el obstáculo
 export const OPEN_TIME = 1.6 // lo que tarda el obstáculo en abrirse

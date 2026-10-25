@@ -251,7 +251,7 @@ export function Character() {
       const level = g.started ? musicLevel(g.musicT) : 0
       a.tryLevel += (level - a.tryLevel) * damp(3.5, dt)
       // 0–8 s de rodillas; de 8 s hasta que entran los graves se va levantando poco a poco, sin volver atrás
-      if (g.phase === 'intro') a.tryT = g.started ? smoothstep(8, MUSIC.BASS_IN, g.musicT) * STAND_BY_BASS : 0
+      if (g.phase === 'intro') a.tryT = g.started ? smoothstep(3.5, MUSIC.RISE_AT, g.musicT) * STAND_BY_BASS : 0
       const total = duration(CLIPS.standup)
       const t = g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
@@ -317,7 +317,8 @@ export function Character() {
     // De rodillas, acaba de nacer y no entiende nada: mira a su alrededor, ladea la cabeza,
     // se mira las manos… (coreografía de la cabeza sincronizada con la canción)
     if ((g.phase === 'intro' && g.started) || g.phase === 'rise') {
-      const t = g.phase === 'intro' ? g.musicT : MUSIC.BASS_IN + g.phaseT
+      // (la secuencia se diseñó para 21 s; se comprime al tiempo real de la intro)
+      const t = (g.phase === 'intro' ? g.musicT : MUSIC.RISE_AT + g.phaseT) * (21.5 / MUSIC.RISE_AT)
       const [yaw, pitch, roll] = headGesture(t)
       const fade = g.phase === 'rise' ? 1 - clamp01(g.phaseT / 0.6) : 1
       // Giros en los ejes de SU cabeza (su izquierda/derecha, arriba/abajo), sea cual sea su postura
