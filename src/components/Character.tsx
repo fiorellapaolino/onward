@@ -74,8 +74,8 @@ const MAGO = poseSample(MAGO_POSE)
 
 /** Velocidad con la que cada hueso alcanza su pose (más bajo = más retraso, más suelto). */
 const LAG: Partial<Record<BoneName, number>> = {
-  neck: 12,
-  head: 8,
+  neck: 14,
+  head: 12,
   foreArmL: 14,
   foreArmR: 14,
   handL: 10,
@@ -168,7 +168,8 @@ export function Character() {
     a.run += (smoothstep(1.4, 2.4, g.speed) - a.run) * damp(4, dt) // 0 camina → 1 corre
 
     // mirar alrededor: al empezar, y cuando se detiene a dudar
-    const lookTarget = g.phase === 'look' || (g.phase === 'play' && (g.idle > 0.6 || g.blocked)) ? 1 : 0
+    // (al 65%: la animación original gira mucho el torso)
+    const lookTarget = g.phase === 'look' || (g.phase === 'play' && (g.idle > 0.6 || g.blocked)) ? 0.65 : 0
     a.look += (lookTarget - a.look) * damp(3, dt)
     if (a.look > 0.01) a.lookT += dt
     else a.lookT = 0
@@ -224,9 +225,9 @@ export function Character() {
     const c = g.c
     const m = a.move
     const sec = 1 - childW // en la postura del niño se quedan quietos
-    const thighL = rig.bones.thighL.rotation.x
-    const thighR = rig.bones.thighR.rotation.x
-    const hipRoll = rig.bones.hips.rotation.z
+    const thighL = THREE.MathUtils.clamp(rig.bones.thighL.rotation.x, -1.2, 1.2)
+    const thighR = THREE.MathUtils.clamp(rig.bones.thighR.rotation.x, -1.2, 1.2)
+    const hipRoll = THREE.MathUtils.clamp(rig.bones.hips.rotation.z, -0.15, 0.15)
     const bounce = Math.sin(a.phase * Math.PI * 4) * m
     spring('hairBack', (0.05 * c * m + 0.03 * bounce) * sec, -hipRoll * 0.6 * sec, 70, 7, dt)
     spring('skirtF', Math.max(-0.5, Math.min(thighL, thighR) * 0.55) * sec, 0, 140, 10, dt)

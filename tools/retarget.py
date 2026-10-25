@@ -54,6 +54,15 @@ def align(a, b):
     return np.eye(3) + K + K @ K / (1 + c)
 
 
+def remove_yaw(R):
+    """Quita el giro alrededor del eje vertical, dejando la inclinación."""
+    f = R @ np.array([0, 0, 1.0])
+    yaw = np.arctan2(f[0], f[2])
+    c, s_ = np.cos(-yaw), np.sin(-yaw)
+    Ry = np.array([[c, 0, s_], [0, 1, 0], [-s_, 0, c]])
+    return Ry @ R
+
+
 def mat_to_quat(R):
     t = np.trace(R)
     if t > 0:
@@ -80,7 +89,12 @@ def retarget(path, strip_forward=False, loop=True):
     Rrest = {b[4]: rot_of(rest[b[4]]) for b in BONES}
     Ralign = {}
     for (name, parent, a, b, src, (ma, mb)) in BONES:
-        Ralign[name] = align(J[b] - J[a], rest[mb][:3, 3] - rest[ma][:3, 3])
+        # Solo los brazos necesitan alinearse (Mixamo está en pose T y la elfa en pose A).
+        # El resto se deja tal cual: si no, le copiaríamos la postura del muñeco (cuello hacia delante).
+        if name.startswith(('upperArm', 'foreArm', 'hand')):
+            Ralign[name] = align(J[b] - J[a], rest[mb][:3, 3] - rest[ma][:3, 3])
+        else:
+            Ralign[name] = np.eye(3)
 
     n = clip['n']
     hips_pos = np.array([fr['Hips'][:3, 3] for fr in clip['frames']])
@@ -97,6 +111,8 @@ def retarget(path, strip_forward=False, loop=True):
         W = {}
         for (name, parent, a, b, src, _) in BONES:
             delta = rot_of(clip['frames'][f][src]) @ Rrest[src].T
+            if name == 'hips':
+                delta = remove_yaw(delta)  # el juego decide hacia dónde mira; la animación no la gira
             W[name] = delta @ Ralign[name]
             L = W[parent].T @ W[name] if parent else W[name]
             local[name].append(L)
