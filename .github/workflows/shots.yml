@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: shots
+  cancel-in-progress: true
+
 jobs:
   shots:
     runs-on: ubuntu-latest
@@ -17,15 +21,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --ignore-scripts --no-audit --no-fund
-      - run: npm run build
-      - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - run: mkdir -p ci-out && (npm install --ignore-scripts --no-audit --no-fund && npm run build) > ci-out/build.txt 2>&1 || echo "BUILD FAILED" >> ci-out/build.txt
+      - run: (npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium) > ci-out/pw.txt 2>&1 || true
       - run: |
-          npx vite preview --port 4173 &
-          sleep 3
-          node tools/ci-shots.mjs http://localhost:4173/ || true
-      - run: |
-          cd ci-out
+          npx vite preview --port 4173 > /dev/null 2>&1 &
+          sleep 4
+          node tools/ci-shots.mjs http://localhost:4173/ > ci-out/shots.txt 2>&1 || true
+      - if: always()
+        run: |
+          mkdir -p ci-out && cd ci-out
           git init -q -b ci-out
           git config user.name ci && git config user.email ci@example.com
           git add -A && git commit -qm "capturas ${GITHUB_SHA::7}"
