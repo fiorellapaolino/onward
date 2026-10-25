@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { clamp01, natureUrl, rng } from '../game/config'
 import { game } from '../game/state'
 import { BUDS, GROVE, PUDDLES, SEED_TREE, moments } from '../game/moments'
+import { GIRL, GIRL_TREE } from '../game/village'
 import { DynamicModel, placeMatrix } from './instancing'
 import { useGlowTexture } from './TheLight'
 
@@ -15,6 +16,8 @@ export function Moments() {
   return (
     <>
       <SeedTree />
+      <GirlSeeds />
+      <Relay />
       <Puddles />
       <GroveFireflies />
       <Meadow />
@@ -123,6 +126,142 @@ function SeedTree() {
         }}
       />
       <sprite ref={glow} material={glowMat} scale={0.5} />
+    </group>
+  )
+}
+
+// ── Las semillas del árbol de la niña: la que baja a la mano de la elfa, la que lleva y la que le da ──
+function GirlSeeds() {
+  const refs = useRef<(THREE.Group | null)[]>([])
+  const gift = useRef<THREE.Group | null>(null)
+  const glow = useRef<THREE.Sprite>(null!)
+  const tex = useGlowTexture()
+  const glowMat = useMemo(
+    () => new THREE.SpriteMaterial({ map: tex, color: '#ffd98a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+    [tex],
+  )
+  const seeds = useMemo(() => {
+    const r = rng(77)
+    return Array.from({ length: 3 }, () => ({ a: r() * 6.28, d: 0.8 + r() * 1.8, period: 7 + r() * 4, off: r() * 10 }))
+  }, [])
+
+  useFrame(() => {
+    const g = game
+    const t = g.time
+    // caen solas, girando (solo mientras la niña todavía no tiene la suya)
+    seeds.forEach((sd, i) => {
+      const o = refs.current[i]
+      if (!o) return
+      o.visible = g.giftAt < 0
+      const u = ((t + sd.off) % sd.period) / sd.period
+      const swirl = sd.a + u * 5
+      o.position.set(GIRL_TREE.x + Math.cos(swirl) * sd.d, Math.max(0.02, 4.2 * (1 - u)), GIRL_TREE.z + Math.sin(swirl) * sd.d)
+      o.rotation.set(0.3, t * 9 + i, 0)
+      o.scale.setScalar(2)
+    })
+    const s = gift.current
+    if (!s) return
+    const hand = { x: g.x + Math.sin(g.yaw) * 0.22, y: 0.62 + g.jumpY, z: g.z + Math.cos(g.yaw) * 0.22 }
+    let vis = true
+    let gl = 0.5
+    if (g.giftAt >= 0) {
+      // se la da a la niña, ella la suelta y sube girando hacia el cielo
+      const k = t - g.giftAt
+      const toGirl = clamp01(k / 0.8)
+      const gx = GIRL.x + Math.sin(GIRL.rot) * 0.25
+      const gz = GIRL.z + Math.cos(GIRL.rot) * 0.25
+      if (k < 1.4) s.position.set(hand.x + (gx - hand.x) * toGirl, hand.y + (0.55 - hand.y) * toGirl, hand.z + (gz - hand.z) * toGirl)
+      else {
+        const up = k - 1.4
+        s.position.set(gx + Math.sin(up * 2) * 0.3, 0.55 + up * 0.9, gz + Math.cos(up * 2) * 0.3)
+      }
+      s.rotation.set(0.3, t * (k < 1.4 ? 3 : 10), 0)
+      vis = k < 8
+      gl = 0.8 * Math.max(0, 1 - (k - 5) / 3)
+    } else if (g.carrying) {
+      s.position.set(hand.x, hand.y, hand.z)
+      s.rotation.set(0.3, t * 2, 0)
+      gl = 0.6 + Math.sin(t * 4) * 0.15
+    } else if (g.giftSeedT >= 0) {
+      const u = clamp01(g.giftSeedT / 4.2)
+      const e = u * u * (3 - 2 * u)
+      const swirl = u * 9
+      const rad = 0.9 * (1 - e)
+      s.position.set(hand.x + Math.cos(swirl) * rad, 4.3 + (hand.y - 4.3) * e, hand.z + Math.sin(swirl) * rad)
+      s.rotation.set(0.3, t * 9 * (1 - u * 0.7), 0)
+      gl = u * 0.5
+    } else vis = false
+    s.visible = vis
+    s.scale.setScalar(2.6)
+    glowMat.opacity = vis ? gl : 0
+    glow.current.position.copy(s.position)
+  })
+
+  return (
+    <group>
+      {seeds.map((_, i) => (
+        <Samara
+          key={i}
+          refFn={(el) => {
+            refs.current[i] = el
+          }}
+        />
+      ))}
+      <Samara
+        refFn={(el) => {
+          gift.current = el
+        }}
+      />
+      <sprite ref={glow} material={glowMat} scale={0.5} />
+    </group>
+  )
+}
+
+/*
+ * "Cuando ayudas a alguien, ayudas a todos": la alegría de la persona ayudada
+ * viaja como una luz hasta la siguiente.
+ */
+function Relay() {
+  const tex = useGlowTexture()
+  const mat = useMemo(
+    () => new THREE.SpriteMaterial({ map: tex, color: '#ffe3a0', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+    [tex],
+  )
+  const ref = useRef<THREE.Sprite>(null!)
+  const trail = useRef<(THREE.Sprite | null)[]>([])
+  useFrame(() => {
+    const g = game
+    const k = g.relayAt < 0 ? -1 : (g.time - g.relayAt) / 2.6
+    const at = (u: number, out: THREE.Vector3) => {
+      const e = u * u * (3 - 2 * u)
+      return out.set(
+        g.relayFrom.x + (g.relayTo.x - g.relayFrom.x) * e,
+        0.8 + Math.sin(u * Math.PI) * 3,
+        g.relayFrom.z + (g.relayTo.z - g.relayFrom.z) * e,
+      )
+    }
+    const visible = k >= 0 && k < 1.3
+    mat.opacity = visible ? (k < 1 ? 1 : 1 - (k - 1) / 0.3) : 0
+    if (!visible) return
+    at(Math.min(1, k), ref.current.position)
+    ref.current.scale.setScalar(k < 1 ? 0.7 : 0.7 + (k - 1) * 6)
+    trail.current.forEach((s, i) => {
+      if (s) at(Math.max(0, Math.min(1, k) - (i + 1) * 0.04), s.position).setY(s.position.y)
+    })
+  })
+  return (
+    <group>
+      <sprite ref={ref} material={mat} />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <sprite
+          key={i}
+          ref={(el) => {
+            trail.current[i] = el
+          }}
+          material={mat}
+          scale={0.45 - i * 0.07}
+        />
+      ))}
     </group>
   )
 }

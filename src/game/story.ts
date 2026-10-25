@@ -7,15 +7,18 @@ export const GIRL_LINES = [
   '…',
   // "¿Quién eres? Brillas… como brillaban antes los faroles."
   'Who are you? You glow… like the lanterns used to.',
-  // "Una sombra llegó a nuestra aldea. Las luces se apagaron, una por una."
-  'A shadow came to our village. The lights went out, one by one.',
-  // "Todos se esconden en sus casas. Ya no salen."
-  "Everyone is hiding in their homes. They won't come out.",
-  // "Nadie puede ayudarnos."
-  'Nobody can help us.',
-  // "…¿Tú puedes?"
-  '…Can you?',
+  // "Una sombra llegó a nuestra aldea. Todos dejaron de… jugar, cantar, reír."
+  'A shadow came to our village. Everyone stopped… playing, singing, laughing.',
+  // "Antes atrapaba las semillas que giran de mi árbol."
+  'I used to catch the spinning seeds from my tree.',
+  // "Ahora solo caen."
+  'Now they just fall.',
 ]
+
+/** Objetivo: "Atrapa una semilla que gira para ella." */
+export const GOAL_SEED = 'Catch a spinning seed for her.'
+/** Al darle la semilla, ella la suelta y sonríe. "Cuando ayudas a alguien, ayudas a todos." */
+export const GIFT_MSG = 'When you help someone, you help everyone.'
 
 /** Lo que dice el anciano, sentado a oscuras junto a su puerta. */
 export const ELDER_LINES = [

@@ -69,7 +69,7 @@ function live(id: MomentId) {
   if (moments.done[id] !== undefined) return
   moments.done[id] = game.time
   moments.count++
-  game.spark = moments.count / MOMENT_COUNT
+  game.spark = Math.min(1, game.spark + 1 / MOMENT_COUNT)
   game.pulse = 1
   chord() // un pequeño arpegio de campanas
 }

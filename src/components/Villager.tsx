@@ -64,6 +64,15 @@ const GIRL_SPEC: Spec = {
   spot: GIRL,
   gestures: (rot, _t, near, yaw) => {
     // (quieta: sin temblores ni sollozos)
+    // le dieron la semilla: la mira subir girando, con la cabeza levantada y los brazos un poco hacia arriba
+    const joy = game.giftAt < 0 ? 0 : Math.min(1, (game.time - game.giftAt - 1.2) / 1.5)
+    if (joy > 0) {
+      rot('neck_01', 'left', -0.35 * joy)
+      rot('Head', 'left', -0.45 * joy)
+      rot('upperarm_l', 'left', -0.5 * joy)
+      rot('upperarm_r', 'left', -0.5 * joy)
+      near *= 1 - joy
+    }
     // la elfa se acerca: se endereza un poco, levanta la cabeza y la mira
     rot('spine_01', 'left', -0.15 * near)
     rot('neck_01', 'left', -0.3 * near)

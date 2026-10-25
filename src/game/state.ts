@@ -15,14 +15,16 @@ export type ToolState = 'around' | 'flyingIn' | 'carried' | 'absorbing' | 'insid
 
 // La historia de la aldea, en orden:
 // seek      → todavía no habló con la niña
-// help      → la niña le contó lo de la sombra: hay que ayudar a la gente de la aldea
+// seed      → la niña le contó que antes atrapaba las semillas que giran: atrapar una bajo su árbol y llevársela
+//             (cuando ayudas a alguien, ayudas a todos: su alegría viaja como una luz hasta el siguiente)
+// help      → la niña sonrió: la luz viajó hasta el anciano
 // fear      → el anciano le contó su miedo; la oscuridad la rodea y tiene que quedarse (mantener E)
 // plates    → la oscuridad tomó su forma: nace su sombra, que repite lo que ella hizo segundos antes.
 //             Con ella hay que pisar a la vez las dos piedras que suben el gran farol de la plaza
 // music     → subió el gran farol; se oye a alguien tocar a escondidas: hay que tocar su melodía en las campanas
 //             (y la sombra la repite detrás, como un canon)
 // next      → la música volvió a la aldea (lo siguiente: los dos que no se dijeron lo que sentían)
-export type Story = 'seek' | 'help' | 'fear' | 'plates' | 'music' | 'next'
+export type Story = 'seek' | 'seed' | 'help' | 'fear' | 'plates' | 'music' | 'next'
 // Con quién está hablando (mientras alguien habla, la elfa se queda quieta escuchando)
 export type Talker = 'girl' | 'elder' | null
 
@@ -68,6 +70,13 @@ export const game = {
   shadowSeq: [] as number[], // … y su sombra
   tuneAt: -99, // la última vez que la mujer empezó a tocar su melodía a escondidas
   freedAt: -1, // momento en que la mujer se atrevió a salir y tocar (-1 = todavía no)
+  giftStill: 0, // segundos quieta bajo el árbol de la niña
+  giftSeedT: -1, // la semilla que baja a su mano (segundos; -1 = ninguna)
+  carrying: false, // lleva una semilla para la niña
+  giftAt: -1, // momento en que se la dio (-1 = todavía no)
+  relayAt: -1, // momento en que la luz de una persona ayudada sale hacia la siguiente
+  relayFrom: { x: 0, z: 0 },
+  relayTo: { x: 0, z: 0 },
   lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
   shadowOpen: false, // la sombra de la salida ya deja pasar
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)

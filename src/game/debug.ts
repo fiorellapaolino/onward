@@ -7,7 +7,8 @@ import { game, input, setUi } from './state'
  *   ?at=60          empieza ya de pie en el metro 60 del sendero, sin la intro ni la música
  *   ?at=60&yaw=1.2  … con la cámara girada (radianes)
  *   ?at=60&talk=2   … escuchando la frase 2 de la niña
- *   ?at=60&help     … después de hablar con la niña
+ *   ?at=60&gift     … después de hablar con la niña: atrapar una semilla para ella (&carry: ya la lleva)
+ *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
  *   ?at=80&music    … con el gran farol ya arriba, para el reto de las campanas
@@ -42,6 +43,11 @@ export function applyDebug() {
   if (params.has('help') || params.has('fear') || params.has('plates') || params.has('music')) {
     game.story = 'help'
     setUi({ goal: 'Help the people of the village.' })
+  }
+  if (params.has('gift')) {
+    game.story = 'seed'
+    game.carrying = params.has('carry')
+    setUi({ goal: 'Catch a spinning seed for her.' })
   }
   if (params.has('fear')) game.story = 'fear'
   if (params.has('music')) {

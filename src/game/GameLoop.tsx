@@ -7,10 +7,10 @@ import {
 import * as THREE from 'three'
 import { ECHO_DELAY, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime } from './music'
-import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
+import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, GIRL_TREE, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
 import { NOTES, bell, flute } from './sfx'
 import {
-  ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
+  ELDER_LINES, FEAR_MSG, GIFT_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
 import { updateMoments } from './moments'
@@ -122,11 +122,10 @@ export function GameLoop() {
               g.talk = null
               setUi({ say: null })
               if (was === 'girl') {
-                // terminó de contar: ahora hay que ayudar a la aldea
-                g.story = 'help'
-                g.c = Math.min(1, g.c + 0.15)
-                g.pulse = 0.8
-                setUi({ goal: GOAL_HELP })
+                // terminó de contar: atrapar una semilla de su árbol y llevársela
+                g.story = 'seed'
+                g.pulse = 0.5
+                setUi({ goal: GOAL_SEED })
               } else {
                 // el anciano tiene miedo… y la oscuridad se acerca también a ella
                 g.story = 'fear'
@@ -233,6 +232,41 @@ export function GameLoop() {
         const listen = g.story === 'seek' && gd < TALK_DIST ? 'girl' : g.story === 'help' && ed < TALK_DIST ? 'elder' : null
         if (g.story === 'seek' || g.story === 'help') setUi({ prompt: listen ? PROMPT_LISTEN : null, hold: -1 })
         if (listen && input.interact) startTalk(listen, listen === 'girl' ? GIRL_LINES : ELDER_LINES)
+
+        // ── La semilla para la niña: quieta bajo su árbol → una semilla baja a su mano → se la lleva ──
+        if (g.story === 'seed') {
+          const dt2 = Math.hypot(g.x - GIRL_TREE.x, g.z - GIRL_TREE.z)
+          if (!g.carrying) {
+            if (dt2 < 3.4 && g.speed < 0.15 && g.jumpT < 0) g.giftStill += dt
+            else g.giftStill = Math.max(0, g.giftStill - dt * 2)
+            if (g.giftSeedT < 0 && g.giftStill > 1.6) g.giftSeedT = 0
+            if (g.giftSeedT >= 0) {
+              g.giftSeedT += dt
+              if (dt2 > 3.8) g.giftSeedT = -1 // se fue antes de que llegara
+              if (g.giftSeedT > 4.2) {
+                g.carrying = true
+                g.pulse = 0.6
+                bell(NOTES[4] * 2, true)
+              }
+            }
+          } else if (gd < 1.7 && g.giftAt < 0) {
+            // se la da: ella la suelta, la mira girar y sonríe
+            g.giftAt = g.time
+            g.carrying = false
+            g.pulse = 1
+            g.spark = Math.min(1, g.spark + 1 / 7)
+            setUi({ msg: GIFT_MSG, goal: null })
+          }
+          if (g.giftAt >= 0 && g.time - g.giftAt > 4) {
+            // su alegría viaja como una luz hasta el anciano: ahora se le puede escuchar
+            g.story = 'help'
+            g.relayAt = g.time
+            g.relayFrom = { x: GIRL.x, z: GIRL.z }
+            g.relayTo = { x: ELDER.x, z: ELDER.z }
+            setUi({ goal: GOAL_HELP })
+          }
+        }
+        if (g.giftAt >= 0 && g.time - g.giftAt > 7 && g.time - g.giftAt < 7.2) setUi({ msg: null })
 
         // ── El miedo: la oscuridad la rodea. Si se queda (mantener E, quieta), la oscuridad toma su forma ──
         if (g.story === 'fear') {
