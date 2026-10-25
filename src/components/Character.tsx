@@ -45,6 +45,16 @@ const CHILD_POSE: Pose = {
 }
 const CHILD_DROP = 0.606 * (HEIGHT / 1.99) // cuánto baja el cuerpo en esa postura (en metros)
 
+/** Velocidad con la que cada hueso alcanza su pose (más bajo = más retraso, más suelto). */
+const LAG: Partial<Record<BoneName, number>> = {
+  neck: 9,
+  head: 6,
+  foreArmL: 9,
+  foreArmR: 9,
+  handL: 6,
+  handR: 6,
+}
+
 /** Ángulos que se van suavizando hacia su objetivo (para que nada salte de golpe). */
 type Pose = Partial<Record<BoneName, [number, number, number]>>
 
@@ -53,6 +63,8 @@ export function Character() {
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
   const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0 })
+  // muelles del pelo y la falda: [ángulo x, velocidad x, ángulo z, velocidad z]
+  const springs = useRef<Record<string, [number, number, number, number]>>({})
 
   const { scene } = useGLTF(MODEL_URL)
 
@@ -83,6 +95,22 @@ export function Character() {
     s.position.y = -box.min.y * scale
     return { model: s, rig: rig! }
   }, [scene])
+
+  /** Muelle amortiguado: el hueso tiende al objetivo, se pasa un poco y vuelve. */
+  const spring = (name: BoneName, tx: number, tz: number, stiff: number, dampK: number, dt: number) => {
+    const st = (springs.current[name] ??= [0, 0, 0, 0])
+    const steps = 2 // dos pasos pequeños por frame: más estable
+    const h = dt / steps
+    for (let i = 0; i < steps; i++) {
+      st[1] += (stiff * (tx - st[0]) - dampK * st[1]) * h
+      st[0] += st[1] * h
+      st[3] += (stiff * (tz - st[2]) - dampK * st[3]) * h
+      st[2] += st[3] * h
+    }
+    const bone = rig.bones[name]
+    bone.rotation.x = st[0]
+    bone.rotation.z = st[2]
+  }
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
@@ -142,22 +170,34 @@ export function Character() {
     const ARMS_IN = 0.45
     const tuck = ARMS_IN + 0.1 * c * m
 
+    // Reposo vivo: cambia el peso de pierna despacio y mueve un poco la cabeza
+    const still = 1 - m
+    const shift = Math.sin(g.time * 0.45) * still
+    const idleHead = (Math.sin(g.time * 0.31) * 0.12 + Math.sin(g.time * 0.77) * 0.04) * still * (1 - Math.abs(a.look))
+    // Al caminar la cadera se balancea: baja del lado de la pierna que avanza y pasa el peso a la otra
+    const hipRoll = -0.07 * m * cos * (1 - 0.4 * c) + 0.035 * shift
+    const stanceL = Math.max(0, -cos)
+    const stanceR = Math.max(0, cos)
+
     const pose: Pose = {
-      hips: [0, 0.06 * A * sin, 0],
-      spine: [0.04 + 0.2 * c * m, -0.08 * A * sin, 0],
-      chest: [0.015 * breathe, -0.12 * armSwing * sin + a.look * 0.25, 0],
+      hips: [0, 0.09 * A * sin, hipRoll],
+      spine: [0.04 + 0.2 * c * m, -0.1 * A * sin, -hipRoll * 0.75],
+      chest: [0.025 * breathe, -0.12 * armSwing * sin + a.look * 0.25, -hipRoll * 0.2],
       neck: [0, a.look * 0.35, 0],
-      head: [(g.phase === 'end' ? -0.3 : 0.12 * (1 - c) * (1 - m)) - 0.1 * c * m, a.look * 0.6, 0],
-      thighL: [-A * sin, 0, 0],
-      thighR: [A * sin, 0, 0],
-      shinL: [0.05 + knee * Math.max(0, cos), 0, 0],
-      shinR: [0.05 + knee * Math.max(0, -cos), 0, 0],
+      head: [(g.phase === 'end' ? -0.3 : 0.12 * (1 - c) * still) - 0.1 * c * m + 0.02 * m * Math.sin(ph * 2), a.look * 0.6 + idleHead, 0.03 * m * cos],
+      thighL: [-A * sin, 0, 0.02 * shift],
+      thighR: [A * sin, 0, 0.02 * shift],
+      // la rodilla se dobla al pasar la pierna hacia delante y un poco al apoyar el peso
+      shinL: [0.05 + knee * Math.max(0, cos) + 0.12 * m * stanceL, 0, 0],
+      shinR: [0.05 + knee * Math.max(0, -cos) + 0.12 * m * stanceR, 0, 0],
       footL: [-0.25 * A * sin, 0, 0],
       footR: [0.25 * A * sin, 0, 0],
       upperArmL: [armSwing * sin, 0, -tuck + 0.02 * breathe],
       upperArmR: [-armSwing * sin, 0, tuck - 0.02 * breathe],
-      foreArmL: [-elbow, 0, 0],
-      foreArmR: [-elbow, 0, 0],
+      foreArmL: [-elbow - 0.15 * armSwing * Math.max(0, -sin), 0, 0],
+      foreArmR: [-elbow - 0.15 * armSwing * Math.max(0, sin), 0, 0],
+      handL: [-0.1 - 0.1 * m, 0, 0.05],
+      handR: [-0.1 - 0.1 * m, 0, -0.05],
     }
 
     // Pose del Mago: brazo derecho en alto, el izquierdo hacia abajo y afuera
@@ -185,18 +225,34 @@ export function Character() {
       }
     }
 
-    const k = g.phase === 'intro' ? 1 : damp(14, dt)
+    // Cada parte sigue su objetivo a su ritmo: cabeza, antebrazos y manos van con
+    // algo de retraso respecto al cuerpo, así el movimiento "arrastra" y no es en bloque
     for (const [name, r] of Object.entries(pose) as [BoneName, [number, number, number]][]) {
       const bone = rig.bones[name]
+      const k = g.phase === 'intro' ? 1 : damp(LAG[name] ?? 14, dt)
       bone.rotation.x += (r[0] - bone.rotation.x) * k
       bone.rotation.y += (r[1] - bone.rotation.y) * k
       bone.rotation.z += (r[2] - bone.rotation.z) * k
     }
 
+    // ── Pelo de la espalda y falda: muelles que reaccionan al movimiento ──
+    const sec = 1 - childW // en la postura del niño se quedan quietos
+    const thighFwd = Math.min(rig.bones.thighL.rotation.x, rig.bones.thighR.rotation.x) // negativo = hacia delante
+    const thighBack = Math.max(rig.bones.thighL.rotation.x, rig.bones.thighR.rotation.x)
+    const bounce = Math.sin(ph * 2) * m
+    spring('hairBack', (0.05 * c * m + 0.03 * bounce) * sec, (-hipRoll * 0.6) * sec, 70, 7, dt)
+    spring('skirtF', Math.max(-0.5, thighFwd * 0.55) * sec, 0, 140, 10, dt)
+    spring('skirtB', (Math.min(0.5, thighBack * 0.6) + 0.12 * c * m) * sec, 0, 140, 10, dt)
+    spring('skirtL', 0.03 * bounce * sec, (0.05 + 0.08 * bounce + hipRoll) * sec, 120, 9, dt)
+    spring('skirtR', 0.03 * bounce * sec, (-0.05 - 0.08 * bounce + hipRoll) * sec, 120, 9, dt)
+
     // Al abrir las piernas la cadera baja un poco; al correr, rebota
     const drop = LEG * (1 - Math.cos(A * sin)) + 0.035 * c * m * Math.abs(cos)
     const childDrop = CHILD_DROP * childW
     body.current.position.y += (-drop - childDrop + 0.004 * breathe - body.current.position.y) * damp(20, dt)
+    // y se desplaza un poco hacia la pierna que apoya
+    const sideShift = -0.018 * m * cos + 0.012 * shift
+    body.current.position.x += (sideShift - body.current.position.x) * damp(10, dt)
 
     // ── Su luz: crece con la confianza y destella en momentos clave
     const birthFlash = g.phase === 'intro' ? (1 - birth) * 25 : 0

@@ -21,6 +21,11 @@ const JOINTS: Record<string, V3> = {
   neck: [0, 0.56, 0],
   head: [0, 0.66, 0.01],
   headTop: [0, 1.0, 0.02],
+  // huesos "secundarios": se mueven solos con física (pelo de la espalda y falda)
+  hairRoot: [0, 0.6, -0.1],
+  hairTip: [0, 0.0, -0.16],
+  skirtRoot: [0, 0.12, 0],
+  skirtTip: [0, -0.1, 0],
 }
 for (const [s, sx] of [['L', 1], ['R', -1]] as const) {
   // L = su izquierda (+X), R = su derecha (-X). Ella mira hacia +Z.
@@ -34,7 +39,7 @@ for (const [s, sx] of [['L', 1], ['R', -1]] as const) {
   JOINTS['toe' + s] = [0.14 * sx, -0.99, 0.13]
 }
 
-type Region = 'torso' | 'head' | 'arm' | 'leg'
+type Region = 'torso' | 'head' | 'arm' | 'leg' | 'secondary'
 type BoneDef = { name: string; parent: string | null; from: string; to: string; radius: number; side: 0 | 1 | -1; region: Region }
 
 const BONES: BoneDef[] = [
@@ -55,9 +60,19 @@ for (const [s, sx] of [['L', 1], ['R', -1]] as const) {
   )
 }
 
+BONES.push(
+  { name: 'hairBack', parent: 'chest', from: 'hairRoot', to: 'hairTip', radius: 0, side: 0, region: 'secondary' },
+  { name: 'skirtF', parent: 'hips', from: 'skirtRoot', to: 'skirtTip', radius: 0, side: 0, region: 'secondary' },
+  { name: 'skirtB', parent: 'hips', from: 'skirtRoot', to: 'skirtTip', radius: 0, side: 0, region: 'secondary' },
+  { name: 'skirtL', parent: 'hips', from: 'skirtRoot', to: 'skirtTip', radius: 0, side: 0, region: 'secondary' },
+  { name: 'skirtR', parent: 'hips', from: 'skirtRoot', to: 'skirtTip', radius: 0, side: 0, region: 'secondary' },
+)
+const boneIndex = (name: string) => BONES.findIndex((b) => b.name === name)
+
 export type BoneName =
   | 'hips' | 'spine' | 'chest' | 'neck' | 'head'
   | `${'upperArm' | 'foreArm' | 'hand' | 'thigh' | 'shin' | 'foot'}${'L' | 'R'}`
+  | 'hairBack' | `skirt${'F' | 'B' | 'L' | 'R'}`
 
 export type Rig = { mesh: THREE.SkinnedMesh; bones: Record<BoneName, THREE.Bone> }
 
@@ -69,6 +84,45 @@ function segDist(px: number, py: number, pz: number, a: V3, b: V3) {
   const t = Math.min(1, Math.max(0, ((px - a[0]) * abx + (py - a[1]) * aby + (pz - a[2]) * abz) / (abx * abx + aby * aby + abz * abz)))
   const dx = px - (a[0] + abx * t), dy = py - (a[1] + aby * t), dz = pz - (a[2] + abz * t)
   return Math.sqrt(dx * dx + dy * dy + dz * dz)
+}
+
+const smoothstep = (e0: number, e1: number, t: number) => {
+  const u = Math.min(1, Math.max(0, (t - e0) / (e1 - e0)))
+  return u * u * (3 - 2 * u)
+}
+const HAIR = boneIndex('hairBack')
+const SKIRT = ['skirtF', 'skirtB', 'skirtL', 'skirtR'].map(boneIndex)
+
+/**
+ * Pelo de la espalda y falda: se quedan con los huesos principales que ya tenían
+ * (cuanto más arriba, más) y se reparten el resto con su hueso secundario
+ * (cuanto más abajo, más se balancean).
+ */
+function applySecondary(v: number, x: number, y: number, z: number, idx: Uint16Array, w: Float32Array) {
+  const o = v * 4
+  const r = Math.sqrt(x * x + z * z) + 1e-9
+  const keep = (slots: number, scale: number) => {
+    let sum = 0
+    for (let k = 0; k < slots; k++) sum += w[o + k]
+    for (let k = 0; k < 4; k++) w[o + k] = k < slots && sum > 0 ? (w[o + k] / sum) * scale : 0
+  }
+  if (Math.abs(x) < 0.2 && z < -0.07 && y > 0 && y < 0.62) {
+    const ws = 0.9 * smoothstep(0, 0.45, (0.62 - y) / 0.62)
+    keep(3, 1 - ws)
+    idx[o + 3] = HAIR
+    w[o + 3] = ws
+  } else if (y > -0.12 && y < 0.12 && r > 0.14 && Math.abs(x) < 0.32) {
+    const ws = 0.95 * smoothstep(0, 0.9, (0.12 - y) / 0.24)
+    // reparto entre delante/detrás/izquierda/derecha según hacia dónde mira ese trozo de falda
+    const c = [Math.max(z / r, 0), Math.max(-z / r, 0), Math.max(x / r, 0), Math.max(-x / r, 0)]
+    const order = [0, 1, 2, 3].sort((a, b) => c[b] - c[a])
+    const sum = c[order[0]] + c[order[1]] || 1
+    keep(2, 1 - ws)
+    idx[o + 2] = SKIRT[order[0]]
+    w[o + 2] = (ws * c[order[0]]) / sum
+    idx[o + 3] = SKIRT[order[1]]
+    w[o + 3] = (ws * c[order[1]]) / sum
+  }
 }
 
 /** Convierte la malla de la elfa en una malla con esqueleto. */
@@ -85,7 +139,7 @@ export function rigElf(source: THREE.Mesh): Rig {
     const x = pos.getX(v), y = pos.getY(v), z = pos.getZ(v)
     for (let b = 0; b < BONES.length; b++) {
       const bd = BONES[b]
-      let ok = true
+      let ok = bd.region !== 'secondary'
       if (bd.side !== 0) ok &&= Math.sign(x) === bd.side || Math.abs(x) < 0.02
       if (bd.region === 'arm') ok &&= Math.abs(x) > 0.17 && y < 0.56
       if (bd.region === 'leg') ok &&= y < 0.02
@@ -109,6 +163,8 @@ export function rigElf(source: THREE.Mesh): Rig {
     }
     if (total > 0) for (let k = 0; k < 4; k++) skinWeight[v * 4 + k] /= total
     else skinWeight[v * 4] = 1 // por si acaso: a la cadera
+
+    applySecondary(v, x, y, z, skinIndex, skinWeight)
   }
   geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4))
   geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeight, 4))
