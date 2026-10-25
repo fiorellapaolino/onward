@@ -4,13 +4,14 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRTH_TIME, LOOK_BACK_TIME, LOOK_TIME, clamp01, damp, headingAt, pathAt } from '../game/config'
 import { game } from '../game/state'
+import { rigElf, type BoneName, type Rig } from '../game/rig'
 
 // Modelo: "Forest Enchantress" de Padarozhnik (CC BY 4.0) — ver CREDITS.md
-// Versión optimizada para web (~50k triángulos, textura 1024).
-// TODAVÍA NO TIENE ESQUELETO: por ahora se mueve entera (rebote, inclinación, giros).
-// Cuando pase por Mixamo, aquí se conectan las animaciones de caminar/correr.
+// Versión optimizada para web (~40k triángulos, textura 1024).
+// El esqueleto se le pone al cargar (ver game/rig.ts) y las animaciones se hacen aquí, con código.
 const MODEL_URL = `${import.meta.env.BASE_URL}models/enchantress.glb`
 const HEIGHT = 1.15 // altura de la elfa en el mundo
+const LEG = 0.52 // largo de la pierna en el mundo (para calcular el paso)
 
 const pos = new THREE.Vector3()
 
@@ -21,45 +22,49 @@ const easeOutBack = (t: number) => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
 }
 
+/** Ángulos que se van suavizando hacia su objetivo (para que nada salte de golpe). */
+type Pose = Partial<Record<BoneName, [number, number, number]>>
+
 export function Character() {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
+  const anim = useRef({ phase: 0, move: 0, mago: 1, look: 0 })
 
   const { scene } = useGLTF(MODEL_URL)
 
-  // Copia del modelo, escalada para que mida HEIGHT y con los pies en el suelo
-  const model = useMemo(() => {
+  // Copia del modelo con esqueleto, escalada para que mida HEIGHT y con los pies en el suelo
+  const { model, rig } = useMemo(() => {
     const s = scene.clone(true)
+    let rig = null as Rig | null
+    s.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (mesh.isMesh && !rig) {
+        // Al optimizarlo se quedó sin "normales" (hacia dónde mira cada cara): las recalculamos
+        const geo = mesh.geometry.clone()
+        if (!geo.getAttribute('normal')) geo.computeVertexNormals()
+        const old = mesh.material as THREE.MeshBasicMaterial
+        if (old.map) old.map.colorSpace = THREE.SRGBColorSpace
+        const material = new THREE.MeshStandardMaterial({ map: old.map, roughness: 0.8, metalness: 0, side: THREE.DoubleSide })
+        rig = rigElf(new THREE.Mesh(geo, material))
+        rig.mesh.position.copy(mesh.position)
+        rig.mesh.quaternion.copy(mesh.quaternion)
+        rig.mesh.scale.copy(mesh.scale)
+        mesh.parent!.add(rig.mesh)
+        mesh.visible = false
+      }
+    })
     const box = new THREE.Box3().setFromObject(s)
     const scale = HEIGHT / (box.max.y - box.min.y)
     s.scale.setScalar(scale)
     s.position.y = -box.min.y * scale
-    s.traverse((o) => {
-      const mesh = o as THREE.Mesh
-      if (mesh.isMesh) {
-        // El modelo viene "sin iluminación" (unlit). Lo pasamos a un material
-        // que reacciona a la luz para que se integre con la noche y el amanecer.
-        // Al optimizarlo se quedó sin "normales" (la info que dice hacia dónde mira
-        // cada cara), y sin ellas la luz no puede pintarla: las recalculamos.
-        if (!mesh.geometry.getAttribute('normal')) mesh.geometry.computeVertexNormals()
-        const old = mesh.material as THREE.MeshBasicMaterial
-        if (old.map) old.map.colorSpace = THREE.SRGBColorSpace
-        mesh.material = new THREE.MeshStandardMaterial({
-          map: old.map,
-          roughness: 0.8,
-          metalness: 0,
-          side: THREE.DoubleSide,
-        })
-      }
-    })
-    return s
+    return { model: s, rig: rig! }
   }, [scene])
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
     const g = game
-    const k = damp(8, dt)
+    const a = anim.current
 
     // ── Posición y hacia dónde mira ─────────────────────────────
     pathAt(g.p, pos)
@@ -76,28 +81,81 @@ export function Character() {
     const birth = g.phase === 'intro' ? clamp01(g.phaseT / BIRTH_TIME) : 1
     root.current.scale.setScalar(Math.max(0.001, easeOutBack(birth)))
 
-    // ── Caminar / correr (provisional, sin esqueleto) ──────────
-    const moving = g.speed > 0.15
-    const bob = moving ? Math.abs(Math.sin(g.walkPhase)) * (0.02 + 0.08 * g.c) : Math.sin(g.time * 1.6) * 0.006
-    body.current.position.y += (bob - body.current.position.y) * damp(20, dt)
-    const lean = moving ? g.c * 0.18 : 0
-    body.current.rotation.x += (lean - body.current.rotation.x) * k
-    // balanceo lateral al caminar
-    const sway = moving ? Math.sin(g.walkPhase) * 0.05 : 0
-    body.current.rotation.z += (sway - body.current.rotation.z) * damp(12, dt)
+    // ── Ritmo del paso ─────────────────────────────────────────
+    const c = g.c
+    a.move += (clamp01(g.speed / 0.7) - a.move) * damp(6, dt) // 0 quieta → 1 caminando
+    const stride = 0.8 + 0.7 * c // metros por ciclo completo (dos pasos)
+    a.phase += (g.speed * dt * Math.PI * 2) / stride
+    const m = a.move
+    const ph = a.phase
+    const sin = Math.sin(ph)
+    const cos = Math.cos(ph)
 
-    // ── Mirar a los costados cuando duda (gira el cuerpo, sin cabeza todavía)
-    let look = 0
-    if (g.phase === 'look') {
-      look = Math.sin((g.phaseT / LOOK_TIME) * Math.PI * 2) * 0.5
-    } else if (g.phase === 'play' && (g.idle > 0.6 || g.blocked)) {
-      look = Math.sin(g.time * 1.4) * 0.45
+    // ── Mezclas de "estados" ───────────────────────────────────
+    const magoTarget = g.phase === 'intro' || (g.phase === 'gather' && g.phaseT < 1.6) ? 1 : 0
+    a.mago += (magoTarget - a.mago) * damp(3, dt)
+
+    let lookTarget = 0
+    if (g.phase === 'look') lookTarget = Math.sin((g.phaseT / LOOK_TIME) * Math.PI * 2) * 0.75
+    else if (g.phase === 'play' && (g.idle > 0.6 || g.blocked)) lookTarget = Math.sin(g.time * 1.3) * 0.7
+    a.look += (lookTarget - a.look) * damp(5, dt)
+
+    const breathe = Math.sin(g.time * 1.7)
+
+    // ── Pose de este frame ─────────────────────────────────────
+    const A = (0.32 + 0.38 * c) * m // amplitud de las piernas
+    const knee = (0.45 + 0.75 * c) * m // cuánto doblan las rodillas
+    const armSwing = A * (0.8 + 0.4 * c)
+    const elbow = 0.12 + (0.25 + 0.6 * c) * m
+    const tuck = 0.18 * c * m // al correr, brazos más pegados
+
+    const pose: Pose = {
+      hips: [0, 0.06 * A * sin, 0],
+      spine: [0.04 + 0.2 * c * m, -0.08 * A * sin, 0],
+      chest: [0.015 * breathe, -0.12 * armSwing * sin + a.look * 0.25, 0],
+      neck: [0, a.look * 0.35, 0],
+      head: [(g.phase === 'end' ? -0.3 : 0.12 * (1 - c) * (1 - m)) - 0.1 * c * m, a.look * 0.6, 0],
+      thighL: [-A * sin, 0, 0],
+      thighR: [A * sin, 0, 0],
+      shinL: [0.05 + knee * Math.max(0, cos), 0, 0],
+      shinR: [0.05 + knee * Math.max(0, -cos), 0, 0],
+      footL: [-0.25 * A * sin, 0, 0],
+      footR: [0.25 * A * sin, 0, 0],
+      upperArmL: [armSwing * sin, 0, -tuck + 0.03 * breathe],
+      upperArmR: [-armSwing * sin, 0, tuck - 0.03 * breathe],
+      foreArmL: [-elbow, 0, 0],
+      foreArmR: [-elbow, 0, 0],
     }
-    body.current.rotation.y += (look - body.current.rotation.y) * damp(4, dt)
+
+    // Pose del Mago: brazo derecho en alto, el izquierdo hacia abajo y afuera
+    if (a.mago > 0.001) {
+      const k = a.mago
+      const blend = (b: BoneName, t: [number, number, number]) => {
+        const cur = pose[b] ?? [0, 0, 0]
+        pose[b] = [cur[0] + (t[0] - cur[0]) * k, cur[1] + (t[1] - cur[1]) * k, cur[2] + (t[2] - cur[2]) * k]
+      }
+      blend('upperArmR', [-0.25, 0, -2.2 + 0.05 * breathe])
+      blend('foreArmR', [-0.15, 0, 0])
+      blend('upperArmL', [0.1, 0, 0.3])
+      blend('foreArmL', [0, 0, 0])
+      blend('head', [-0.12, 0, 0])
+    }
+
+    const k = damp(14, dt)
+    for (const [name, r] of Object.entries(pose) as [BoneName, [number, number, number]][]) {
+      const bone = rig.bones[name]
+      bone.rotation.x += (r[0] - bone.rotation.x) * k
+      bone.rotation.y += (r[1] - bone.rotation.y) * k
+      bone.rotation.z += (r[2] - bone.rotation.z) * k
+    }
+
+    // Al abrir las piernas la cadera baja un poco; al correr, rebota
+    const drop = LEG * (1 - Math.cos(A * sin)) + 0.035 * c * m * Math.abs(cos)
+    body.current.position.y += (-drop + 0.004 * breathe - body.current.position.y) * damp(20, dt)
 
     // ── Su luz: crece con la confianza y destella en momentos clave
     const birthFlash = g.phase === 'intro' ? (1 - birth) * 25 : 0
-    light.current.intensity = 2 + g.c * 6 + g.pulse * 12 + birthFlash
+    light.current.intensity = 2 + c * 6 + g.pulse * 12 + birthFlash
   })
 
   return (
