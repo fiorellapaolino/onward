@@ -31,6 +31,8 @@ const pos = new THREE.Vector3()
 const X_AXIS = new THREE.Vector3(1, 0, 0)
 const Z_AXIS = new THREE.Vector3(0, 0, 1)
 const TMP_V = new THREE.Vector3()
+const TMP_V2 = new THREE.Vector3()
+const TMP_V3 = new THREE.Vector3()
 const TMP_Q = new THREE.Quaternion()
 const TMP_Q2 = new THREE.Quaternion()
 const TMP_Q3 = new THREE.Quaternion()
@@ -73,7 +75,7 @@ export function Character() {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0 })
+  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, prevSpeed: 0, accel: 0, yawRate: 0 })
   const S = useMemo(() => ({ base: makeSample(), tmp: makeSample(), tmp2: makeSample(), smooth: makeSample() }), [])
 
   const bodyG = useGLTF(BODY_URL)
@@ -202,6 +204,19 @@ export function Character() {
       bone.quaternion.copy(sm)
     }
     body.current.position.lerp(TMP_V.copy(base.offset).multiplyScalar(WS), snap ? 1 : damp(20, dt))
+
+    // Peso del cuerpo: se inclina hacia delante al arrancar (atrás al frenar) y hacia dentro en las curvas
+    a.accel += ((g.speed - a.prevSpeed) / Math.max(dt, 1e-3) - a.accel) * damp(5, dt)
+    a.prevSpeed = g.speed
+    const yawRate = (headingAt(g.p + 0.5) - headingAt(g.p)) * 2 * g.speed // radianes por segundo
+    a.yawRate += (yawRate - a.yawRate) * damp(4, dt)
+    if (!snap) {
+      root.current.updateMatrixWorld(true)
+      const right = TMP_V2.copy(X_AXIS).applyQuaternion(root.current.quaternion)
+      const fwd = TMP_V3.copy(Z_AXIS).applyQuaternion(root.current.quaternion)
+      rotateBoneWorld(bones.spine_01, right, THREE.MathUtils.clamp(a.accel * 0.05, -0.1, 0.14))
+      rotateBoneWorld(bones.pelvis, fwd, THREE.MathUtils.clamp(-a.yawRate * 0.12, -0.08, 0.08) * a.move)
+    }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
     if (a.mago > 0.001) {

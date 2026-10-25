@@ -21,6 +21,16 @@ for s, S in (('l', 'Left'), ('r', 'Right')):
 ALIGN = ('clavicle', 'upperarm', 'lowerarm', 'hand', 'thigh', 'calf', 'foot', 'ball')
 
 
+def yaw_of(R):
+    v = R @ np.array([0, 0, 1.0])
+    return float(np.arctan2(v[0], v[2]))
+
+
+def rot_y(a):
+    c, s_ = np.cos(a), np.sin(a)
+    return np.array([[c, 0, s_], [0, 1, 0], [-s_, 0, c]])
+
+
 class Target:
     def __init__(self):
         g = GLTF(BASE)
@@ -40,7 +50,8 @@ class Target:
             self.child[b] = pref.get(b) or (ks[0] if ks else None)
 
 
-def retarget(path, strip_forward=False):
+def retarget(path, strip_forward=False, yaw_scale=1.0):
+    """yaw_scale: cuánto se conserva del giro de la cadera (alrededor de su media). 1 = todo."""
     T = Target()
     clip = load_clip(path)
     rest = clip['rest']
@@ -72,6 +83,9 @@ def retarget(path, strip_forward=False):
             k = np.polyfit(tt, hips[:, ax], 1)
             off[:, ax] = hips[:, ax] - np.polyval(k, tt)
             off[:, ax] -= off[:, ax].mean()
+    yaws = [yaw_of(rot_of(fr['Hips']) @ rot_of(rest['Hips']).T) for fr in clip['frames']]
+    clip_mean = float(np.mean(np.unwrap(yaws)))
+    mean_yaw = 0.0  # en promedio, mirando hacia delante
     local = {b: [] for b in order}
     for f in range(n):
         Wt = {}
@@ -79,7 +93,9 @@ def retarget(path, strip_forward=False):
             mx = MAP[b]
             delta = rot_of(clip['frames'][f][mx]) @ rot_of(rest[mx]).T
             if b == 'pelvis':
-                delta = remove_yaw(delta)
+                # conservar el giro natural de la cadera al caminar, pero centrado (sin cambiar de dirección)
+                yaw = yaw_of(delta) - clip_mean
+                delta = rot_y(mean_yaw + (yaw - mean_yaw) * yaw_scale) @ remove_yaw(delta)
             Wt[b] = delta @ Ralign[b] @ Rrest_t[b]
             p = T.parent.get(b)
             Rp = Wt[p] if p in Wt else rot_of(T.W[p])
