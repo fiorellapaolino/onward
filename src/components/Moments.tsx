@@ -27,21 +27,50 @@ export function Moments() {
 
 // ── La semilla que gira ─────────────────────────────────────────
 const TREE_URL = natureUrl('CommonTree_2')
-const seedMat = new THREE.MeshStandardMaterial({ color: '#f0c46a', roughness: 0.8, side: THREE.DoubleSide, emissive: '#ffcf7a', emissiveIntensity: 0.25 })
+// la semilla del arce: un "nudo" marrón con UNA ala fina y nervada; al caer gira como una hélice
+const seedMat = new THREE.MeshStandardMaterial({ color: '#d9bc84', roughness: 0.85, side: THREE.DoubleSide, emissive: '#ffcf7a', emissiveIntensity: 0, transparent: true, opacity: 0.95 })
+const nutMat = new THREE.MeshStandardMaterial({ color: '#7b4f2a', roughness: 0.8 })
+const veinMat = new THREE.MeshBasicMaterial({ color: '#a8854f', side: THREE.DoubleSide })
+const WING = (() => {
+  // forma del ala (en el plano XY, desde la semilla hacia +X): estrecha junto a la semilla,
+  // más ancha hacia la punta, con el borde de abajo curvo y la punta redondeada
+  const L = 0.17
+  const sh = new THREE.Shape()
+  sh.moveTo(0, 0.006)
+  sh.bezierCurveTo(L * 0.35, 0.016, L * 0.75, 0.02, L * 0.95, 0.012)
+  sh.quadraticCurveTo(L * 1.03, -0.004, L * 0.9, -0.03)
+  sh.bezierCurveTo(L * 0.7, -0.05, L * 0.35, -0.04, 0, -0.008)
+  sh.lineTo(0, 0.006)
+  const g = new THREE.ShapeGeometry(sh, 10)
+  g.rotateX(-Math.PI / 2) // tumbada (en el plano XZ)
+  return g
+})()
+const VEINS = (() => {
+  // dos o tres nervios finos que salen de la semilla hacia el borde del ala
+  const g = new THREE.BufferGeometry()
+  const pts: number[] = []
+  const add = (x1: number, z1: number, x2: number, z2: number) => {
+    const w = 0.0015
+    pts.push(x1, 0.0008, z1 - w, x2, 0.0008, z2 - w, x2, 0.0008, z2 + w, x1, 0.0008, z1 - w, x2, 0.0008, z2 + w, x1, 0.0008, z1 + w)
+  }
+  add(0.01, 0, 0.16, -0.008)
+  add(0.01, 0.002, 0.13, 0.03)
+  add(0.01, 0.004, 0.09, 0.034)
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3))
+  return g
+})()
 
-/** Una semilla con alas (como las del arce): dos alitas planas que la hacen girar al caer. */
+/** Una semilla de arce: el nudo y su ala, algo inclinada (por eso gira al caer). Mide unos 20 cm. */
 function Samara({ refFn }: { refFn: (g: THREE.Group | null) => void }) {
   return (
-    <group ref={refFn} scale={2}>
-      <mesh material={seedMat}>
-        <sphereGeometry args={[0.022, 8, 6]} />
-      </mesh>
-      <mesh material={seedMat} position={[0.075, 0.005, 0]} rotation={[0.25, 0, 0.12]}>
-        <planeGeometry args={[0.14, 0.045]} />
-      </mesh>
-      <mesh material={seedMat} position={[-0.075, 0.005, 0]} rotation={[-0.25, 0, -0.12]}>
-        <planeGeometry args={[0.14, 0.045]} />
-      </mesh>
+    <group ref={refFn}>
+      <group rotation={[0, 0, 0.18]}>
+        <mesh material={nutMat} scale={[1.6, 0.8, 1]}>
+          <sphereGeometry args={[0.016, 8, 6]} />
+        </mesh>
+        <mesh geometry={WING} material={seedMat} rotation-x={0.25} />
+        <mesh geometry={VEINS} material={veinMat} rotation-x={0.25} />
+      </group>
     </group>
   )
 }
@@ -73,7 +102,7 @@ function SeedTree() {
       const swirl = sd.a + u * 5
       o.position.set(SEED_TREE.x + Math.cos(swirl) * sd.d * (0.4 + u * 0.6), Math.max(0.02, y), SEED_TREE.z + Math.sin(swirl) * sd.d * (0.4 + u * 0.6))
       o.rotation.set(0.3, t * 9 + i, 0) // gira como una hélice
-      o.scale.setScalar(2)
+      o.scale.setScalar(1.2)
     })
 
     // la que baja a su mano
@@ -87,8 +116,8 @@ function SeedTree() {
       const k = clamp01((t - done) / 1.2)
       s.visible = k < 1
       s.position.set(hand.x + (g.x - hand.x) * k, hand.y + 0.05 * k, hand.z + (g.z - hand.z) * k)
-      s.scale.setScalar(2.6 * (1 - k * 0.8))
-      seedMat.emissiveIntensity = 0.25 + 2 * (1 - k)
+      s.scale.setScalar(1.5 * (1 - k * 0.8))
+      seedMat.emissiveIntensity = 1.5 * (1 - k)
       glowMat.opacity = 0.9 * (1 - k)
       glow.current.position.copy(s.position)
     } else if (m.seedT >= 0) {
@@ -99,8 +128,8 @@ function SeedTree() {
       s.visible = true
       s.position.set(hand.x + Math.cos(swirl) * rad, 4.5 + (hand.y - 4.5) * e, hand.z + Math.sin(swirl) * rad)
       s.rotation.set(0.3, t * 9 * (1 - u * 0.7), 0)
-      s.scale.setScalar(2.6)
-      seedMat.emissiveIntensity = 0.25 + u * 0.6
+      s.scale.setScalar(1.5)
+      seedMat.emissiveIntensity = u * 0.4
       glowMat.opacity = u * 0.5
       glow.current.position.copy(s.position)
     } else {
@@ -157,7 +186,7 @@ function GirlSeeds() {
       const swirl = sd.a + u * 5
       o.position.set(GIRL_TREE.x + Math.cos(swirl) * sd.d, Math.max(0.02, 4.2 * (1 - u)), GIRL_TREE.z + Math.sin(swirl) * sd.d)
       o.rotation.set(0.3, t * 9 + i, 0)
-      o.scale.setScalar(2)
+      o.scale.setScalar(1.2)
     })
     const s = gift.current
     if (!s) return
@@ -192,7 +221,7 @@ function GirlSeeds() {
       gl = u * 0.5
     } else vis = false
     s.visible = vis
-    s.scale.setScalar(2.6)
+    s.scale.setScalar(1.5)
     glowMat.opacity = vis ? gl : 0
     glow.current.position.copy(s.position)
   })
