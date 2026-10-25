@@ -188,15 +188,18 @@ export function Character() {
       // (usa el principio de "Standing Up"); con los graves se levanta del todo desde donde esté.
       const level = g.started ? musicLevel(g.musicT) : 0
       a.tryLevel += (level - a.tryLevel) * damp(3.5, dt)
-      if (g.phase === 'intro') a.tryT = 1.2 * Math.pow(a.tryLevel, 1.4)
+      a.tryT = 0 // se queda de rodillas (los intentos se hacen con el pecho y la cabeza, abajo)
       const total = duration(CLIPS.standup)
       const t = g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
       // respira de rodillas al ritmo de las frases de la canción (inhala cuando la música sube)
       if (g.phase === 'intro') {
         const level = g.started ? musicLevel(g.musicT) : 0.3 + 0.2 * Math.sin(g.time * 1.2)
-        base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.05 - 0.12 * level))
-        base.q.neck_01?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.04 - 0.08 * level))
+        // con cada frase levanta un poco el pecho y la cabeza, como quien se asoma, y vuelve a bajar
+        const lift = a.tryLevel
+        base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.04 - 0.1 * lift))
+        base.q.neck_01?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.06 - 0.12 * lift))
+        base.q.Head?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.05 - 0.12 * lift))
       }
     }
     // al final levanta la mirada hacia la luz
@@ -252,9 +255,8 @@ export function Character() {
     // De rodillas, entre frase y frase mira a su alrededor (como quien tiene miedo de empezar)
     if (g.phase === 'intro' && g.started) {
       const calm = 1 - clamp01(a.tryLevel * 1.4)
-      const look = (Math.sin(g.musicT * 0.55) * 0.55 + Math.sin(g.musicT * 1.3) * 0.12) * (0.35 + 0.65 * calm)
-      rotateBoneWorld(bones.neck_01, Y_AXIS, look * 0.4)
-      rotateBoneWorld(bones.Head, Y_AXIS, look * 0.6)
+      const look = Math.sin(g.musicT * 0.45) * 0.3 * calm
+      rotateBoneWorld(bones.Head, Y_AXIS, look)
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
