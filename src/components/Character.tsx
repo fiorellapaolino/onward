@@ -37,7 +37,7 @@ const TMP_V4 = new THREE.Vector3()
 const TMP_P1 = new THREE.Vector3()
 const TMP_P2 = new THREE.Vector3()
 // cuánto se mueven los gestos de la cabeza al nacer (1 = los ángulos de HEAD_KEYS)
-const HEAD_SCALE = 0.5
+const HEAD_SCALE = 0.75
 const TMP_Q = new THREE.Quaternion()
 const TMP_Q2 = new THREE.Quaternion()
 const TMP_Q3 = new THREE.Quaternion()
@@ -58,23 +58,24 @@ const SIDE_TURN = Math.PI / 2 // al nacer mira hacia su izquierda: la cámara la
  * Entre un punto y el siguiente se pasa suavemente.
  */
 const HEAD_KEYS: [number, number, number, number][] = [
-  // (al nacer está de costado: giro negativo = mira hacia delante, al sendero; positivo = hacia la cámara)
+  // [segundo, giro (+ a su izquierda / - a su derecha), inclinación (+ abajo / - arriba), ladeo]
   [0, 0, 0.45, 0], // cabeza baja: acaba de nacer
   [1.5, 0, 0.4, 0],
-  [3.2, -0.1, 0.05, 0], // la levanta despacio
-  [4.4, -0.7, -0.05, 0.05], // mira hacia delante, al bosque
-  [5.4, -0.65, 0, 0.28], // ladea la cabeza: ¿qué es esto?
-  [5.9, -0.2, -0.2, 0.1], // aparece el primer elemento: lo mira
-  [7.2, 0.25, 0, -0.05], // un vistazo al otro lado
-  [8.2, -0.4, 0.05, -0.25], // vuelve a mirar delante, confundida
-  [9.2, -0.1, 0.5, 0], // se mira las manos
-  [9.7, -0.3, -0.25, 0], // otro elemento: levanta la vista
-  [11.5, -0.6, -0.1, 0.12], // mira el sendero
-  [13.6, 0.15, -0.3, -0.08], // otro elemento
-  [15.5, -0.5, 0.1, 0.1],
-  [17.6, -0.3, -0.3, 0], // el último elemento
-  [19.5, -0.4, -0.2, 0], // mira hacia delante: va a levantarse
-  [21.5, 0, -0.1, 0],
+  [3.0, 0, 0.0, 0], // la levanta despacio y mira al frente
+  [4.2, -0.75, -0.05, 0], // mira a su derecha
+  [5.2, -0.7, 0, 0.3], // ladea la cabeza: ¿qué es esto?
+  [5.9, 0, -0.35, 0], // aparece el primer elemento: mira hacia arriba
+  [7.1, 0.75, 0, 0], // mira a su izquierda
+  [8.1, 0.7, 0.05, -0.3], // ladea al otro lado, confundida
+  [9.1, 0, 0.55, 0], // se mira las manos
+  [9.7, 0.2, -0.3, 0], // otro elemento: levanta la vista
+  [11.3, -0.5, -0.15, 0.1], // otra vez a su derecha
+  [12.6, 0, -0.45, 0], // mira el cielo, entre las copas
+  [13.7, 0.5, -0.2, -0.1], // otro elemento, a su izquierda
+  [15.4, 0, 0.1, 0], // al frente
+  [17.6, -0.35, -0.3, 0], // el último elemento
+  [19.5, 0, -0.1, 0], // al frente: va a levantarse
+  [21.5, 0, 0, 0],
 ]
 const smoothT = (t: number) => t * t * (3 - 2 * t)
 function headGesture(t: number): [number, number, number] {
@@ -102,6 +103,11 @@ function rotateBoneWorld(bone: THREE.Object3D, axisWorld: THREE.Vector3, angle: 
   bone.quaternion.premultiply(TMP_Q3)
 }
 
+/** Gira un hueso alrededor de un eje expresado en su propio espacio (el de su pose de reposo). */
+function rotateBoneLocal(bone: THREE.Object3D, axisLocal: THREE.Vector3, angle: number) {
+  bone.quaternion.multiply(TMP_Q.setFromAxisAngle(axisLocal, angle))
+}
+
 /** Oreja de elfa: hoja alargada que apunta hacia fuera, arriba y atrás. */
 function makeEar(side: 1 | -1, material: THREE.Material) {
   const geo = new THREE.ConeGeometry(0.024, 0.11, 10, 1)
@@ -127,7 +133,7 @@ export function Character() {
   const hairG = useGLTF(HAIR_URL)
 
   // Montaje: cuerpo + ropa + pelo sobre un solo esqueleto, y orejas en la cabeza
-  const { model, bones } = useMemo(() => {
+  const { model, bones, axes } = useMemo(() => {
     const model = new THREE.Group()
     model.add(bodyG.scene, outfitG.scene, hairG.scene)
     model.updateMatrixWorld(true)
@@ -171,7 +177,19 @@ export function Character() {
     }
 
     model.scale.setScalar(WS)
-    return { model, bones }
+    // Ejes "de la elfa" (arriba, su izquierda, delante) expresados en el espacio de cada hueso,
+    // para girar la cabeza en sus propios términos aunque esté inclinada o de costado
+    const axesOf = (b: THREE.Bone) => {
+      const inv = b.getWorldQuaternion(new THREE.Quaternion()).invert()
+      return {
+        up: new THREE.Vector3(0, 1, 0).applyQuaternion(inv),
+        left: new THREE.Vector3(1, 0, 0).applyQuaternion(inv), // el modelo mira a +Z: su izquierda es +X
+        fwd: new THREE.Vector3(0, 0, 1).applyQuaternion(inv),
+      }
+    }
+    const axes = { head: axesOf(bones.Head), neck: axesOf(bones.neck_01) }
+
+    return { model, bones, axes }
   }, [bodyG, outfitG, hairG])
 
   useFrame((_, rawDt) => {
@@ -200,7 +218,7 @@ export function Character() {
     // (con margen: se activa tras 1 s quieta y no se apaga hasta que de verdad camina, sin parpadeos)
     if (g.phase === 'look' || (g.phase === 'play' && (g.idle > 1 || g.blocked))) a.lookOn = true
     else if (g.speed > 0.4 || g.phase !== 'play') a.lookOn = false
-    const lookTarget = a.lookOn ? 0.65 : 0
+    const lookTarget = a.lookOn ? 0.4 : 0
     a.look += (lookTarget - a.look) * damp(2.5, dt)
     if (a.look > 0.01) a.lookT += dt
     else a.lookT = 0
@@ -302,18 +320,12 @@ export function Character() {
       const t = g.phase === 'intro' ? g.musicT : MUSIC.BASS_IN + g.phaseT
       const [yaw, pitch, roll] = headGesture(t)
       const fade = g.phase === 'rise' ? 1 - clamp01(g.phaseT / 0.6) : 1
-      root.current.updateMatrixWorld(true)
-      const right = TMP_V4.copy(X_AXIS).applyQuaternion(root.current.quaternion)
-      const fwd = TMP_V3.copy(Z_AXIS).applyQuaternion(root.current.quaternion)
-      // girar sobre el eje de su propio cuello (no el vertical del mundo: está inclinada y la retorcería)
-      bones.neck_01.getWorldPosition(TMP_P1)
-      bones.Head.getWorldPosition(TMP_P2)
-      const neckUp = TMP_P2.sub(TMP_P1).normalize()
+      // Giros en los ejes de SU cabeza (su izquierda/derecha, arriba/abajo), sea cual sea su postura
       const k = HEAD_SCALE * fade
-      rotateBoneWorld(bones.neck_01, neckUp, yaw * 0.4 * k)
-      rotateBoneWorld(bones.Head, neckUp, yaw * 0.6 * k)
-      rotateBoneWorld(bones.Head, right, pitch * k)
-      rotateBoneWorld(bones.Head, fwd, roll * k)
+      rotateBoneLocal(bones.neck_01, axes.neck.up, yaw * 0.4 * k)
+      rotateBoneLocal(bones.Head, axes.head.up, yaw * 0.6 * k)
+      rotateBoneLocal(bones.Head, axes.head.left, pitch * k)
+      rotateBoneLocal(bones.Head, axes.head.fwd, roll * k)
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
