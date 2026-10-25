@@ -294,7 +294,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
     // pose del Mago: al terminar de incorporarse alza el brazo, hasta que agarra las herramientas
     // (alza el brazo justo cuando entran los graves en la canción)
-    const magoTarget = (g.phase === 'rise' && g.phaseT > 0.15) || (g.phase === 'gather' && g.phaseT < 1.6) ? 1 : 0
+    const magoTarget = 0 // (ya no alza el brazo: los elementos del Mago se quitaron)
     a.mago += (magoTarget - a.mago) * damp(g.phase === 'rise' ? 7 : 3, dt)
 
     // ── Ritmo del paso: los pies avanzan lo mismo que ella (sin patinar) ──

@@ -16,8 +16,6 @@ export const MUSIC = {
   RISE_AT: 9, // se levanta (la intro visual es más corta que la canción)
   CUT: 53.25, // la música se corta: silencio y título
   END: 60,
-  // picos de las frases del principio: en cada uno aparece un elemento
-  ELEMENT_TIMES: [1.5, 3.4, 5.75, 7.6],
 }
 
 const ENV = envJson as { rate: number; values: number[] }

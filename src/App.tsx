@@ -11,7 +11,6 @@ import { Moments } from './components/Moments'
 import { Elder, Girl, Musician } from './components/Villager'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
-import { Tools } from './components/Tools'
 import { CameraRig } from './components/CameraRig'
 import { Hud } from './components/Hud'
 
@@ -24,7 +23,6 @@ export default function App() {
         <World />
         <TheLight />
         <OtherPaths />
-        <Tools />
         <CameraRig />
         <Suspense fallback={null}>
           <Character />

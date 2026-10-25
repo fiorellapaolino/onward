@@ -1,5 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-end1  ?at=112.5&ending&endT=1.5   20
-end2  ?at=112.5&ending&endT=6.5   20
-end3  ?at=112.5&ending&endT=9.3   20
-end4  ?at=112.5&ending&endT=14   20
+village ?at=55   15

@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import {
   RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST,
-  PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_ABSORB, TOOL_DELAY, TOOL_FLY,
+  PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END,
   smoothstep, damp, headingAt, pathAt, sideAt, tangentAt,
 } from './config'
 import * as THREE from 'three'
@@ -44,33 +44,9 @@ export function GameLoop() {
     const prevMusic = g.musicT
     if (!debugMode) g.musicT = musicTime()
     // un destello en cada frase en la que aparece un elemento
-    for (const t of MUSIC.ELEMENT_TIMES) if (prevMusic < t && g.musicT >= t) g.pulse = 1
     // la música se corta: silencio, y aparece el título
     if (prevMusic < MUSIC.CUT && g.musicT >= MUSIC.CUT) setUi({ title: true })
     if (g.musicT >= MUSIC.CUT + 5.5 && g.musicT < MUSIC.CUT + 6) setUi({ title: false })
-
-    // ── Elementos del Mago ──────────────────────────────────────
-    // al incorporarse vuelan a ella; cuando empieza a caminar entran en su pecho y desaparecen
-    // (la magia queda dormida dentro: se despertará ayudando a otros)
-    g.tools.forEach((tool, k) => {
-      if (tool.state === 'around' && g.phase === 'gather' && g.phaseT >= k * TOOL_DELAY) {
-        tool.state = 'flyingIn'
-        tool.t = 0
-      }
-      tool.t += dt
-      if (tool.state === 'flyingIn' && tool.t >= TOOL_FLY) {
-        tool.state = 'carried'
-        g.pulse = 1
-      }
-      if (tool.state === 'carried' && g.phase === 'play' && g.phaseT >= 1 + k * 0.25) {
-        tool.state = 'absorbing'
-        tool.t = 0
-      }
-      if (tool.state === 'absorbing' && tool.t >= TOOL_ABSORB) {
-        tool.state = 'inside'
-        g.pulse = 0.7
-      }
-    })
 
     input.backPressed = false
 

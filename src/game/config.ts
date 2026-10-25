@@ -21,11 +21,8 @@ export const TALK_DIST = 2.4 // a esta distancia se puede escuchar a la niña
 // ── Tiempos de las animaciones ───────────────────────────────────
 export const BIRTH_TIME = 1.0 // nace de la luz (de rodillas)
 export const RISE_TIME = 2.2 // termina de levantarse (animación "Standing Up")
-export const GATHER_TIME = 1.8 // agarra las herramientas
+export const GATHER_TIME = 0.5 // ya de pie, una pausa antes de mirar a los lados
 export const LOOK_TIME = 1.4 // mira a los costados antes de andar
-export const TOOL_DELAY = 0.3 // separación entre que agarra una herramienta y la siguiente
-export const TOOL_FLY = 0.7 // lo que tarda cada una en llegar a sus manos
-export const TOOL_ABSORB = 0.9 // lo que tardan en entrar en ella (la magia queda dormida dentro)
 
 // ── Salto ────────────────────────────────────────────────────────
 export const JUMP_CROUCH = 0.12 // se agacha antes de saltar

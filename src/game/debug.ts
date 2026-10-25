@@ -35,7 +35,6 @@ export function applyDebug() {
   game.yaw = headingAt(s)
   input.camYaw = game.yaw + Number(params.get('yaw') ?? 0)
   input.camZoom = Number(params.get('zoom') ?? 1)
-  game.tools.forEach((t) => (t.state = 'inside'))
   setUi({ start: false })
   if (params.has('talk')) {
     game.talk = 'girl'

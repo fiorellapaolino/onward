@@ -9,9 +9,6 @@ import { useSyncExternalStore } from 'react'
 // end    → llega a la luz y sigue hacia otros caminos
 export type Phase = 'intro' | 'rise' | 'gather' | 'look' | 'play' | 'end'
 
-// Estado de cada elemento del Mago: flotan al nacer, vuelan a ella y entran en su pecho
-// (la magia queda dormida dentro de ella; se despierta ayudando a otros)
-export type ToolState = 'around' | 'flyingIn' | 'carried' | 'absorbing' | 'inside'
 
 // La historia de la aldea, en orden:
 // seek      → todavía no habló con la niña
@@ -88,7 +85,6 @@ export const game = {
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
-  tools: [0, 1, 2, 3].map(() => ({ state: 'around' as ToolState, t: 0 })),
 }
 
 /** Cuántos faroles de la aldea hay encendidos (0..1). */
