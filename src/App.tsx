@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { GameLoop } from './game/GameLoop'
 import { useInput } from './game/useInput'
@@ -17,7 +18,9 @@ export default function App() {
         <GameLoop />
         <World />
         <Stairs />
-        <Character />
+        <Suspense fallback={null}>
+          <Character />
+        </Suspense>
         <Tools />
         <DistantPaths />
         <CameraRig />

@@ -1,7 +1,17 @@
 // Envuelve el juego web (carpeta dist/) en una ventana de escritorio.
-// Así el mismo código sirve para itch.io, Mac (.app) y Windows (.exe).
-const { app, BrowserWindow, Menu } = require('electron')
+// Así el mismo código sirve para la web, Mac (.app) y Windows (.exe).
+//
+// Los archivos se sirven con un protocolo propio (app://) en lugar de file://,
+// porque los navegadores no dejan cargar modelos 3D con fetch() desde file://.
+const { app, BrowserWindow, Menu, protocol, net } = require('electron')
 const path = require('path')
+const { pathToFileURL } = require('url')
+
+const DIST = path.join(__dirname, '..', 'dist')
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+])
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -12,7 +22,7 @@ function createWindow() {
     webPreferences: { contextIsolation: true },
   })
   Menu.setApplicationMenu(null)
-  win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
+  win.loadURL('app://game/index.html')
 
   // F11 = pantalla completa
   win.webContents.on('before-input-event', (_e, input) => {
@@ -22,5 +32,13 @@ function createWindow() {
   })
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  protocol.handle('app', (request) => {
+    const { pathname } = new URL(request.url)
+    const file = path.normalize(path.join(DIST, decodeURIComponent(pathname)))
+    if (!file.startsWith(DIST)) return new Response('Not found', { status: 404 })
+    return net.fetch(pathToFileURL(file).toString())
+  })
+  createWindow()
+})
 app.on('window-all-closed', () => app.quit())
