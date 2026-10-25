@@ -107,7 +107,10 @@ export function Character() {
     const knee = (0.45 + 0.75 * c) * m // cuánto doblan las rodillas
     const armSwing = A * (0.8 + 0.4 * c)
     const elbow = 0.12 + (0.25 + 0.6 * c) * m
-    const tuck = 0.18 * c * m // al correr, brazos más pegados
+    // El modelo tiene los brazos abiertos (pose en A): los acercamos al cuerpo.
+    // Al correr se pegan un poco más.
+    const ARMS_IN = 0.45
+    const tuck = ARMS_IN + 0.1 * c * m
 
     const pose: Pose = {
       hips: [0, 0.06 * A * sin, 0],
@@ -121,8 +124,8 @@ export function Character() {
       shinR: [0.05 + knee * Math.max(0, -cos), 0, 0],
       footL: [-0.25 * A * sin, 0, 0],
       footR: [0.25 * A * sin, 0, 0],
-      upperArmL: [armSwing * sin, 0, -tuck + 0.03 * breathe],
-      upperArmR: [-armSwing * sin, 0, tuck - 0.03 * breathe],
+      upperArmL: [armSwing * sin, 0, -tuck + 0.02 * breathe],
+      upperArmR: [-armSwing * sin, 0, tuck - 0.02 * breathe],
       foreArmL: [-elbow, 0, 0],
       foreArmR: [-elbow, 0, 0],
     }
@@ -136,7 +139,7 @@ export function Character() {
       }
       blend('upperArmR', [-0.25, 0, -2.2 + 0.05 * breathe])
       blend('foreArmR', [-0.15, 0, 0])
-      blend('upperArmL', [0.1, 0, 0.3])
+      blend('upperArmL', [0.1, 0, -0.15])
       blend('foreArmL', [0, 0, 0])
       blend('head', [-0.12, 0, 0])
     }
