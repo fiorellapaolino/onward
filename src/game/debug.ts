@@ -103,3 +103,5 @@ export function applyDebug() {
 
 /** En modo de prueba la música no suena y su reloj no avanza. */
 export const debugMode = params.has('at')
+// (para las pruebas automáticas: poder leer el estado del juego desde fuera)
+if (debugMode) (window as unknown as { __game: typeof game }).__game = game

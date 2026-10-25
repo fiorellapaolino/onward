@@ -28,7 +28,11 @@ for (const line of shots) {
     // (cuánto tarda en dibujar un frame, para saber si va lento)
     const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 > 3000) res(n / 3); else requestAnimationFrame(f) }; requestAnimationFrame(f) }))
     log.push(`[${name}] fps≈${fps}`)
-    await page.screenshot({ path: `ci-out/${name}.png`, timeout: 120000 })
+    try {
+    const st = await page.evaluate(() => { const g = window.__game; return g && { phase: g.phase, story: g.story, x: g.x, z: g.z, jumpT: g.jumpT, jumpY: g.jumpY, speed: g.speed, talk: g.talk } })
+    log.push(`[${name}] state ${JSON.stringify(st)}`)
+  } catch (e) { log.push(`[${name}] state error ${e.message}`) }
+  await page.screenshot({ path: `ci-out/${name}.png`, timeout: 120000 })
   } catch (e) {
     log.push(`[${name}] SCREENSHOT FAILED: ${e.message}`)
   }

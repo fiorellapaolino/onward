@@ -1,2 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-village ?at=55   15
+jump1  ?at=20   15   Space:150,wait:2500
+jump2  ?at=20   15   Space:150,wait:6000
