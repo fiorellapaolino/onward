@@ -1,2 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-normal  ?probe   12   Enter:100,wait:150000,state:before,Space:150,state:after1,wait:3000,state:after2
+village ?at=55   10
