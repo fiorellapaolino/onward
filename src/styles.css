@@ -83,3 +83,18 @@ html, body, #root {
 .show {
   opacity: 1;
 }
+
+.hud .hint {
+  margin-top: 6px;
+  font-size: clamp(12px, 1.4vw, 15px);
+  opacity: 0.6;
+}
+
+canvas {
+  cursor: grab;
+}
+
+body.grabbing,
+body.grabbing canvas {
+  cursor: grabbing;
+}

@@ -24,9 +24,14 @@ export function Hud() {
         <h1>Onward</h1>
         {/* "Mantén Espacio, ↑ o clic para caminar" */}
         {loaded ? (
-          <p>
-            Hold <kbd>Space</kbd>, <kbd>↑</kbd> or click to walk
-          </p>
+          <>
+            {/* "Mantén Espacio o ↑ para caminar" */}
+            <p>
+              Hold <kbd>Space</kbd> or <kbd>↑</kbd> to walk
+            </p>
+            {/* "Arrastra para mirar alrededor · rueda para acercar" */}
+            <p className="hint">Drag to look around · scroll to zoom</p>
+          </>
         ) : (
           // "Cargando el bosque…"
           <p>Loading the forest… {Math.round(progress)}%</p>

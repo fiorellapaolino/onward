@@ -33,7 +33,15 @@ export const game = {
 }
 
 // Controles
-export const input = { forward: false, backPressed: false }
+export const input = {
+  forward: false,
+  backPressed: false,
+  // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
+  camYaw: 0, // giro alrededor de la elfa (radianes)
+  camPitch: 0, // altura extra (-0.6 abajo … 1 arriba)
+  camZoom: 1, // 0.6 cerca … 1.8 lejos
+  dragging: false,
+}
 
 // ── Textos en pantalla (esto sí es estado de React) ──────────────
 type Ui = { title: boolean; msg: string | null; fade: boolean; final: boolean }
