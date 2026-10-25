@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { BIRTH_TIME, LOOK_BACK_TIME, LOOK_TIME, STEP_ANGLE, clamp01, damp, spiralAt } from '../game/config'
+import { BIRTH_TIME, LOOK_BACK_TIME, LOOK_TIME, clamp01, damp, headingAt, pathAt } from '../game/config'
 import { game } from '../game/state'
 
 // Modelo: "Forest Enchantress" de Padarozhnik (CC BY 4.0) — ver CREDITS.md
@@ -53,7 +53,7 @@ export function Character() {
     const k = damp(8, dt)
 
     // ── Posición y hacia dónde mira ─────────────────────────────
-    spiralAt(g.p, pos)
+    pathAt(g.p, pos)
     root.current.position.copy(pos)
     let turn = 0
     if (g.lookBack > 0) {
@@ -61,7 +61,7 @@ export function Character() {
       const t = 1 - g.lookBack / LOOK_BACK_TIME
       turn = Math.sin(t * Math.PI) * Math.PI * 0.85
     }
-    root.current.rotation.y = -g.p * STEP_ANGLE + turn
+    root.current.rotation.y = headingAt(g.p) + turn
 
     // ── Nacer: crece desde la luz ──────────────────────────────
     const birth = g.phase === 'intro' ? clamp01(g.phaseT / BIRTH_TIME) : 1

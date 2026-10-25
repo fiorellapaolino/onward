@@ -1,5 +1,6 @@
-import { useRef } from 'react'
-import { useUi } from '../game/state'
+import { useEffect, useRef } from 'react'
+import { useProgress } from '@react-three/drei'
+import { game, useUi } from '../game/state'
 
 // Textos en pantalla. Están en inglés porque las reglas lo piden;
 // la traducción está en el comentario de al lado.
@@ -9,15 +10,27 @@ export function Hud() {
   const lastMsg = useRef('')
   if (ui.msg) lastMsg.current = ui.msg
 
+  // Carga de modelos: no se puede empezar hasta que el bosque esté listo
+  const { active, progress } = useProgress()
+  const loaded = !active && progress >= 100
+  useEffect(() => {
+    game.loaded = loaded
+  }, [loaded])
+
   return (
     <div className="hud">
       <div className={`title ${ui.title ? 'show' : ''}`}>
         {/* "Hacia adelante" */}
         <h1>Onward</h1>
         {/* "Mantén Espacio, ↑ o clic para caminar" */}
-        <p>
-          Hold <kbd>Space</kbd>, <kbd>↑</kbd> or click to walk
-        </p>
+        {loaded ? (
+          <p>
+            Hold <kbd>Space</kbd>, <kbd>↑</kbd> or click to walk
+          </p>
+        ) : (
+          // "Cargando el bosque…"
+          <p>Loading the forest… {Math.round(progress)}%</p>
+        )}
       </div>
 
       <div className={`msg ${ui.msg ? 'show' : ''}`}>{lastMsg.current}</div>

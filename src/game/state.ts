@@ -4,8 +4,8 @@ import { useSyncExternalStore } from 'react'
 // intro  → nace y las herramientas flotan a su alrededor (espera al jugador)
 // gather → agarra las herramientas
 // look   → mira a la izquierda y a la derecha
-// play   → sube la escalera
-// end    → llega arriba y sigue corriendo hacia el horizonte
+// play   → avanza por el bosque
+// end    → llega a la luz y sigue hacia otros caminos
 export type Phase = 'intro' | 'gather' | 'look' | 'play' | 'end'
 
 // Estado de cada herramienta del Mago
@@ -14,16 +14,18 @@ export type ToolState = 'around' | 'flyingIn' | 'carried' | 'toGate' | 'used'
 // Estado del juego. Se modifica cada frame (no es estado de React a propósito,
 // para que no se re-renderice todo 60 veces por segundo).
 export const game = {
+  loaded: false, // ya se cargaron los modelos
   phase: 'intro' as Phase,
   phaseT: 0, // segundos dentro de la fase actual
   time: 0,
-  p: 0, // progreso: en qué escalón está (con decimales)
+  p: 0, // progreso: metros recorridos por el sendero
   c: 0, // confianza 0..1 → de dudar a correr
-  speed: 0, // escalones por segundo
+  speed: 0, // metros por segundo
   idle: 0, // segundos sin moverse
-  blocked: false, // está frente a un escalón que falta
+  blocked: false, // está frente a un obstáculo
   gateHold: 0,
   opened: new Set<number>(),
+  openedAt: new Map<number, number>(), // momento (game.time) en que se abrió cada obstáculo
   lookBack: 0,
   walkPhase: 0,
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)

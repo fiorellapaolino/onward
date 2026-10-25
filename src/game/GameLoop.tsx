@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import {
   BIRTH_TIME, GATES, GATE_HOLD, GATHER_TIME, LOOK_BACK_TIME, LOOK_TIME,
-  N_GOAL, N_TOTAL, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE, smoothstep, damp,
+  GATE_STOP, PATH_LEN, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE, smoothstep, damp,
 } from './config'
 import { game, input, setUi, type Phase } from './state'
 
@@ -32,7 +32,8 @@ export function GameLoop() {
       }
       if (tool.state === 'toGate' && tool.t >= TOOL_TO_GATE) {
         tool.state = 'used'
-        g.opened.add(tool.gate) // la herramienta se convierte en el escalón que faltaba
+        g.opened.add(tool.gate) // la herramienta abre el paso
+        g.openedAt.set(tool.gate, g.time)
         g.c = Math.min(1, g.c + 0.15) // y le da un empujón de confianza
         g.pulse = 1
         setUi({ msg: null })
@@ -50,7 +51,7 @@ export function GameLoop() {
     switch (g.phase) {
       case 'intro':
         // Nace; cuando el jugador empieza, agarra las herramientas
-        if (g.phaseT > BIRTH_TIME * 0.8 && input.forward) {
+        if (g.phaseT > BIRTH_TIME * 0.8 && g.loaded && input.forward) {
           setPhase('gather')
           setUi({ title: false })
         }
@@ -65,7 +66,7 @@ export function GameLoop() {
         break
 
       case 'play': {
-        const f = g.p / N_GOAL
+        const f = g.p / PATH_LEN
         // La confianza máxima crece a medida que subes: al principio duda, al final corre
         const cMax = 0.25 + 0.75 * smoothstep(0, 0.7, f)
         const forward = input.forward && g.lookBack === 0
@@ -74,14 +75,14 @@ export function GameLoop() {
 
         // Con poca confianza da pasitos y se frena a ratos
         const hesitant = g.c < 0.3 && Math.sin(g.time * 1.7) < -0.45
-        const target = forward && !hesitant ? 0.7 + 2.8 * g.c : 0
+        const target = forward && !hesitant ? 0.9 + 3.4 * g.c : 0 // metros por segundo
         g.speed += (target - g.speed) * damp(5, dt)
 
-        // ¿Hay un escalón que falta más adelante?
+        // ¿Hay un obstáculo más adelante?
         const closed = GATES.find((G) => !g.opened.has(G))
-        const maxP = Math.min(closed !== undefined ? closed - 1 : Infinity, N_GOAL)
+        const maxP = Math.min(closed !== undefined ? closed - GATE_STOP : Infinity, PATH_LEN)
         g.p = Math.min(g.p + g.speed * dt, maxP)
-        g.blocked = closed !== undefined && g.p >= closed - 1 - 0.001
+        g.blocked = closed !== undefined && g.p >= closed - GATE_STOP - 0.001
 
         if (g.blocked && closed !== undefined) {
           g.speed = 0
@@ -100,6 +101,7 @@ export function GameLoop() {
               tool.gate = closed
             } else {
               g.opened.add(closed)
+              g.openedAt.set(closed, g.time)
               setUi({ msg: null })
             }
           }
@@ -107,7 +109,7 @@ export function GameLoop() {
           g.gateHold = 0
         }
 
-        if (g.p >= N_GOAL - 0.01) setPhase('end')
+        if (g.p >= PATH_LEN - 0.01) setPhase('end')
         break
       }
 
@@ -115,8 +117,8 @@ export function GameLoop() {
         // Llega arriba… y descubre que hay más camino. Sigue corriendo.
         g.blocked = false
         g.c += (1 - g.c) * dt
-        g.speed += (3.4 - g.speed) * damp(2, dt)
-        g.p = Math.min(g.p + g.speed * dt, N_TOTAL - 3)
+        g.speed += (3.2 - g.speed) * damp(2, dt)
+        g.p = Math.min(g.p + g.speed * dt, PATH_END - 4)
         // "Siempre hay un paso más."
         if (g.phaseT > 2.5 && g.phaseT <= 8) setUi({ msg: 'There is always one more step.' })
         if (g.phaseT > 8) setUi({ fade: true, msg: null })
@@ -126,7 +128,7 @@ export function GameLoop() {
     }
 
     g.idle = g.speed < 0.15 ? g.idle + dt : 0
-    g.walkPhase += g.speed * Math.PI * dt
+    g.walkPhase += g.speed * 2.2 * dt
   }, -1)
 
   return null

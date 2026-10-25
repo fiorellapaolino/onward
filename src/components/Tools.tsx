@@ -1,14 +1,14 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { BIRTH_TIME, STEP_ANGLE, TOOL_FLY, TOOL_TO_GATE, clamp01, spiralAt } from '../game/config'
+import { BIRTH_TIME, TOOL_FLY, TOOL_TO_GATE, clamp01, pathAt } from '../game/config'
 import { game } from '../game/state'
 
 /*
  * Las cuatro herramientas del Mago: copa, espada, vara y oro.
  * 1. Flotan alrededor de la personita cuando nace.
  * 2. Al empezar, vuelan a ella una por una y la acompañan girando.
- * 3. En cada escalón que falta, una vuela hasta ese hueco y se convierte en el escalón.
+ * 3. En cada obstáculo, una vuela hasta él y le abre paso.
  * Mensaje: ya tienes lo que necesitas para seguir adelante.
  */
 
@@ -21,7 +21,7 @@ const ease = (t: number) => t * t * (3 - 2 * t)
 function aroundPos(k: number, out: THREE.Vector3) {
   // Círculo amplio alrededor de donde nace, de cara a la cámara
   const a = k * (Math.PI / 2) + Math.PI / 4 + game.time * 0.25
-  spiralAt(0, player)
+  pathAt(0, player)
   return out.set(
     player.x + Math.cos(a) * 0.9,
     player.y + 0.7 + Math.sin(game.time * 1.3 + k) * 0.08,
@@ -32,7 +32,7 @@ function aroundPos(k: number, out: THREE.Vector3) {
 function carriedPos(k: number, out: THREE.Vector3) {
   // Círculo pequeño que la acompaña mientras sube
   const a = k * (Math.PI / 2) + game.time * 1.2
-  spiralAt(game.p, player)
+  pathAt(game.p, player)
   return out.set(
     player.x + Math.cos(a) * 0.45,
     player.y + 0.85 + Math.sin(game.time * 2 + k) * 0.05,
@@ -85,7 +85,8 @@ export function Tools() {
         case 'toGate': {
           const t = ease(clamp01(tool.t / TOOL_TO_GATE))
           carriedPos(k, carried)
-          spiralAt(tool.gate, gatePos)
+          pathAt(tool.gate, gatePos)
+          gatePos.y += 0.9
           obj.position.copy(carried).lerp(gatePos, t)
           obj.position.y += Math.sin(t * Math.PI) * 0.8
           scale = 0.55 + t * 0.9
@@ -97,7 +98,7 @@ export function Tools() {
       }
 
       obj.scale.setScalar(Math.max(0.001, scale))
-      obj.rotation.y = g.time * 0.8 + k - g.p * STEP_ANGLE
+      obj.rotation.y = g.time * 0.8 + k
     })
   })
 
