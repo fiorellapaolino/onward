@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
-import { PATH_LEN, VILLAGE_R, VILLAGE_S, clamp01, distToVillage, gradient, smoothstep } from '../game/config'
+import { PATH_END, PATH_LEN, pathAt, VILLAGE_R, VILLAGE_S, clamp01, distToVillage, gradient, smoothstep } from '../game/config'
 import { game, litFraction } from '../game/state'
 import { MUSIC } from '../game/music'
 import { Ground } from './Ground'
@@ -19,12 +19,14 @@ const GLOOM_GROUND = new THREE.Color('#9a9c9e')
 
 const tmp = new THREE.Color()
 
+// un grupo de luciérnagas cada 24 m del sendero
+const FIREFLY_SPOTS = Array.from({ length: Math.ceil((PATH_END + 30) / 24) }, (_, i) => pathAt(i * 24 - 6))
+
 export function World() {
   const scene = useThree((s) => s.scene)
   const ground = useRef<THREE.MeshStandardMaterial>(null)
   const hemi = useRef<THREE.HemisphereLight>(null!)
   const sun = useRef<THREE.DirectionalLight>(null!)
-  const fireflies = useRef<THREE.Group>(null!)
   const fogOpen = useRef(0)
   const gloomRef = useRef(0)
 
@@ -56,8 +58,6 @@ export function World() {
     hemi.current.intensity = (1.6 + f * 0.4) * (1 - 0.45 * gl)
     sun.current.intensity = (2.6 + f * 0.8) * (1 - 0.6 * gl)
 
-    // las luciérnagas acompañan a la elfa
-    fireflies.current.position.set(game.x, 0, game.z)
   })
 
   return (
@@ -72,9 +72,10 @@ export function World() {
       {/* Suelo del bosque: pasto con textura y sendero de tierra */}
       <Ground tintRef={ground} />
 
-      <group ref={fireflies}>
-        <Sparkles count={90} scale={[18, 5, 26]} position={[0, 2, 6]} size={4} speed={0.25} color="#e9ff9a" />
-      </group>
+      {/* Luciérnagas quietas en su sitio a lo largo del sendero (no siguen a la elfa) */}
+      {FIREFLY_SPOTS.map((p, i) => (
+        <Sparkles key={i} count={70} scale={[18, 5, 26]} position={[p.x, 2, p.z]} size={4} speed={0.25} color="#e9ff9a" />
+      ))}
     </>
   )
 }
