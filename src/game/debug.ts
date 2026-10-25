@@ -22,6 +22,7 @@ let done = false
 export function applyDebug() {
   if (done || !params.has('at') || !game.loaded) return
   done = true
+  game.time = Math.max(game.time, 30) // (para poder poner momentos "en el pasado")
   const s = Number(params.get('at')) || 0
   const p = pathAt(s)
   game.started = true
