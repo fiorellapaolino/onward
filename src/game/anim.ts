@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import type { BoneName } from './rig'
+/** Nombre de un hueso del esqueleto (pelvis, spine_01, upperarm_l…). */
+export type BoneName = string
 import walkJson from '../anims/walk.json'
 import runJson from '../anims/run.json'
 import idleJson from '../anims/idle.json'
@@ -8,8 +9,9 @@ import standupJson from '../anims/standup.json'
 
 /*
  * Animaciones de Mixamo (captura de movimiento) traspasadas al esqueleto de la elfa.
- * Las genera scripts/retarget.py a partir de los .fbx: para cada hueso hay un
- * cuaternión por frame, y "offset" es cuánto se mueve la cadera (en unidades del modelo).
+ * Las genera tools/retarget_ue.py a partir de los .fbx: para cada hueso hay un
+ * cuaternión por frame (o uno solo si no se mueve), y "offset" es cuánto se mueve
+ * la cadera (en metros del modelo original, que mide 1.78 m).
  */
 export type ClipData = {
   fps: number
@@ -58,6 +60,10 @@ export function sampleAt(c: ClipData, t: number, out: Sample) {
   for (const [name, arr] of Object.entries(c.bones)) {
     const q = out.q[name as BoneName]
     if (!q) continue
+    if (arr.length === 4) {
+      q.fromArray(arr) // hueso quieto en este clip
+      continue
+    }
     qa.fromArray(arr, i * 4)
     qb.fromArray(arr, j * 4)
     q.slerpQuaternions(qa, qb, u)
