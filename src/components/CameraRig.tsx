@@ -39,7 +39,7 @@ export function CameraRig() {
     tangentAt(g.p, fwd)
     sideAt(g.p, side)
 
-    const intro = g.phase === 'intro' || g.phase === 'gather' || g.phase === 'look'
+    const intro = g.phase === 'intro' || g.phase === 'rise' || g.phase === 'gather' || g.phase === 'look'
     const e = g.phase === 'end' ? clamp01(g.phaseT / 7) : 0
     const ee = e * e * (3 - 2 * e)
 

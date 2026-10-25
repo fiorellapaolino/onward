@@ -1,12 +1,13 @@
 import { useSyncExternalStore } from 'react'
 
 // Fases del juego, en orden:
-// intro  → nace y las herramientas flotan a su alrededor (espera al jugador)
+// intro  → nace en postura del niño; las herramientas flotan a su alrededor (espera al jugador)
+// rise   → se incorpora y alza el brazo como el Mago
 // gather → agarra las herramientas
 // look   → mira a la izquierda y a la derecha
 // play   → avanza por el bosque
 // end    → llega a la luz y sigue hacia otros caminos
-export type Phase = 'intro' | 'gather' | 'look' | 'play' | 'end'
+export type Phase = 'intro' | 'rise' | 'gather' | 'look' | 'play' | 'end'
 
 // Estado de cada herramienta del Mago
 export type ToolState = 'around' | 'flyingIn' | 'carried' | 'toGate' | 'used'

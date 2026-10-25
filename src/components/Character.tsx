@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { BIRTH_TIME, LOOK_BACK_TIME, LOOK_TIME, clamp01, damp, headingAt, pathAt } from '../game/config'
+import { BIRTH_TIME, RISE_TIME, LOOK_BACK_TIME, LOOK_TIME, clamp01, damp, headingAt, pathAt } from '../game/config'
 import { game } from '../game/state'
 import { rigElf, type BoneName, type Rig } from '../game/rig'
 
@@ -22,6 +22,28 @@ const easeOutBack = (t: number) => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
 }
 
+const smooth = (t: number) => t * t * (3 - 2 * t)
+
+/** Postura del niño. Ángulos probados en una vista previa del modelo. */
+const CHILD_POSE: Pose = {
+  thighL: [-1.5, 0, 0],
+  thighR: [-1.5, 0, 0],
+  shinL: [2.9, 0, 0],
+  shinR: [2.9, 0, 0],
+  footL: [1.0, 0, 0],
+  footR: [1.0, 0, 0],
+  hips: [0, 0, 0],
+  spine: [1.3, 0, 0],
+  chest: [1.0, 0, 0],
+  neck: [0.2, 0, 0],
+  head: [0.1, 0, 0],
+  upperArmL: [-3.4, 0, -0.2],
+  upperArmR: [-3.4, 0, 0.2],
+  foreArmL: [0, 0, 0],
+  foreArmR: [0, 0, 0],
+}
+const CHILD_DROP = 0.606 * (HEIGHT / 1.99) // cuánto baja el cuerpo en esa postura (en metros)
+
 /** Ángulos que se van suavizando hacia su objetivo (para que nada salte de golpe). */
 type Pose = Partial<Record<BoneName, [number, number, number]>>
 
@@ -29,7 +51,7 @@ export function Character() {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ phase: 0, move: 0, mago: 1, look: 0 })
+  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0 })
 
   const { scene } = useGLTF(MODEL_URL)
 
@@ -92,7 +114,11 @@ export function Character() {
     const cos = Math.cos(ph)
 
     // ── Mezclas de "estados" ───────────────────────────────────
-    const magoTarget = g.phase === 'intro' || (g.phase === 'gather' && g.phaseT < 1.6) ? 1 : 0
+    // Postura del niño: al nacer está acurrucada; al empezar se incorpora poco a poco
+    const childW =
+      g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01(g.phaseT / (RISE_TIME * 0.7))) : 0
+    // Pose del Mago: al terminar de incorporarse alza el brazo, hasta que agarra las herramientas
+    const magoTarget = (g.phase === 'rise' && g.phaseT > RISE_TIME * 0.55) || (g.phase === 'gather' && g.phaseT < 1.6) ? 1 : 0
     a.mago += (magoTarget - a.mago) * damp(3, dt)
 
     let lookTarget = 0
@@ -144,7 +170,18 @@ export function Character() {
       blend('head', [-0.12, 0, 0])
     }
 
-    const k = damp(14, dt)
+    // Postura del niño (balasana): de rodillas, sentada sobre los talones,
+    // torso doblado hacia adelante y brazos estirados por delante
+    if (childW > 0.001) {
+      const breath = 0.04 * breathe
+      for (const [b, t] of Object.entries(CHILD_POSE) as [BoneName, [number, number, number]][]) {
+        const cur = pose[b] ?? [0, 0, 0]
+        const tb: [number, number, number] = b === 'spine' ? [t[0] + breath, t[1], t[2]] : t
+        pose[b] = [cur[0] + (tb[0] - cur[0]) * childW, cur[1] + (tb[1] - cur[1]) * childW, cur[2] + (tb[2] - cur[2]) * childW]
+      }
+    }
+
+    const k = g.phase === 'intro' ? 1 : damp(14, dt)
     for (const [name, r] of Object.entries(pose) as [BoneName, [number, number, number]][]) {
       const bone = rig.bones[name]
       bone.rotation.x += (r[0] - bone.rotation.x) * k
@@ -154,7 +191,8 @@ export function Character() {
 
     // Al abrir las piernas la cadera baja un poco; al correr, rebota
     const drop = LEG * (1 - Math.cos(A * sin)) + 0.035 * c * m * Math.abs(cos)
-    body.current.position.y += (-drop + 0.004 * breathe - body.current.position.y) * damp(20, dt)
+    const childDrop = CHILD_DROP * childW
+    body.current.position.y += (-drop - childDrop + 0.004 * breathe - body.current.position.y) * damp(20, dt)
 
     // ── Su luz: crece con la confianza y destella en momentos clave
     const birthFlash = g.phase === 'intro' ? (1 - birth) * 25 : 0

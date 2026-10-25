@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber'
 import {
-  BIRTH_TIME, GATES, GATE_HOLD, GATHER_TIME, LOOK_BACK_TIME, LOOK_TIME,
+  BIRTH_TIME, RISE_TIME, GATES, GATE_HOLD, GATHER_TIME, LOOK_BACK_TIME, LOOK_TIME,
   GATE_STOP, PATH_LEN, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE, smoothstep, damp,
 } from './config'
 import { game, input, setUi, type Phase } from './state'
@@ -52,9 +52,13 @@ export function GameLoop() {
       case 'intro':
         // Nace; cuando el jugador empieza, agarra las herramientas
         if (g.phaseT > BIRTH_TIME * 0.8 && g.loaded && input.forward) {
-          setPhase('gather')
+          setPhase('rise')
           setUi({ title: false })
         }
+        break
+
+      case 'rise':
+        if (g.phaseT >= RISE_TIME) setPhase('gather')
         break
 
       case 'gather':
