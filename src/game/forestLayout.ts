@@ -85,8 +85,8 @@ export function buildUndergrowth(): Placement[] {
         const d = min + r() * (max - min)
         return avoid ? Math.max(d, 8) : d
       }
-      if (r() < 0.85) add(oneOf(['Grass_Common_Short', 'Grass_Common_Tall', 'Grass_Wispy_Short'], r), s, side, near(1.6, 9), 0.7 + r() * 0.5)
-      if (r() < 0.45) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + 0.7, side, near(1.4, 5), 0.6 + r() * 0.4)
+      if (r() < 0.85) add(oneOf(['Grass_Common_Short', 'Grass_Common_Tall', 'Grass_Wispy_Short'], r), s, side, near(1.6, 9), 0.35 + r() * 0.25)
+      if (r() < 0.45) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + 0.7, side, near(1.4, 5), 0.3 + r() * 0.2)
       if (r() < 0.16) add('Fern_1', s, side, near(3, 9), 0.35 + r() * 0.25)
       if (r() < 0.12) add('Bush_Common', s, side, near(3, 11), 0.7 + r() * 0.5)
       if (r() < 0.12) add(oneOf(['Plant_1_Big', 'Plant_7', 'Clover_1'], r), s, side, near(2, 8), 0.5 + r() * 0.4)
@@ -116,7 +116,7 @@ export function buildFlowers(): Placement[] {
       if (r() > chance) continue
       const dist = 1.3 + r() * 4
       const model = dist > 2.6 && r() < 0.3 ? 'Bush_Common_Flowers' : oneOf(['Flower_3_Group', 'Flower_4_Group'], r)
-      add(model, s, side, dist, model === 'Bush_Common_Flowers' ? 0.6 + r() * 0.3 : 0.4 + r() * 0.3)
+      add(model, s, side, dist, model === 'Bush_Common_Flowers' ? 0.45 + r() * 0.25 : 0.22 + r() * 0.15)
     }
   }
   return out
