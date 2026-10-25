@@ -30,6 +30,7 @@ const SKIN_COLOR = '#a76e4d'
 
 const X_AXIS = new THREE.Vector3(1, 0, 0)
 const Z_AXIS = new THREE.Vector3(0, 0, 1)
+const Y_AXIS = new THREE.Vector3(0, 1, 0)
 const TMP_V = new THREE.Vector3()
 const TMP_V3 = new THREE.Vector3()
 const TMP_V4 = new THREE.Vector3()
@@ -75,7 +76,7 @@ export function Character() {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false })
+  const anim = useRef({ tryLevel: 0, tryT: 0, phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false })
   const S = useMemo(() => ({ base: makeSample(), tmp: makeSample(), tmp2: makeSample(), smooth: makeSample() }), [])
 
   const bodyG = useGLTF(BODY_URL)
@@ -183,9 +184,14 @@ export function Character() {
       blendInto(base, loco, a.move)
     }
     if (standW > 0.001) {
-      const t = g.phase === 'rise' ? (g.phaseT / RISE_TIME) * duration(CLIPS.standup) : 0
+      // De rodillas, en cada frase de la canción intenta levantarse un poco y vuelve a bajar
+      // (usa el principio de "Standing Up"); con los graves se levanta del todo desde donde esté.
+      const level = g.started ? musicLevel(g.musicT) : 0
+      a.tryLevel += (level - a.tryLevel) * damp(3.5, dt)
+      if (g.phase === 'intro') a.tryT = 1.2 * Math.pow(a.tryLevel, 1.4)
+      const total = duration(CLIPS.standup)
+      const t = g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
-      // respira mientras espera de rodillas
       // respira de rodillas al ritmo de las frases de la canción (inhala cuando la música sube)
       if (g.phase === 'intro') {
         const level = g.started ? musicLevel(g.musicT) : 0.3 + 0.2 * Math.sin(g.time * 1.2)
@@ -242,6 +248,14 @@ export function Character() {
       root.current.position.y -= 0.11 * c // (en root: se recalcula cada frame, no se acumula)
     }
     root.current.position.y += g.jumpY
+
+    // De rodillas, entre frase y frase mira a su alrededor (como quien tiene miedo de empezar)
+    if (g.phase === 'intro' && g.started) {
+      const calm = 1 - clamp01(a.tryLevel * 1.4)
+      const look = (Math.sin(g.musicT * 0.55) * 0.55 + Math.sin(g.musicT * 1.3) * 0.12) * (0.35 + 0.65 * calm)
+      rotateBoneWorld(bones.neck_01, Y_AXIS, look * 0.4)
+      rotateBoneWorld(bones.Head, Y_AXIS, look * 0.6)
+    }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
     if (a.mago > 0.001) {
