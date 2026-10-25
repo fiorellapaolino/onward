@@ -37,7 +37,7 @@ type Spec = {
 // ── La niña: sentada al pie de su árbol abrazando sus rodillas, llorando ──
 const GIRL_SPEC: Spec = {
   parts: ['elf/body', 'girl/outfit', 'girl/hair'],
-  scale: 0.8 / 1.777, // de pie mediría 0.8 m (la elfa mide 1.15)
+  scale: 0.95 / 1.777, // de pie mediría 0.95 m (la elfa mide 1.15)
   headScale: 1.18, // cabeza algo más grande: proporciones de niña
   ground: 0.653,
   hairColor: '#4a2c1c',

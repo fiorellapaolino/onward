@@ -1,10 +1,10 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Clone, useGLTF } from '@react-three/drei'
+import { Clone, Sparkles, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { SHADOW_S, VILLAGE_R, VILLAGE_S, damp, natureUrl, pathAt, rng, sideAt } from '../game/config'
 import { game, litFraction } from '../game/state'
-import { ELDER, GIRL_TREE, LANTERNS, PLATES, PLATE_R, POLE, buildHuts, type Hut, type Lantern } from '../game/village'
+import { ELDER, GIRL, GIRL_TREE, LANTERNS, PLATES, PLATE_R, POLE, buildHuts, type Hut, type Lantern } from '../game/village'
 import { useGlowTexture } from './TheLight'
 
 /*
@@ -59,12 +59,28 @@ export function Village() {
         <LanternLamp position={[0.45, 0, 0.1]} isLit={() => game.liftAt} />
       </group>
 
+      {/* Unas luciérnagas acompañan a la niña mientras llora: así se la ve desde el sendero */}
+      <GirlFireflies />
+
       {/* El árbol de la niña */}
       <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} />
 
       <Square />
       <ShadowMist />
       <FearRing />
+    </group>
+  )
+}
+
+function GirlFireflies() {
+  const ref = useRef<THREE.Group>(null!)
+  useFrame(() => {
+    // se van cuando ya habló con ella
+    ref.current.visible = game.story === 'seek'
+  })
+  return (
+    <group ref={ref} position={[GIRL.x, 0.7, GIRL.z]}>
+      <Sparkles count={16} scale={[1.8, 1.3, 1.8]} size={6} speed={0.3} color="#ffe39a" />
     </group>
   )
 }

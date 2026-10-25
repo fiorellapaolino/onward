@@ -15,7 +15,7 @@ export const SHADOW_S = VILLAGE_S + 16 // muro de sombra a la salida de la aldea
 // La niña llora al pie de un árbol, a un lado del sendero, al entrar en la aldea
 export const GIRL_S = VILLAGE_S - 8
 export const GIRL_SIDE = 1 // 1 = a la izquierda del sendero (mirando hacia delante), -1 = a la derecha
-export const GIRL_DIST = 4.2
+export const GIRL_DIST = 2.9
 export const TALK_DIST = 2.4 // a esta distancia se puede escuchar a la niña
 
 // ── Tiempos de las animaciones ───────────────────────────────────
