@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import {
   BIRTH_TIME, RISE_TIME, GATES, GATE_HOLD, GATHER_TIME, LOOK_BACK_TIME, LOOK_TIME,
-  GATE_STOP, PATH_LEN, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE, smoothstep, damp,
+  GATE_STOP, PATH_LEN, JUMP_AIR, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE, smoothstep, damp,
 } from './config'
 import { game, input, setUi, type Phase } from './state'
 
@@ -77,7 +77,8 @@ export function GameLoop() {
         if (forward) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
 
-        const target = forward ? 0.85 + 2.15 * g.c : 0 // metros por segundo (caminar 0.85 → correr 3)
+        // caminar (algo más rápido con la confianza) o correr manteniendo Tab
+        const target = forward ? (input.run ? RUN_SPEED + 0.4 * g.c : WALK_SPEED + 0.45 * g.c) : 0
         g.speed += (target - g.speed) * damp(5, dt)
 
         // ¿Hay un obstáculo más adelante?
@@ -129,7 +130,17 @@ export function GameLoop() {
       }
     }
 
-    g.idle = g.speed < 0.15 ? g.idle + dt : 0
+    // ── Salto (Espacio) ─────────────────────────────────────────
+    if (input.jumpPressed && g.jumpT < 0 && (g.phase === 'play' || g.phase === 'end')) g.jumpT = 0
+    input.jumpPressed = false
+    if (g.jumpT >= 0) {
+      g.jumpT += dt
+      const t = (g.jumpT - JUMP_CROUCH) / JUMP_AIR // 0..1 en el aire
+      g.jumpY = t > 0 && t < 1 ? 4 * JUMP_HEIGHT * t * (1 - t) : 0
+      if (g.jumpT > JUMP_CROUCH + JUMP_AIR + JUMP_LAND) g.jumpT = -1
+    } else g.jumpY = 0
+
+    g.idle = g.speed < 0.15 && g.jumpT < 0 ? g.idle + dt : 0
     g.walkPhase += g.speed * 2.2 * dt
   }, -1)
 

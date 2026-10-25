@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { BIRTH_TIME, RISE_TIME, LOOK_BACK_TIME, clamp01, damp, headingAt, pathAt, smoothstep } from '../game/config'
+import { BIRTH_TIME, RISE_TIME, LOOK_BACK_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, headingAt, pathAt, smoothstep } from '../game/config'
 import { game } from '../game/state'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
 
@@ -32,6 +32,7 @@ const X_AXIS = new THREE.Vector3(1, 0, 0)
 const Z_AXIS = new THREE.Vector3(0, 0, 1)
 const TMP_V = new THREE.Vector3()
 const TMP_V3 = new THREE.Vector3()
+const TMP_V4 = new THREE.Vector3()
 const TMP_Q = new THREE.Quaternion()
 const TMP_Q2 = new THREE.Quaternion()
 const TMP_Q3 = new THREE.Quaternion()
@@ -215,6 +216,30 @@ export function Character() {
       const fwd = TMP_V3.copy(Z_AXIS).applyQuaternion(root.current.quaternion)
       rotateBoneWorld(bones.pelvis, fwd, THREE.MathUtils.clamp(-a.yawRate * 0.1, -0.06, 0.06) * a.move)
     }
+
+    // ── Salto: se agacha, recoge las piernas en el aire y amortigua al caer ──
+    if (g.jumpT >= 0) {
+      const jt = g.jumpT
+      const air = clamp01((jt - JUMP_CROUCH) / JUMP_AIR)
+      const crouch =
+        jt < JUMP_CROUCH ? jt / JUMP_CROUCH
+        : jt < JUMP_CROUCH + JUMP_AIR ? Math.max(0, 1 - (jt - JUMP_CROUCH) / 0.12)
+        : 1 - smooth(clamp01((jt - JUMP_CROUCH - JUMP_AIR) / JUMP_LAND)) * 1 // al caer
+      const landing = jt >= JUMP_CROUCH + JUMP_AIR ? crouch : 0
+      const tuck = jt >= JUMP_CROUCH && jt < JUMP_CROUCH + JUMP_AIR ? Math.sin(air * Math.PI) : 0
+      const c = Math.max(crouch * (jt < JUMP_CROUCH ? 1 : 0), landing * 0.8)
+      root.current.updateMatrixWorld(true)
+      const right = TMP_V4.copy(X_AXIS).applyQuaternion(root.current.quaternion)
+      rotateBoneWorld(bones.thigh_l, right, -(0.55 * c + 1.0 * tuck))
+      rotateBoneWorld(bones.thigh_r, right, -(0.55 * c + 0.7 * tuck))
+      rotateBoneWorld(bones.calf_l, right, 1.0 * c + 1.4 * tuck)
+      rotateBoneWorld(bones.calf_r, right, 1.0 * c + 1.1 * tuck)
+      rotateBoneWorld(bones.spine_01, right, 0.3 * c + 0.1 * tuck)
+      rotateBoneWorld(bones.upperarm_l, right, -0.7 * tuck + 0.3 * c)
+      rotateBoneWorld(bones.upperarm_r, right, -0.7 * tuck + 0.3 * c)
+      root.current.position.y -= 0.11 * c // (en root: se recalcula cada frame, no se acumula)
+    }
+    root.current.position.y += g.jumpY
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
     if (a.mago > 0.001) {

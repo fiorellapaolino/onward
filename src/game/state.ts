@@ -29,6 +29,8 @@ export const game = {
   openedAt: new Map<number, number>(), // momento (game.time) en que se abrió cada obstáculo
   lookBack: 0,
   walkPhase: 0,
+  jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
+  jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
   tools: [0, 1, 2, 3].map(() => ({ state: 'around' as ToolState, t: 0, gate: -1 })),
 }
@@ -37,6 +39,8 @@ export const game = {
 export const input = {
   forward: false,
   backPressed: false,
+  run: false, // Tab mantenido
+  jumpPressed: false, // Espacio (se consume en el siguiente frame)
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
   camYaw: 0, // giro alrededor de la elfa (radianes)
   camPitch: 0, // altura extra (-0.6 abajo … 1 arriba)

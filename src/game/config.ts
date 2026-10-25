@@ -25,6 +25,16 @@ export const TOOL_FLY = 0.7 // lo que tarda cada una en llegar a sus manos
 export const TOOL_TO_GATE = 0.9 // lo que tarda en volar hasta el obstáculo
 export const OPEN_TIME = 1.6 // lo que tarda el obstáculo en abrirse
 
+// ── Salto ────────────────────────────────────────────────────────
+export const JUMP_CROUCH = 0.12 // se agacha antes de saltar
+export const JUMP_AIR = 0.62 // tiempo en el aire
+export const JUMP_LAND = 0.18 // amortigua al caer
+export const JUMP_HEIGHT = 0.45 // metros
+
+// ── Velocidades (metros por segundo) ─────────────────────────────
+export const WALK_SPEED = 0.85 // caminar (sube un poco con la confianza)
+export const RUN_SPEED = 2.7 // correr con Tab
+
 // ── Utilidades del sendero ───────────────────────────────────────
 const A1 = 6, F1 = 0.021, A2 = 3, F2 = 0.057, P2 = 1.3
 
