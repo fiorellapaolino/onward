@@ -36,8 +36,10 @@ const TMP_V3 = new THREE.Vector3()
 const TMP_V4 = new THREE.Vector3()
 const TMP_P1 = new THREE.Vector3()
 const TMP_P2 = new THREE.Vector3()
-// cuánto se mueven los gestos de la cabeza al nacer (1 = los ángulos de HEAD_KEYS)
-const HEAD_SCALE = 0.75
+// cabeza al nacer: giro que la deja mirando al frente, cuánto gira a cada lado y cada cuántos segundos
+const HEAD_FRONT = -0.55
+const HEAD_SWAY = 0.55
+const HEAD_PERIOD = 7
 const TMP_Q = new THREE.Quaternion()
 const TMP_Q2 = new THREE.Quaternion()
 const TMP_Q3 = new THREE.Quaternion()
@@ -52,44 +54,6 @@ const smooth = (t: number) => t * t * (3 - 2 * t)
 // momento de "Standing Up" (segundos) en el que ya está casi de pie: ahí llega cuando entran los graves
 const STAND_BY_BASS = 3.0
 const SIDE_TURN = Math.PI / 2 // al nacer mira hacia su izquierda: la cámara la ve de perfil
-
-/*
- * Gestos de la cabeza al nacer: [segundo de la canción, giro (izq +), inclinación (abajo +), ladeo]
- * Entre un punto y el siguiente se pasa suavemente.
- */
-const HEAD_KEYS: [number, number, number, number][] = [
-  // [segundo, giro (+ a su izquierda / - a su derecha), inclinación (+ abajo / - arriba), ladeo]
-  [0, 0, 0.45, 0], // cabeza baja: acaba de nacer
-  [1.5, 0, 0.4, 0],
-  [3.0, 0, 0.0, 0], // la levanta despacio y mira al frente
-  [4.2, -0.75, -0.05, 0], // mira a su derecha
-  [5.2, -0.7, 0, 0.3], // ladea la cabeza: ¿qué es esto?
-  [5.9, 0, -0.35, 0], // aparece el primer elemento: mira hacia arriba
-  [7.1, 0.75, 0, 0], // mira a su izquierda
-  [8.1, 0.7, 0.05, -0.3], // ladea al otro lado, confundida
-  [9.1, 0, 0.55, 0], // se mira las manos
-  [9.7, 0.2, -0.3, 0], // otro elemento: levanta la vista
-  [11.3, -0.5, -0.15, 0.1], // otra vez a su derecha
-  [12.6, 0, -0.45, 0], // mira el cielo, entre las copas
-  [13.7, 0.5, -0.2, -0.1], // otro elemento, a su izquierda
-  [15.4, 0, 0.1, 0], // al frente
-  [17.6, -0.35, -0.3, 0], // el último elemento
-  [19.5, 0, -0.1, 0], // al frente: va a levantarse
-  [21.5, 0, 0, 0],
-]
-const smoothT = (t: number) => t * t * (3 - 2 * t)
-function headGesture(t: number): [number, number, number] {
-  const k = HEAD_KEYS
-  if (t <= k[0][0]) return [k[0][1], k[0][2], k[0][3]]
-  for (let i = 0; i < k.length - 1; i++) {
-    if (t < k[i + 1][0]) {
-      const u = smoothT((t - k[i][0]) / (k[i + 1][0] - k[i][0]))
-      return [k[i][1] + (k[i + 1][1] - k[i][1]) * u, k[i][2] + (k[i + 1][2] - k[i][2]) * u, k[i][3] + (k[i + 1][3] - k[i][3]) * u]
-    }
-  }
-  const l = k[k.length - 1]
-  return [l[1], l[2], l[3]]
-}
 
 /** Velocidad con la que cada hueso alcanza su pose (más bajo = más retraso, más suelto). */
 const LAG: Record<string, number> = { neck_01: 14, Head: 12, hand_l: 12, hand_r: 12 }
@@ -317,16 +281,20 @@ export function Character() {
     // De rodillas, acaba de nacer y no entiende nada: mira a su alrededor, ladea la cabeza,
     // se mira las manos… (coreografía de la cabeza sincronizada con la canción)
     if ((g.phase === 'intro' && g.started) || g.phase === 'rise') {
-      // (la secuencia se diseñó para 21 s; se comprime al tiempo real de la intro)
-      const t = (g.phase === 'intro' ? g.musicT : MUSIC.RISE_AT + g.phaseT) * (21.5 / MUSIC.RISE_AT)
-      const [yaw, pitch, roll] = headGesture(t)
-      const fade = g.phase === 'rise' ? 1 - clamp01(g.phaseT / 0.6) : 1
+      // Mira despacio de un lado a otro: primero cabeza baja, luego la levanta y gira a derecha e izquierda.
+      // (En la pose de rodillas la cabeza ya viene girada hacia la cámara: HEAD_FRONT la corrige al frente.
+      //  Comprobado con una vista previa desde la cámara del juego.)
+      const t = g.phase === 'intro' ? g.musicT : MUSIC.RISE_AT + g.phaseT
+      const wake = smooth(clamp01((t - 0.8) / 2.2)) // 0 cabeza baja → 1 despierta
+      const yaw = HEAD_FRONT + HEAD_SWAY * Math.sin(((t - 3) / HEAD_PERIOD) * Math.PI * 2) * wake
+      const pitch = 0.4 * (1 - wake) + 0.06 * Math.sin(t * 0.9) * wake
+      const roll = 0
+      const fade = g.phase === 'rise' ? 1 - clamp01(g.phaseT / 0.8) : 1
       // Giros en los ejes de SU cabeza (su izquierda/derecha, arriba/abajo), sea cual sea su postura
-      const k = HEAD_SCALE * fade
-      rotateBoneLocal(bones.neck_01, axes.neck.up, yaw * 0.4 * k)
-      rotateBoneLocal(bones.Head, axes.head.up, yaw * 0.6 * k)
-      rotateBoneLocal(bones.Head, axes.head.left, pitch * k)
-      rotateBoneLocal(bones.Head, axes.head.fwd, roll * k)
+      rotateBoneLocal(bones.neck_01, axes.neck.up, yaw * 0.4 * fade)
+      rotateBoneLocal(bones.Head, axes.head.up, yaw * 0.6 * fade)
+      rotateBoneLocal(bones.Head, axes.head.left, pitch * fade)
+      if (roll) rotateBoneLocal(bones.Head, axes.head.fwd, roll * fade)
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
