@@ -53,6 +53,9 @@ export function buildLanterns(): Lantern[] {
   for (let ds = -11; ds <= 13; ds += 6) {
     for (const side of [-1, 1]) {
       besidePath(VILLAGE_S + ds + (side > 0 ? 1.5 : 0), side, 2.1, p)
+      // (ninguno junto a la niña: taparía la escena de la semilla)
+      const g = besidePath(GIRL_S, GIRL_SIDE, GIRL_DIST)
+      if (Math.hypot(p.x - g.x, p.z - g.z) < 3.5) continue
       out.push({ x: p.x, z: p.z })
     }
   }
