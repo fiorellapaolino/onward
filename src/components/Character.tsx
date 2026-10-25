@@ -49,6 +49,42 @@ const smooth = (t: number) => t * t * (3 - 2 * t)
 const STAND_BY_BASS = 3.0
 const SIDE_TURN = Math.PI / 2 // al nacer mira hacia su izquierda: la cámara la ve de perfil
 
+/*
+ * Gestos de la cabeza al nacer: [segundo de la canción, giro (izq +), inclinación (abajo +), ladeo]
+ * Entre un punto y el siguiente se pasa suavemente.
+ */
+const HEAD_KEYS: [number, number, number, number][] = [
+  [0, 0, 0.45, 0], // cabeza baja: acaba de nacer
+  [1.5, 0, 0.4, 0],
+  [3.2, 0.1, 0.05, 0], // la levanta despacio
+  [4.4, 0.65, -0.05, 0.05], // mira a un lado
+  [5.4, 0.6, 0, 0.28], // ladea la cabeza: ¿qué es esto?
+  [5.9, 0.25, -0.2, 0.1], // aparece el primer elemento: lo mira
+  [7.2, -0.6, 0, -0.05], // mira al otro lado
+  [8.2, -0.55, 0.05, -0.25], // ladea, confundida
+  [9.2, 0, 0.5, 0], // se mira las manos
+  [9.7, 0.2, -0.25, 0], // otro elemento: levanta la vista
+  [11.5, -0.3, -0.1, 0.12],
+  [13.6, 0.35, -0.3, -0.08], // otro elemento
+  [15.5, -0.15, 0.1, 0.1],
+  [17.6, -0.35, -0.3, 0], // el último elemento
+  [19.5, 0.1, -0.2, 0],
+  [21.5, 0, -0.1, 0],
+]
+const smoothT = (t: number) => t * t * (3 - 2 * t)
+function headGesture(t: number): [number, number, number] {
+  const k = HEAD_KEYS
+  if (t <= k[0][0]) return [k[0][1], k[0][2], k[0][3]]
+  for (let i = 0; i < k.length - 1; i++) {
+    if (t < k[i + 1][0]) {
+      const u = smoothT((t - k[i][0]) / (k[i + 1][0] - k[i][0]))
+      return [k[i][1] + (k[i + 1][1] - k[i][1]) * u, k[i][2] + (k[i + 1][2] - k[i][2]) * u, k[i][3] + (k[i + 1][3] - k[i][3]) * u]
+    }
+  }
+  const l = k[k.length - 1]
+  return [l[1], l[2], l[3]]
+}
+
 /** Velocidad con la que cada hueso alcanza su pose (más bajo = más retraso, más suelto). */
 const LAG: Record<string, number> = { neck_01: 14, Head: 12, hand_l: 12, hand_r: 12 }
 
@@ -203,7 +239,6 @@ export function Character() {
         const lift = a.tryLevel
         base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.04 - 0.1 * lift))
         base.q.neck_01?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.06 - 0.12 * lift))
-        base.q.Head?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.05 - 0.12 * lift))
       }
     }
     // al final levanta la mirada hacia la luz
@@ -256,11 +291,19 @@ export function Character() {
     }
     root.current.position.y += g.jumpY
 
-    // De rodillas, entre frase y frase mira a su alrededor (como quien tiene miedo de empezar)
-    if (g.phase === 'intro' && g.started) {
-      const calm = 1 - clamp01(a.tryLevel * 1.4)
-      const look = Math.sin(g.musicT * 0.45) * 0.3 * calm
-      rotateBoneWorld(bones.Head, Y_AXIS, look)
+    // De rodillas, acaba de nacer y no entiende nada: mira a su alrededor, ladea la cabeza,
+    // se mira las manos… (coreografía de la cabeza sincronizada con la canción)
+    if ((g.phase === 'intro' && g.started) || g.phase === 'rise') {
+      const t = g.phase === 'intro' ? g.musicT : MUSIC.BASS_IN + g.phaseT
+      const [yaw, pitch, roll] = headGesture(t)
+      const fade = g.phase === 'rise' ? 1 - clamp01(g.phaseT / 0.6) : 1
+      root.current.updateMatrixWorld(true)
+      const right = TMP_V4.copy(X_AXIS).applyQuaternion(root.current.quaternion)
+      const fwd = TMP_V3.copy(Z_AXIS).applyQuaternion(root.current.quaternion)
+      rotateBoneWorld(bones.neck_01, Y_AXIS, yaw * 0.35 * fade)
+      rotateBoneWorld(bones.Head, Y_AXIS, yaw * 0.65 * fade)
+      rotateBoneWorld(bones.Head, right, pitch * fade)
+      rotateBoneWorld(bones.Head, fwd, roll * fade)
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
