@@ -1,3 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-village ?at=55   15
-plates  ?at=66&plates   15
+girl  ?at=61&dx=0.8&yaw=0.5&zoom=0.6   15
