@@ -39,18 +39,18 @@ const GIRL_SPEC: Spec = {
   parts: ['elf/body', 'girl/outfit', 'girl/hair'],
   scale: 0.95 / 1.777, // de pie mediría 0.95 m (la elfa mide 1.15)
   headScale: 1.18, // cabeza algo más grande: proporciones de niña
-  ground: 0.79,
+  ground: 0.82, // (un poco hundida: las piernas apoyan en la tierra, sin flotar)
   hairColor: '#a8703c', // castaño claro: resalta en la aldea gris
   pose: [
-    // piernas cruzadas: muslos hacia delante y hacia fuera, rodillas dobladas cruzando las piernas
-    ['thigh_l', 'left', -1.7],
-    ['thigh_r', 'left', -1.7],
-    ['thigh_l', 'up', 1.2],
-    ['thigh_r', 'up', -1.2],
+    // piernas cruzadas: muslos hacia delante y bien abiertos hacia fuera, rodillas cerca del suelo
+    ['thigh_l', 'left', -1.2],
+    ['thigh_r', 'left', -1.2],
+    ['thigh_l', 'up', 1.5],
+    ['thigh_r', 'up', -1.5],
     ['calf_l', 'left', 2.3],
     ['calf_r', 'left', 2.3],
-    ['foot_l', 'left', -0.4],
-    ['foot_r', 'left', -0.4],
+    ['foot_l', 'left', -0.6],
+    ['foot_r', 'left', -0.6],
     ['spine_01', 'left', 0.15],
     ['spine_02', 'left', 0.1],
     ['neck_01', 'left', 0.3],
