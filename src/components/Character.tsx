@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { BIRTH_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
+import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game, shadow } from '../game/state'
 import { ELDER, GIRL } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
@@ -256,8 +256,9 @@ export function Character({ echo = false }: { echo?: boolean }) {
     // ── Posición y hacia dónde mira ─────────────────────────────
     root.current.position.set(g.x, 0, g.z)
     // Al empezar está de costado (la vemos de perfil); al incorporarse gira para mirar al camino
-    const sideways =
-      g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.45) / (RISE_TIME * 0.5))) : 0
+    // ya de pie, gira hacia el camino dando unos pasitos (no gira sobre sí misma como una estatua)
+    const turning = !echo && g.phase === 'gather'
+    const sideways = g.phase === 'intro' || g.phase === 'rise' ? 1 : turning ? 1 - smooth(clamp01(g.phaseT / GATHER_TIME)) : 0
     root.current.rotation.y = g.yaw + SIDE_TURN * sideways
 
     // ── Nacer: crece desde la luz ──────────────────────────────
@@ -267,7 +268,8 @@ export function Character({ echo = false }: { echo?: boolean }) {
     // ── Pesos de cada animación ────────────────────────────────
     // en el aire no da pasos: las piernas las pone el salto
     const airborne = g.jumpT >= JUMP_CROUCH && g.jumpT < JUMP_CROUCH + JUMP_AIR
-    a.move += ((airborne ? 0 : clamp01(g.speed / 0.6)) - a.move) * damp(airborne ? 14 : 6, dt) // 0 quieta → 1 en marcha
+    const moveTarget = turning ? 0.85 * Math.sin(Math.PI * clamp01(g.phaseT / GATHER_TIME)) : airborne ? 0 : clamp01(g.speed / 0.6)
+    a.move += (moveTarget - a.move) * damp(airborne ? 14 : turning ? 10 : 6, dt) // 0 quieta → 1 en marcha
     a.run += (smoothstep(1.5, 2.6, g.speed) - a.run) * damp(4, dt) // 0 camina → 1 corre
 
     // mirar alrededor: al empezar, y cuando se detiene a dudar (al 65%: el original gira mucho)
@@ -299,7 +301,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
     // ── Ritmo del paso: los pies avanzan lo mismo que ella (sin patinar) ──
     const cycle = cycleLength(CLIPS.walk) + (cycleLength(CLIPS.run) - cycleLength(CLIPS.walk)) * a.run
-    a.phase += (g.speed * dt) / cycle
+    a.phase += (g.speed * dt) / cycle + (turning ? dt * 1.3 : 0) // (al girar: pasitos en el sitio)
 
     // ── Mezcla ─────────────────────────────────────────────────
     const base = S.base

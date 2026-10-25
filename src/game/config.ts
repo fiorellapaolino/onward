@@ -21,7 +21,7 @@ export const TALK_DIST = 2.4 // a esta distancia se puede escuchar a la niña
 // ── Tiempos de las animaciones ───────────────────────────────────
 export const BIRTH_TIME = 1.0 // nace de la luz (de rodillas)
 export const RISE_TIME = 2.2 // termina de levantarse (animación "Standing Up")
-export const GATHER_TIME = 0.5 // ya de pie, una pausa antes de mirar a los lados
+export const GATHER_TIME = 1.3 // ya de pie, gira hacia el camino dando unos pasitos
 export const LOOK_TIME = 1.4 // mira a los costados antes de andar
 
 // ── Salto ────────────────────────────────────────────────────────
