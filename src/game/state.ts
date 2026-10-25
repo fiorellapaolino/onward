@@ -56,7 +56,10 @@ export const input = {
   left: false,
   right: false,
   backPressed: false,
-  run: false, // Tab mantenido
+  run: false, // Tab mantenido (o el botón "Run" activado en el móvil)
+  runToggle: false, // botón "Run" del móvil: se activa / desactiva con un toque
+  joyX: 0, // palanca táctil del móvil: -1 izquierda … 1 derecha
+  joyY: 0, // -1 adelante … 1 atrás (como en la pantalla: hacia arriba = adelante)
   jumpPressed: false, // Espacio (se consume en el siguiente frame)
   interact: false, // E (o clic en el diálogo): escuchar / pasar a la siguiente frase
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
@@ -64,6 +67,14 @@ export const input = {
   camPitch: 0, // altura extra (-0.6 abajo … 1 arriba)
   camZoom: 1, // 0.6 cerca … 1.8 lejos
   dragging: false,
+}
+
+/** ¿Pantalla táctil? (móvil / tablet): se muestran la palanca y los botones */
+export const isTouch = typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
+
+/** Marca un toque como "ya usado" por un botón, para que no mueva también la cámara. */
+export function consumePointer(e: { nativeEvent: Event }) {
+  ;(e.nativeEvent as Event & { handled?: boolean }).handled = true
 }
 
 // ── Textos en pantalla (esto sí es estado de React) ──────────────

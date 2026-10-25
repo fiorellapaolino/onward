@@ -122,18 +122,19 @@ export function GameLoop() {
 
         // ── Dirección relativa a la cámara ──
         // W/↑ = hacia donde mira la cámara · S/↓ = hacia la cámara · A/D = a los lados
-        const fIn = (input.forward ? 1 : 0) - (input.backward ? 1 : 0)
-        const sIn = (input.right ? 1 : 0) - (input.left ? 1 : 0)
+        // (en el móvil, la palanca táctil suma lo mismo que las teclas)
+        const fIn = THREE.MathUtils.clamp((input.forward ? 1 : 0) - (input.backward ? 1 : 0) - input.joyY, -1, 1)
+        const sIn = THREE.MathUtils.clamp((input.right ? 1 : 0) - (input.left ? 1 : 0) + input.joyX, -1, 1)
         const cy = input.camYaw
         MOVE.set(Math.sin(cy) * fIn - Math.cos(cy) * sIn, 0, Math.cos(cy) * fIn + Math.sin(cy) * sIn)
-        const moving = MOVE.lengthSq() > 0.01
+        const moving = MOVE.lengthSq() > 0.04 // (con la palanca, un toque mínimo no la mueve)
         if (moving) MOVE.normalize()
         if (moving && g.phaseT > 4) setUi({ hint: false }) // los controles se van tras los primeros pasos
         if (moving) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
 
         // caminar (algo más rápido con la confianza) o correr manteniendo Tab
-        const target = moving ? (input.run ? RUN_SPEED + 0.4 * g.c : WALK_SPEED + 0.45 * g.c) : 0
+        const target = moving ? (input.run || input.runToggle ? RUN_SPEED + 0.4 * g.c : WALK_SPEED + 0.45 * g.c) : 0
         g.speed += (target - g.speed) * damp(5, dt)
 
         // gira suavemente hacia donde camina (por el camino más corto)

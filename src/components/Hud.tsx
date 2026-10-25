@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useProgress } from '@react-three/drei'
-import { game, input, setUi, useUi } from '../game/state'
+import { consumePointer, game, input, isTouch, setUi, useUi } from '../game/state'
+import { TouchControls } from './TouchControls'
 import { startMusic } from '../game/music'
 
 // Textos en pantalla. Están en inglés porque las reglas lo piden;
@@ -62,12 +63,21 @@ export function Hud() {
 
       {/* Controles, cuando el jugador toma el control */}
       <div className={`controls ${ui.hint ? 'show' : ''}`}>
-        <p>
-          {/* "W A S D para moverte · Tab para correr · Espacio para saltar" */}
-          <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move · <kbd>Tab</kbd> to run · <kbd>Space</kbd> to jump
-        </p>
-        {/* "Arrastra para mirar alrededor · rueda para acercar" */}
-        <p className="hint">Drag to look around · scroll to zoom</p>
+        {isTouch ? (
+          <>
+            {/* "Pulgar izquierdo para moverte · arrastra a la derecha para mirar alrededor" */}
+            <p>Left thumb to move · drag on the right to look around</p>
+          </>
+        ) : (
+          <>
+            <p>
+              {/* "W A S D para moverte · Tab para correr · Espacio para saltar" */}
+              <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move · <kbd>Tab</kbd> to run · <kbd>Space</kbd> to jump
+            </p>
+            {/* "Arrastra para mirar alrededor · rueda para acercar" */}
+            <p className="hint">Drag to look around · scroll to zoom</p>
+          </>
+        )}
       </div>
 
       <div className={`msg ${ui.msg ? 'show' : ''}`}>{lastMsg.current}</div>
@@ -79,26 +89,26 @@ export function Hud() {
       <div
         className={`prompt ${ui.prompt ? 'show' : ''}`}
         onPointerDown={(e) => {
-          e.stopPropagation() // (en pantallas táctiles también se puede tocar)
+          consumePointer(e) // (en pantallas táctiles también se puede tocar)
           input.interact = true
         }}
       >
-        <kbd>E</kbd> {ui.prompt}
+        {!isTouch && <kbd>E</kbd>} {ui.prompt}
       </div>
 
       {/* Lo que dice la niña. Clic, E o Espacio para seguir. */}
       <div
         className={`say ${ui.say ? 'show' : ''}`}
         onPointerDown={(e) => {
-          e.stopPropagation() // (no mover la cámara)
+          consumePointer(e) // (no mover la cámara)
           input.interact = true
         }}
       >
         <p>{lastSay.current}</p>
-        <small>
-          <kbd>E</kbd>
-        </small>
+        <small>{isTouch ? '▸' : <kbd>E</kbd>}</small>
       </div>
+
+      <TouchControls show={!ui.start && !ui.final && !ui.say} />
 
       <div className={`fade ${ui.fade ? 'show' : ''}`} />
 

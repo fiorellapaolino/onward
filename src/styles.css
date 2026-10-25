@@ -220,3 +220,76 @@ body.grabbing canvas {
   font-size: 12px;
   opacity: 0.5;
 }
+
+/* ── Controles táctiles (móvil / tablet) ─────────────────────── */
+.touch {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+.touch.show {
+  opacity: 1;
+}
+.touch.show .touch-btn {
+  pointer-events: auto;
+}
+/* palanca: aparece donde se apoya el pulgar */
+.joy {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  margin: -55px 0 0 -55px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 244, 224, 0.45);
+  background: rgba(255, 244, 224, 0.08);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.joy.on {
+  opacity: 1;
+}
+.joy .knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: rgba(255, 236, 200, 0.55);
+}
+.touch-btn {
+  position: absolute;
+  right: max(22px, env(safe-area-inset-right, 0px));
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 244, 224, 0.55);
+  background: rgba(20, 22, 30, 0.35);
+  backdrop-filter: blur(3px);
+  color: #fff4e0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-btn.jump {
+  bottom: max(28px, env(safe-area-inset-bottom, 0px));
+}
+.touch-btn.run {
+  bottom: calc(max(28px, env(safe-area-inset-bottom, 0px)) + 92px);
+  right: calc(max(22px, env(safe-area-inset-right, 0px)) + 30px);
+  width: 62px;
+  height: 62px;
+  font-size: 13px;
+}
+.touch-btn.active {
+  background: rgba(255, 210, 130, 0.45);
+  border-color: rgba(255, 228, 170, 0.95);
+  box-shadow: 0 0 16px rgba(255, 210, 130, 0.5);
+}
+.touch-btn:active {
+  transform: scale(0.94);
+}
