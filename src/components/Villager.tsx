@@ -58,14 +58,8 @@ const GIRL_SPEC: Spec = {
     ['lowerarm_r', 'fwd', 1.8],
   ],
   spot: GIRL,
-  gestures: (rot, t, near, yaw) => {
-    rot('spine_02', 'left', 0.025 * Math.sin(t * 1.7)) // respira
-    // sollozos: cada pocos segundos los hombros tiemblan (menos cuando la escuchan o ya hay ayuda)
-    const sobbing = game.story === 'seek' ? (game.talk === 'girl' ? 0.4 : 1) : 0.25
-    const burst = Math.pow(Math.max(0, Math.sin((t * Math.PI * 2) / 2.8)), 6)
-    const shake = Math.sin(t * 24) * burst * sobbing
-    rot('spine_03', 'left', 0.06 * shake)
-    rot('Head', 'left', 0.04 * shake)
+  gestures: (rot, _t, near, yaw) => {
+    // (quieta: sin temblores ni sollozos)
     // la elfa se acerca: se endereza un poco, levanta la cabeza y la mira
     rot('spine_01', 'left', -0.15 * near)
     rot('neck_01', 'left', -0.3 * near)
@@ -98,12 +92,8 @@ const ELDER_SPEC: Spec = {
     ['lowerarm_r', 'fwd', 0.9],
   ],
   spot: ELDER,
-  gestures: (rot, t, near, yaw) => {
-    rot('spine_02', 'left', 0.02 * Math.sin(t * 1.3)) // respira despacio
-    // tiembla de miedo mientras la aldea está a oscuras
-    const afraid = game.lightAwake ? 0.15 : 1
-    rot('spine_03', 'fwd', 0.012 * Math.sin(t * 17) * afraid)
-    rot('Head', 'up', 0.02 * Math.sin(t * 13 + 1) * afraid)
+  gestures: (rot, _t, near, yaw) => {
+    // (quieto: sin temblores)
     // cabeza baja… hasta que la elfa se acerca; cuando vuelve la luz, la levanta del todo
     const lookUp = Math.max(near, game.lightAwake ? 1 : 0)
     rot('Head', 'left', 0.35 * (1 - lookUp) - 0.15 * lookUp)
@@ -120,7 +110,7 @@ export const Elder = () => <Villager spec={ELDER_SPEC} nearKey="elderNear" />
 
 function Villager({ spec, nearKey }: { spec: Spec; nearKey: 'girlNear' | 'elderNear' }) {
   const gltfs = useGLTF(spec.parts.map(url))
-  const S = useMemo(() => ({ near: 0 }), [])
+  const S = useMemo(() => ({ near: 0, yaw: 0 }), [])
 
   const { model, bones, axes, posed } = useMemo(() => {
     // los cuerpos se comparten (la elfa usa el mismo): hay que clonarlos con su esqueleto
@@ -195,7 +185,8 @@ function Villager({ spec, nearKey }: { spec: Spec; nearKey: 'girlNear' | 'elderN
     // hacia dónde está la elfa, desde su punto de vista (positivo = a su izquierda)
     let yaw = Math.atan2(g.x - spec.spot.x, g.z - spec.spot.z) - spec.spot.rot
     yaw = THREE.MathUtils.clamp(Math.atan2(Math.sin(yaw), Math.cos(yaw)), -1.1, 1.1)
-    spec.gestures(rot, g.time, clamp01(S.near), yaw)
+    S.yaw += (yaw - S.yaw) * (1 - Math.exp(-2.5 * dt)) // (gira la cabeza despacio, sin saltos)
+    spec.gestures(rot, g.time, clamp01(S.near), S.yaw)
   })
 
   return (
