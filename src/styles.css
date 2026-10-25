@@ -198,6 +198,14 @@ body.grabbing canvas {
 .say.show {
   pointer-events: auto;
 }
+.prompt.show,
+.say.show {
+  opacity: 1;
+}
+.prompt.show {
+  pointer-events: auto;
+  cursor: pointer;
+}
 .say p {
   margin: 0;
   font-size: clamp(17px, 2.2vw, 22px);

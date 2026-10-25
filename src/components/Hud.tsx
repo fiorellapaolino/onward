@@ -76,7 +76,13 @@ export function Hud() {
       <div className={`goal ${ui.goal ? 'show' : ''}`}>{ui.goal}</div>
 
       {/* Aviso de acción junto a la niña: "E  Escuchar" */}
-      <div className={`prompt ${ui.prompt ? 'show' : ''}`}>
+      <div
+        className={`prompt ${ui.prompt ? 'show' : ''}`}
+        onPointerDown={(e) => {
+          e.stopPropagation() // (en pantallas táctiles también se puede tocar)
+          input.interact = true
+        }}
+      >
         <kbd>E</kbd> {ui.prompt}
       </div>
 
