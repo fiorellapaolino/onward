@@ -38,8 +38,8 @@ export const ELDER_LINES = [
 export const PROMPT_STAY = 'Stay'
 /** Mensaje mientras la rodea la oscuridad. "La oscuridad se acerca." */
 export const FEAR_MSG = 'The dark closes in.'
-/** Cuando la oscuridad toma su forma. "Tu sombra despierta. Camina por donde tú caminaste." */
-export const SHADOW_MSG = 'Your shadow wakes up. It walks where you walked.'
+/** Cuando la oscuridad toma su forma… y se vuelve luz. "Una luz despierta detrás de ti. Camina por donde tú caminaste." */
+export const SHADOW_MSG = 'A light wakes up behind you. It walks where you walked.'
 /** Objetivo con la sombra. "Sube el gran farol (pisa las dos piedras a la vez)" */
 export const GOAL_LANTERN = 'Raise the great lantern: both stones at once.'
 /** Cuando sube el farol. "La aldea recuerda su luz." */

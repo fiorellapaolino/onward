@@ -89,22 +89,23 @@ function makeEar(side: 1 | -1, material: THREE.Material) {
 }
 
 // Material de su sombra: casi negra, con un leve brillo violeta y algo transparente
+// Su "sombra" es clara: una figura de luz suave, blanca azulada y algo translúcida (su pasado, pero amable)
 const SHADOW_MAT = new THREE.MeshStandardMaterial({
-  color: '#07060c',
-  emissive: '#2b1f48',
-  emissiveIntensity: 0.55,
+  color: '#e4ebf7',
+  emissive: '#a9bde6',
+  emissiveIntensity: 0.45,
   roughness: 1,
   transparent: true,
-  opacity: 0.82,
+  opacity: 0.72,
   depthWrite: true,
 })
 
-const SHADOW_COLOR = new THREE.Color('#07060c')
-const SHADOW_EMISSIVE = new THREE.Color('#2b1f48')
+const SHADOW_COLOR = new THREE.Color('#e4ebf7')
+const SHADOW_EMISSIVE = new THREE.Color('#a9bde6')
 const WARM_COLOR = new THREE.Color('#e9d6b8')
 const WARM_EMISSIVE = new THREE.Color('#ffcf8a')
 
-/** Su sombra: el mismo personaje, oscuro, que repite lo que ella hizo segundos antes (state.shadow). */
+/** Su sombra (clara, de luz): el mismo personaje, que repite lo que ella hizo segundos antes (state.shadow). */
 export const ShadowSelf = () => <Character echo />
 
 const TMP_HAND = new THREE.Vector3()
@@ -244,11 +245,11 @@ export function Character({ echo = false }: { echo?: boolean }) {
     if (echo) {
       const born = game.shadowOn ? Math.min(1, (game.time - game.shadowAt) / 1.5) : 0
       root.current.visible = born > 0
-      SHADOW_MAT.opacity = 0.82 * born
+      SHADOW_MAT.opacity = 0.72 * born
       // al final, después del abrazo, la sombra se vuelve luz cálida
       const warm = game.phase === 'end' ? clamp01((game.phaseT - 6) / 4) : 0
       SHADOW_MAT.emissive.copy(SHADOW_EMISSIVE).lerp(WARM_EMISSIVE, warm)
-      SHADOW_MAT.emissiveIntensity = 0.55 + warm * 0.9
+      SHADOW_MAT.emissiveIntensity = 0.45 + warm * 0.6
       SHADOW_MAT.color.copy(SHADOW_COLOR).lerp(WARM_COLOR, warm * 0.6)
       if (!born) return
     }
