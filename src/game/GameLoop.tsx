@@ -50,11 +50,10 @@ export function GameLoop() {
     // ── Fases ───────────────────────────────────────────────────
     switch (g.phase) {
       case 'intro':
-        // Nace; cuando el jugador empieza, agarra las herramientas
-        if (g.phaseT > BIRTH_TIME * 0.8 && g.loaded && input.forward) {
-          setPhase('rise')
-          setUi({ title: false })
-        }
+        // Nace de rodillas y, cuando el bosque ya cargó, se levanta sola
+        // (el jugador toma el control cuando ella ya está de pie)
+        if (!g.loaded) g.phaseT = 0 // espera a que todo esté cargado para empezar
+        if (g.phaseT > BIRTH_TIME + 1.2) setPhase('rise')
         break
 
       case 'rise':
@@ -74,6 +73,7 @@ export function GameLoop() {
         // La confianza máxima crece a medida que subes: al principio duda, al final corre
         const cMax = 0.25 + 0.75 * smoothstep(0, 0.7, f)
         const forward = input.forward && g.lookBack === 0
+        if (forward) setUi({ title: false }) // el título se va al dar el primer paso
         if (forward) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
 
