@@ -1,4 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
 guide ?at=20   14
-spot ?at=60&gift   14
-spotin ?at=60&gift   10   KeyD:900,wait:6000
+birth ?probe   12   Enter:100,wait:5000

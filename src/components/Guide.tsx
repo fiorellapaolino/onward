@@ -55,9 +55,9 @@ export function Guide() {
   const trail = useRef<(THREE.Sprite | null)[]>([])
   const mats = useMemo(
     () => ({
-      core: new THREE.SpriteMaterial({ map: tex, color: '#fffaf0', transparent: true, opacity: 0, depthWrite: false }),
-      halo: new THREE.SpriteMaterial({ map: tex, color: '#ffc95e', transparent: true, opacity: 0, depthWrite: false }),
-      trail: new THREE.SpriteMaterial({ map: tex, color: '#ffe7b0', transparent: true, opacity: 0, depthWrite: false }),
+      core: new THREE.SpriteMaterial({ map: tex, color: '#fff3cf', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+      halo: new THREE.SpriteMaterial({ map: tex, color: '#ffb84a', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+      trail: new THREE.SpriteMaterial({ map: tex, color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
     }),
     [tex],
   )
@@ -115,9 +115,9 @@ export function Guide() {
     halo.current.position.copy(st.pos)
     light.current.position.copy(st.pos)
     mats.core.opacity = v * 0.95
-    mats.halo.opacity = v * 0.55 * beat
+    mats.halo.opacity = Math.min(1, v * 0.8 * beat)
     mats.trail.opacity = v * 0.5
-    halo.current.scale.setScalar(1.1 * beat)
+    halo.current.scale.setScalar(1.3 * beat)
     light.current.intensity = v * 0.9
     trail.current.forEach((o, i) => {
       if (!o) return
@@ -131,7 +131,7 @@ export function Guide() {
 
   return (
     <group>
-      <sprite ref={core} material={mats.core} scale={0.38} />
+      <sprite ref={core} material={mats.core} scale={0.5} />
       <sprite ref={halo} material={mats.halo} scale={0.9} />
       {Array.from({ length: TRAIL }, (_, i) => (
         <sprite key={i} ref={(el) => (trail.current[i] = el)} material={mats.trail} />
