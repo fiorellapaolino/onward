@@ -34,33 +34,30 @@ type Spec = {
   gestures: (rot: Rot, t: number, near: number, yaw: number) => void
 }
 
-// ── La niña: sentada en el suelo con las piernas cruzadas al pie de su árbol, manos en las rodillas y la cabeza baja ──
+// ── La niña: sentada en una piedra al pie de su árbol, con las manos en el regazo y la cabeza baja ──
 const GIRL_SPEC: Spec = {
   parts: ['elf/body', 'girl/outfit', 'girl/hair'],
   scale: 0.95 / 1.777, // de pie mediría 0.95 m (la elfa mide 1.15)
   headScale: 1.18, // cabeza algo más grande: proporciones de niña
-  ground: 0.815, // (las rodillas y la cadera apoyan en la tierra)
+  ground: 0.422, // los pies en el suelo; la piedra (Village.tsx) queda justo bajo ella
   hairColor: '#a8703c', // castaño claro: resalta en la aldea gris
   pose: [
-    // piernas cruzadas: rodillas abiertas hacia los lados, casi en el suelo, y las piernas recogidas delante
-    ['thigh_l', 'left', -1.6],
-    ['thigh_r', 'left', -1.6],
-    ['thigh_l', 'up', 1.0],
-    ['thigh_r', 'up', -1.0],
-    ['calf_l', 'left', 2.6],
-    ['calf_r', 'left', 2.6],
-    ['foot_l', 'left', 0.3],
-    ['foot_r', 'left', 0.3],
-    ['thigh_l', 'fwd', 0.5],
-    ['thigh_r', 'fwd', -0.5],
-    ['spine_01', 'left', 0.15],
-    ['spine_02', 'left', 0.1],
+    ['thigh_l', 'left', -1.5],
+    ['thigh_r', 'left', -1.5],
+    ['calf_l', 'left', 1.5],
+    ['calf_r', 'left', 1.5],
+    ['thigh_l', 'fwd', -0.06], // rodillas juntas
+    ['thigh_r', 'fwd', 0.06],
+    ['spine_01', 'left', 0.18],
+    ['spine_02', 'left', 0.12],
     ['neck_01', 'left', 0.3],
     ['Head', 'left', 0.35],
-    ['upperarm_l', 'left', -0.5],
-    ['upperarm_r', 'left', -0.5],
-    ['lowerarm_l', 'fwd', -0.8],
-    ['lowerarm_r', 'fwd', 0.8],
+    ['upperarm_l', 'left', -0.35],
+    ['upperarm_r', 'left', -0.35],
+    ['upperarm_l', 'fwd', 0.2],
+    ['upperarm_r', 'fwd', -0.2],
+    ['lowerarm_l', 'fwd', -1.2],
+    ['lowerarm_r', 'fwd', 1.2],
   ],
   spot: GIRL,
   gestures: (rot, _t, near, yaw) => {

@@ -59,6 +59,11 @@ export function Village() {
         <LanternLamp position={[0.45, 0, 0.1]} isLit={() => game.liftAt} />
       </group>
 
+      {/* La piedra donde se sienta la niña (medio enterrada) */}
+      <mesh material={mats.stone} position={[GIRL.x - Math.sin(GIRL.rot) * 0.03, 0, GIRL.z - Math.cos(GIRL.rot) * 0.03]} rotation-y={GIRL.rot} scale={[1, 0.75, 0.9]}>
+        <dodecahedronGeometry args={[0.32, 1]} />
+      </mesh>
+
       {/* Unas luciérnagas acompañan a la niña mientras llora: así se la ve desde el sendero */}
       <GirlFireflies />
 

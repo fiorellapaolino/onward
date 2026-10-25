@@ -103,7 +103,7 @@ export const ShadowSelf = () => <Character echo />
 
 // Altura de sus ojos y de la cara de cada persona de la aldea (sentados), en metros
 const EYE_H = 1.05
-const FACE = { girl: 0.44, elder: 0.76 }
+const FACE = { girl: 0.64, elder: 0.76 }
 const LOOK_DIST = { girl: 5.5, elder: 4.5 }
 
 /** A quién mira: a quien la está hablando, o a la persona de la aldea más cercana (si está cerca). */

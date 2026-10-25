@@ -54,7 +54,7 @@ export function buildLanterns(): Lantern[] {
 /** Los faroles (siempre los mismos). */
 export const LANTERNS = buildLanterns()
 
-/** La niña: sentada con las piernas cruzadas, al pie del árbol, mirando hacia el sendero. */
+/** La niña: sentada en una piedra, al pie del árbol, mirando hacia el sendero. */
 export const GIRL = (() => {
   const p = besidePath(GIRL_S, GIRL_SIDE, GIRL_DIST)
   const c = pathAt(GIRL_S - 2) // mira hacia el sendero, un poco hacia por donde llega la elfa
