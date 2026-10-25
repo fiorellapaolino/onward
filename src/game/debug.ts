@@ -78,6 +78,21 @@ export function applyDebug() {
     game.liftAt = game.time - 20
     game.lightAwake = true
     game.lit = game.lit.map(() => game.time - 10)
+    if (params.has('endT')) {
+      // directamente dentro del final, en el segundo endT (la elfa ya se dio vuelta y fue hasta su sombra)
+      const T = Number(params.get('endT'))
+      const back = pathAt(s - 3.4)
+      game.phase = 'end'
+      game.phaseT = T
+      game.endStart = { x: game.x, z: game.z }
+      game.endShadow = { x: back.x, z: back.z }
+      if (T > 4) {
+        const a = Math.atan2(back.x - game.x, back.z - game.z)
+        game.x = back.x - Math.sin(a) * 0.85
+        game.z = back.z - Math.cos(a) * 0.85
+        game.yaw = a
+      }
+    }
   }
   if (params.has('plates')) {
     game.story = 'plates'
