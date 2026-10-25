@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import {
   BIRTH_TIME, RISE_TIME, GATES, GATE_HOLD, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH,
-  GATE_STOP, PATH_LEN, JUMP_AIR, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE,
+  GATE_STOP, PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE,
   smoothstep, damp, headingAt, pathAt, tangentAt,
 } from './config'
 import * as THREE from 'three'
@@ -101,8 +101,12 @@ export function GameLoop() {
           g.yaw += diff * damp(9, dt)
         }
         // avanza hacia donde mira (así gira en curva, no de golpe)
-        g.x += Math.sin(g.yaw) * g.speed * dt
-        g.z += Math.cos(g.yaw) * g.speed * dt
+        // y en el aire el salto la impulsa: recorre más que caminando
+        const airborne = g.jumpT >= JUMP_CROUCH && g.jumpT < JUMP_CROUCH + JUMP_AIR
+        const air = airborne ? Math.sin(((g.jumpT - JUMP_CROUCH) / JUMP_AIR) * Math.PI) : 0
+        const step = airborne ? g.speed + JUMP_BOOST * (0.6 + 0.4 * air) : g.speed
+        g.x += Math.sin(g.yaw) * step * dt
+        g.z += Math.cos(g.yaw) * step * dt
 
         // ── Límites: no sale del bosque, no vuelve más atrás del inicio, y los obstáculos cortan el paso ──
         const closed = GATES.find((G) => !g.opened.has(G))

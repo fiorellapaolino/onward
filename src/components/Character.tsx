@@ -146,7 +146,9 @@ export function Character() {
     root.current.scale.setScalar(Math.max(0.001, easeOutBack(birth)))
 
     // ── Pesos de cada animación ────────────────────────────────
-    a.move += (clamp01(g.speed / 0.6) - a.move) * damp(6, dt) // 0 quieta → 1 en marcha
+    // en el aire no da pasos: las piernas las pone el salto
+    const airborne = g.jumpT >= JUMP_CROUCH && g.jumpT < JUMP_CROUCH + JUMP_AIR
+    a.move += ((airborne ? 0 : clamp01(g.speed / 0.6)) - a.move) * damp(airborne ? 14 : 6, dt) // 0 quieta → 1 en marcha
     a.run += (smoothstep(1.5, 2.6, g.speed) - a.run) * damp(4, dt) // 0 camina → 1 corre
 
     // mirar alrededor: al empezar, y cuando se detiene a dudar (al 65%: el original gira mucho)
@@ -210,26 +212,27 @@ export function Character() {
       rotateBoneWorld(bones.pelvis, fwd, THREE.MathUtils.clamp(-a.yawRate * 0.1, -0.06, 0.06) * a.move)
     }
 
-    // ── Salto: se agacha, recoge las piernas en el aire y amortigua al caer ──
+    // ── Salto en zancada: se agacha, en el aire abre las piernas (una delante y otra detrás)
+    //    con los brazos al revés, y amortigua al caer ──
     if (g.jumpT >= 0) {
       const jt = g.jumpT
+      const inAir = jt >= JUMP_CROUCH && jt < JUMP_CROUCH + JUMP_AIR
       const air = clamp01((jt - JUMP_CROUCH) / JUMP_AIR)
-      const crouch =
-        jt < JUMP_CROUCH ? jt / JUMP_CROUCH
-        : jt < JUMP_CROUCH + JUMP_AIR ? Math.max(0, 1 - (jt - JUMP_CROUCH) / 0.12)
-        : 1 - smooth(clamp01((jt - JUMP_CROUCH - JUMP_AIR) / JUMP_LAND)) * 1 // al caer
-      const landing = jt >= JUMP_CROUCH + JUMP_AIR ? crouch : 0
-      const tuck = jt >= JUMP_CROUCH && jt < JUMP_CROUCH + JUMP_AIR ? Math.sin(air * Math.PI) : 0
-      const c = Math.max(crouch * (jt < JUMP_CROUCH ? 1 : 0), landing * 0.8)
+      const prep = jt < JUMP_CROUCH ? jt / JUMP_CROUCH : 0
+      const land = jt >= JUMP_CROUCH + JUMP_AIR ? 1 - smooth(clamp01((jt - JUMP_CROUCH - JUMP_AIR) / JUMP_LAND)) : 0
+      const split = inAir ? Math.sin(Math.min(1, air * 1.6) * Math.PI * 0.5) * (1 - smooth(clamp01((air - 0.75) / 0.25)) * 0.6) : 0
+      const c = Math.max(prep, land * 0.8)
       root.current.updateMatrixWorld(true)
       const right = TMP_V4.copy(X_AXIS).applyQuaternion(root.current.quaternion)
-      rotateBoneWorld(bones.thigh_l, right, -(0.55 * c + 1.0 * tuck))
-      rotateBoneWorld(bones.thigh_r, right, -(0.55 * c + 0.7 * tuck))
-      rotateBoneWorld(bones.calf_l, right, 1.0 * c + 1.4 * tuck)
-      rotateBoneWorld(bones.calf_r, right, 1.0 * c + 1.1 * tuck)
-      rotateBoneWorld(bones.spine_01, right, 0.3 * c + 0.1 * tuck)
-      rotateBoneWorld(bones.upperarm_l, right, -0.7 * tuck + 0.3 * c)
-      rotateBoneWorld(bones.upperarm_r, right, -0.7 * tuck + 0.3 * c)
+      // pierna izquierda adelante, derecha atrás
+      rotateBoneWorld(bones.thigh_l, right, -(0.5 * c + 1.15 * split))
+      rotateBoneWorld(bones.thigh_r, right, -0.5 * c + 0.75 * split)
+      rotateBoneWorld(bones.calf_l, right, 0.95 * c + 0.35 * split)
+      rotateBoneWorld(bones.calf_r, right, 0.95 * c + 1.0 * split)
+      rotateBoneWorld(bones.spine_01, right, 0.3 * c + 0.12 * split)
+      // brazos al revés que las piernas, abiertos
+      rotateBoneWorld(bones.upperarm_l, right, 0.3 * c + 0.7 * split)
+      rotateBoneWorld(bones.upperarm_r, right, 0.3 * c - 0.9 * split)
       root.current.position.y -= 0.11 * c // (en root: se recalcula cada frame, no se acumula)
     }
     root.current.position.y += g.jumpY

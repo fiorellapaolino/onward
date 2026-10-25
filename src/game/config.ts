@@ -28,7 +28,8 @@ export const OPEN_TIME = 1.6 // lo que tarda el obstáculo en abrirse
 export const JUMP_CROUCH = 0.12 // se agacha antes de saltar
 export const JUMP_AIR = 0.62 // tiempo en el aire
 export const JUMP_LAND = 0.18 // amortigua al caer
-export const JUMP_HEIGHT = 0.45 // metros
+export const JUMP_HEIGHT = 0.5 // metros
+export const JUMP_BOOST = 2.6 // impulso hacia delante en el aire (metros por segundo, se suma a lo que ya iba)
 
 // ── Velocidades (metros por segundo) ─────────────────────────────
 export const WALK_SPEED = 0.85 // caminar (sube un poco con la confianza)
