@@ -19,7 +19,11 @@ export const game = {
   phase: 'intro' as Phase,
   phaseT: 0, // segundos dentro de la fase actual
   time: 0,
-  p: 0, // progreso: metros recorridos por el sendero
+  p: 0, // progreso: metros recorridos a lo largo del sendero (su posición en z)
+  pMax: 0, // lo más lejos que llegó (la luz y los colores no retroceden)
+  x: 0, // posición libre en el bosque
+  z: 0,
+  yaw: 0, // hacia dónde mira (radianes)
   c: 0, // confianza 0..1 → de dudar a correr
   speed: 0, // metros por segundo
   idle: 0, // segundos sin moverse
@@ -27,7 +31,6 @@ export const game = {
   gateHold: 0,
   opened: new Set<number>(),
   openedAt: new Map<number, number>(), // momento (game.time) en que se abrió cada obstáculo
-  lookBack: 0,
   walkPhase: 0,
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
@@ -38,11 +41,14 @@ export const game = {
 // Controles
 export const input = {
   forward: false,
+  backward: false,
+  left: false,
+  right: false,
   backPressed: false,
   run: false, // Tab mantenido
   jumpPressed: false, // Espacio (se consume en el siguiente frame)
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
-  camYaw: 0, // giro alrededor de la elfa (radianes)
+  camYaw: 0, // hacia dónde mira la cámara en el mundo (0 = hacia delante en el sendero)
   camPitch: 0, // altura extra (-0.6 abajo … 1 arriba)
   camZoom: 1, // 0.6 cerca … 1.8 lejos
   dragging: false,

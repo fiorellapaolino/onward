@@ -1,12 +1,14 @@
 import { useEffect } from 'react'
 import { game, input } from './state'
 
-// Caminar: mantener ↑ o W (en móvil/tablet: mantener el dedo en la pantalla).
+// Moverse (relativo a la cámara): W/↑ adelante, S/↓ atrás, A/← izquierda, D/→ derecha
+// (en móvil/tablet: mantener el dedo en la pantalla = caminar hacia donde mira la cámara).
 // Correr: mantener Tab mientras camina. Saltar: Espacio.
-// Mirar atrás: ↓ o S (no retrocede: se gira y vuelve a mirar adelante).
 // Cámara: arrastrar con el ratón gira alrededor de la elfa; la rueda acerca o aleja.
 const FORWARD = new Set(['ArrowUp', 'KeyW'])
 const BACK = new Set(['ArrowDown', 'KeyS'])
+const LEFT = new Set(['ArrowLeft', 'KeyA'])
+const RIGHT = new Set(['ArrowRight', 'KeyD'])
 
 const DRAG_SPEED = 0.006
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x))
@@ -18,15 +20,18 @@ export function useInput() {
     let lastX = 0
     let lastY = 0
     const sync = () => {
-      input.forward = touch || [...keys].some((k) => FORWARD.has(k))
+      const any = (set: Set<string>) => [...keys].some((k) => set.has(k))
+      input.forward = touch || any(FORWARD)
+      input.backward = any(BACK)
+      input.left = any(LEFT)
+      input.right = any(RIGHT)
       input.run = keys.has('Tab')
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
       // (Tab normalmente cambia el foco de la página; aquí lo usamos para correr)
-      if (FORWARD.has(e.code) || BACK.has(e.code) || e.code === 'Tab' || e.code === 'Space') e.preventDefault()
+      if (FORWARD.has(e.code) || BACK.has(e.code) || LEFT.has(e.code) || RIGHT.has(e.code) || e.code === 'Tab' || e.code === 'Space') e.preventDefault()
       if (e.code === 'Space' && !e.repeat) input.jumpPressed = true
-      if (BACK.has(e.code) && !e.repeat) input.backPressed = true
       // Al terminar, R vuelve a empezar
       if (e.code === 'KeyR' && game.phase === 'end' && game.phaseT > 10) location.reload()
       keys.add(e.code)

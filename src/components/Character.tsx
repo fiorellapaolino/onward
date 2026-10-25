@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { BIRTH_TIME, RISE_TIME, LOOK_BACK_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, headingAt, pathAt, smoothstep } from '../game/config'
+import { BIRTH_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game } from '../game/state'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
 
@@ -27,7 +27,6 @@ const WS = HEIGHT / MODEL_HEIGHT
 const HAIR_COLOR = '#c0683e' // castaño cobrizo
 const SKIN_COLOR = '#a76e4d'
 
-const pos = new THREE.Vector3()
 const X_AXIS = new THREE.Vector3(1, 0, 0)
 const Z_AXIS = new THREE.Vector3(0, 0, 1)
 const TMP_V = new THREE.Vector3()
@@ -75,7 +74,7 @@ export function Character() {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, lookOn: false })
+  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false })
   const S = useMemo(() => ({ base: makeSample(), tmp: makeSample(), tmp2: makeSample(), smooth: makeSample() }), [])
 
   const bodyG = useGLTF(BODY_URL)
@@ -136,18 +135,11 @@ export function Character() {
     const a = anim.current
 
     // ── Posición y hacia dónde mira ─────────────────────────────
-    pathAt(g.p, pos)
-    root.current.position.copy(pos)
-    let turn = 0
-    if (g.lookBack > 0) {
-      // Se gira a mirar atrás… y vuelve a mirar adelante
-      const t = 1 - g.lookBack / LOOK_BACK_TIME
-      turn = Math.sin(t * Math.PI) * Math.PI * 0.85
-    }
+    root.current.position.set(g.x, 0, g.z)
     // Al empezar está de costado (la vemos de perfil); al incorporarse gira para mirar al camino
     const sideways =
       g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.45) / (RISE_TIME * 0.5))) : 0
-    root.current.rotation.y = headingAt(g.p) + turn + SIDE_TURN * sideways
+    root.current.rotation.y = g.yaw + SIDE_TURN * sideways
 
     // ── Nacer: crece desde la luz ──────────────────────────────
     const birth = g.phase === 'intro' ? clamp01(g.phaseT / BIRTH_TIME) : 1
@@ -209,8 +201,9 @@ export function Character() {
     body.current.position.lerp(TMP_V.copy(base.offset).multiplyScalar(WS), snap ? 1 : damp(20, dt))
 
     // Peso del cuerpo: se ladea un poco hacia dentro en las curvas del sendero (muy suavizado, sin tirones)
-    const yawRate = (headingAt(g.p + 1) - headingAt(g.p)) * Math.min(g.speed, 3) // radianes por segundo
-    a.yawRate += (yawRate - a.yawRate) * damp(1.5, dt)
+    const dYaw = Math.atan2(Math.sin(g.yaw - a.prevYaw), Math.cos(g.yaw - a.prevYaw))
+    a.prevYaw = g.yaw
+    a.yawRate += (dYaw / Math.max(dt, 1e-3) - a.yawRate) * damp(3, dt) // radianes por segundo, suavizado
     if (!snap && a.move > 0.01) {
       root.current.updateMatrixWorld(true)
       const fwd = TMP_V3.copy(Z_AXIS).applyQuaternion(root.current.quaternion)

@@ -32,7 +32,7 @@ function aroundPos(k: number, out: THREE.Vector3) {
 function carriedPos(k: number, out: THREE.Vector3) {
   // Círculo pequeño que la acompaña mientras sube
   const a = k * (Math.PI / 2) + game.time * 1.2
-  pathAt(game.p, player)
+  player.set(game.x, 0, game.z)
   return out.set(
     player.x + Math.cos(a) * 0.45,
     player.y + 0.85 + Math.sin(game.time * 2 + k) * 0.05,

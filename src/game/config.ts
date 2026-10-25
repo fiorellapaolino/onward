@@ -19,7 +19,6 @@ export const BIRTH_TIME = 1.0 // nace de la luz (de rodillas)
 export const RISE_TIME = 3.2 // se incorpora desde la postura del niño (animación "Standing Up")
 export const GATHER_TIME = 2.4 // agarra las herramientas
 export const LOOK_TIME = 2.6 // mira a los costados antes de andar
-export const LOOK_BACK_TIME = 1.6 // se gira, mira atrás y vuelve
 export const TOOL_DELAY = 0.45 // separación entre que agarra una herramienta y la siguiente
 export const TOOL_FLY = 0.7 // lo que tarda cada una en llegar a sus manos
 export const TOOL_TO_GATE = 0.9 // lo que tarda en volar hasta el obstáculo
@@ -34,6 +33,9 @@ export const JUMP_HEIGHT = 0.45 // metros
 // ── Velocidades (metros por segundo) ─────────────────────────────
 export const WALK_SPEED = 0.85 // caminar (sube un poco con la confianza)
 export const RUN_SPEED = 2.7 // correr con Tab
+
+// ── Límites del bosque ───────────────────────────────────────────
+export const PATH_HALF_WIDTH = 7 // cuánto se puede alejar del sendero hacia los lados
 
 // ── Utilidades del sendero ───────────────────────────────────────
 const A1 = 6, F1 = 0.021, A2 = 3, F2 = 0.057, P2 = 1.3

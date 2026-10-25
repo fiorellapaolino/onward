@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
-import { PATH_LEN, clamp01, gradient, pathAt } from '../game/config'
+import { PATH_LEN, clamp01, gradient } from '../game/config'
 import { game } from '../game/state'
 import { Ground } from './Ground'
 
@@ -22,7 +22,7 @@ export function World() {
   const fireflies = useRef<THREE.Group>(null!)
 
   useFrame(() => {
-    const f = clamp01(game.p / PATH_LEN)
+    const f = clamp01(game.pMax / PATH_LEN) // lo más lejos que llegó: la luz no retrocede
 
     gradient(SKY, f, tmp)
     if (scene.background instanceof THREE.Color) scene.background.copy(tmp)
@@ -38,7 +38,7 @@ export function World() {
     sun.current.intensity = 2.6 + f * 0.8
 
     // las luciérnagas acompañan a la elfa
-    pathAt(game.p, fireflies.current.position)
+    fireflies.current.position.set(game.x, 0, game.z)
   })
 
   return (
