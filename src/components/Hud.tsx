@@ -87,7 +87,7 @@ export function Hud() {
 
       {/* Aviso de acción: "E  Escuchar", o "Mantén E · Quédate" con una barra que se llena */}
       <div
-        className={`prompt ${ui.prompt ? 'show' : ''} ${ui.hold >= 0 ? 'holding' : ''}`}
+        className={`prompt ${ui.prompt ? 'show' : ''} ${ui.hold >= 0 ? 'holding' : ''} ${isTouch ? 'touch-ui' : ''}`}
         onPointerDown={(e) => {
           consumePointer(e) // (en pantallas táctiles también se puede tocar / mantener)
           input.interact = true
@@ -97,7 +97,7 @@ export function Hud() {
         {ui.hold >= 0 ? (
           <>
             {/* "Mantén E" / "Mantén el dedo aquí" */}
-            {isTouch ? 'Hold here' : <><kbd>E</kbd> hold</>} · {ui.prompt}
+            {isTouch ? 'Hold' : <><kbd>E</kbd> hold</>} · {ui.prompt}
             <span className="bar">
               <span style={{ transform: `scaleX(${ui.hold})` }} />
             </span>

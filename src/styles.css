@@ -168,14 +168,26 @@ body.grabbing canvas {
 /* Aviso de acción ("E  Listen") */
 .prompt {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 50%;
   bottom: 22%;
+  transform: translateX(-50%);
+  white-space: nowrap;
   font-size: clamp(15px, 1.8vw, 19px);
   letter-spacing: 0.08em;
   opacity: 0;
   transition: opacity 0.5s ease;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+  -webkit-touch-callout: none; /* (en el móvil, mantener el dedo no abre menús) */
+}
+/* en el móvil el aviso es un botón grande para tocar o mantener */
+.prompt.touch-ui {
+  bottom: max(120px, 24%);
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 228, 170, 0.7);
+  background: rgba(20, 22, 30, 0.45);
+  backdrop-filter: blur(3px);
+  font-size: 18px;
 }
 
 /* Lo que dice la niña */
@@ -312,6 +324,6 @@ body.grabbing canvas {
   transform-origin: left center;
   transition: transform 0.12s linear;
 }
-.prompt.holding.show {
+.prompt.holding.show:not(.touch-ui) {
   padding: 14px 0;
 }
