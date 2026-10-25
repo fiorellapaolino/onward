@@ -1,2 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-lookgirl  ?at=62&dx=1&yaw=0.15&zoom=0.55&talk=1   25
+village ?at=55   15
+plates  ?at=66&plates   15
