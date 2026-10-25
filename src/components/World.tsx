@@ -11,7 +11,6 @@ const SKY = ['#bcd9e6', '#c4dfe2', '#cfe4d6', '#e4e6c4', '#f6e3b8', '#fbeacb'].m
 const GROUND = ['#6f8f45', '#78974a', '#86a04f', '#97a855', '#a9ad5c', '#b5ad62'].map((c) => new THREE.Color(c))
 
 const tmp = new THREE.Color()
-const end = pathAt(PATH_LEN)
 
 export function World() {
   const scene = useThree((s) => s.scene)
@@ -46,8 +45,8 @@ export function World() {
       <fog attach="fog" args={['#bcd9e6', 25, 110]} />
       <hemisphereLight ref={hemi} args={['#e6f2ff', '#5a6b3a', 1.6]} />
       <ambientLight intensity={0.35} />
-      {/* El "sol" viene desde la luz del final */}
-      <directionalLight ref={sun} position={[end.x + 20, 45, end.z + 40]} intensity={2.6} color="#fff1d6" />
+      {/* El sol viene de detrás de la cámara y desde arriba, para que la elfa y los árboles se vean iluminados de frente */}
+      <directionalLight ref={sun} position={[25, 50, -35]} intensity={2.6} color="#fff1d6" />
 
       {/* Suelo del bosque */}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, PATH_END / 2]}>
