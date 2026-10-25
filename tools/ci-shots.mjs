@@ -18,6 +18,10 @@ for (const line of shots) {
   for (const k of keys.split(',').filter(Boolean)) {
     const [key, ms] = k.split(':')
     if (key === 'wait') await page.waitForTimeout(Number(ms))
+    else if (key === 'state') {
+      const st = await page.evaluate(() => { const g = window.__game; return g && { phase: g.phase, phaseT: g.phaseT, jumpT: g.jumpT, jumpY: g.jumpY } })
+      log.push(`[${name}] state@${ms} ${JSON.stringify(st)}`)
+    }
     else {
       await page.keyboard.down(key)
       await page.waitForTimeout(Number(ms ?? 100))

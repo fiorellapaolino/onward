@@ -1,3 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-jump1  ?at=20   15   Space:150,wait:2500
-jump2  ?at=20   15   Space:150,wait:6000
+normal  ?probe   12   Enter:100,wait:150000,state:before,Space:150,state:after1,wait:3000,state:after2
