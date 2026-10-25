@@ -239,13 +239,14 @@ export function Character() {
     spring('skirtR', 0.03 * bounce * sec, (-0.05 - 0.08 * bounce + hipRoll) * sec, 120, 9, dt)
 
     // ── Su luz: crece con la confianza y destella en momentos clave
-    const birthFlash = g.phase === 'intro' ? (1 - birth) * 25 : 0
-    light.current.intensity = 2 + c * 6 + g.pulse * 12 + birthFlash
+    const birthFlash = g.phase === 'intro' ? (1 - birth) * 8 : 0
+    light.current.intensity = 1.2 + c * 3 + g.pulse * 6 + birthFlash
   })
 
   return (
     <group ref={root}>
-      <pointLight ref={light} position={[0, 1.3, 0.6]} color="#ffdcae" distance={9} intensity={2} />
+      {/* su luz va por encima de la cabeza (si va delante de la cara, la "quema") */}
+      <pointLight ref={light} position={[0, 2.3, -0.3]} color="#ffdcae" distance={9} intensity={1.2} />
       <group ref={body}>
         <primitive object={model} />
       </group>
