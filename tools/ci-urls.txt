@@ -1,2 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-girl  ?at=61&dx=0.8&yaw=0.5&zoom=0.6   15
+girlfront  ?at=63&dx=-1.2&yaw=1.45&zoom=0.75   15
