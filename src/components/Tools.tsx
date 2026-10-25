@@ -1,7 +1,8 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { BIRTH_TIME, TOOL_FLY, TOOL_TO_GATE, clamp01, pathAt } from '../game/config'
+import { MUSIC } from '../game/music'
+import { TOOL_FLY, TOOL_TO_GATE, clamp01, pathAt } from '../game/config'
 import { game } from '../game/state'
 
 /*
@@ -65,9 +66,10 @@ export function Tools() {
         case 'around': {
           aroundPos(k, obj.position)
           // aparecen un poco después de que nace
-          // aparecen poco a poco desde que nace (sin saltos al pasar de una fase a otra)
-          const since = g.phase === 'intro' ? g.phaseT : g.phase === 'rise' ? BIRTH_TIME * 0.9 + g.phaseT : 99
-          scale = clamp01((since - 0.3) / 1.2)
+          // cada elemento aparece en una de las frases de la canción
+          const since = g.phase === 'intro' ? (g.started ? g.musicT - MUSIC.ELEMENT_TIMES[k] : -1) : 99
+          const t = clamp01(since / 0.7)
+          scale = since <= 0 ? 0 : 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2)
           break
         }
         case 'flyingIn': {

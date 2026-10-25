@@ -4,6 +4,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRTH_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game } from '../game/state'
+import { musicLevel } from '../game/music'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
 
 /*
@@ -185,7 +186,12 @@ export function Character() {
       const t = g.phase === 'rise' ? (g.phaseT / RISE_TIME) * duration(CLIPS.standup) : 0
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
       // respira mientras espera de rodillas
-      if (g.phase === 'intro') base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, Math.sin(g.time * 1.7) * 0.03))
+      // respira de rodillas al ritmo de las frases de la canción (inhala cuando la música sube)
+      if (g.phase === 'intro') {
+        const level = g.started ? musicLevel(g.musicT) : 0.3 + 0.2 * Math.sin(g.time * 1.2)
+        base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.05 - 0.12 * level))
+        base.q.neck_01?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.04 - 0.08 * level))
+      }
     }
     // al final levanta la mirada hacia la luz
     if (g.phase === 'end') base.q.Head?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, -0.3 * clamp01(g.phaseT / 2)))
@@ -246,7 +252,7 @@ export function Character() {
     }
 
     // ── Su luz: crece con la confianza y destella en momentos clave
-    const birthFlash = g.phase === 'intro' ? (1 - birth) * 8 : 0
+    const birthFlash = g.phase === 'intro' ? (1 - birth) * 8 + (g.started ? musicLevel(g.musicT) * 3 : 0) : 0
     light.current.intensity = 1.2 + g.c * 3 + g.pulse * 6 + birthFlash
   })
 

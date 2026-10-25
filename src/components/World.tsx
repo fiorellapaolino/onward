@@ -20,8 +20,10 @@ export function World() {
   const hemi = useRef<THREE.HemisphereLight>(null!)
   const sun = useRef<THREE.DirectionalLight>(null!)
   const fireflies = useRef<THREE.Group>(null!)
+  const fogOpen = useRef(0)
 
-  useFrame(() => {
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05)
     const f = clamp01(game.pMax / PATH_LEN) // lo más lejos que llegó: la luz no retrocede
 
     gradient(SKY, f, tmp)
@@ -29,8 +31,12 @@ export function World() {
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.color.copy(tmp)
       // la niebla se abre: cada vez ve más lejos
-      scene.fog.near = 25 + f * 20
-      scene.fog.far = 110 + f * 60
+      // al nacer hay niebla espesa; cuando entran los graves en la canción, se abre de golpe
+      const open = game.phase !== 'intro' ? 1 : 0
+      fogOpen.current += (open - fogOpen.current) * Math.min(1, dt * (open ? 0.9 : 5))
+      const o = fogOpen.current
+      scene.fog.near = (2 + o * 23) + f * 20
+      scene.fog.far = (12 + o * 98) + f * 60
     }
 
     if (ground.current) gradient(GROUND, f, ground.current.color)

@@ -16,6 +16,8 @@ export type ToolState = 'around' | 'flyingIn' | 'carried' | 'toGate' | 'used'
 // para que no se re-renderice todo 60 veces por segundo).
 export const game = {
   loaded: false, // ya se cargaron los modelos
+  started: false, // el jugador hizo clic para empezar (y empezó la música)
+  musicT: -1, // segundos de música (el nacimiento va sincronizado con ella)
   phase: 'intro' as Phase,
   phaseT: 0, // segundos dentro de la fase actual
   time: 0,
@@ -58,6 +60,8 @@ export const input = {
 
 // ── Textos en pantalla (esto sí es estado de React) ──────────────
 type Ui = {
+  start: boolean // pantalla de inicio (clic para empezar)
+  hint: boolean // controles en pantalla
   title: boolean
   msg: string | null
   fade: boolean
@@ -67,7 +71,7 @@ type Ui = {
   choosing: boolean // está frente a un obstáculo: hay que elegir un elemento
   wrong: number // índice del último elemento equivocado (-1 = ninguno)
 }
-let ui: Ui = { title: true, msg: null, fade: false, final: false, inv: false, used: '', choosing: false, wrong: -1 }
+let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, inv: false, used: '', choosing: false, wrong: -1 }
 const listeners = new Set<() => void>()
 
 export function setUi(patch: Partial<Ui>) {

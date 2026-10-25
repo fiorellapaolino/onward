@@ -1,11 +1,12 @@
 import { useFrame } from '@react-three/fiber'
 import {
-  BIRTH_TIME, RISE_TIME, GATES, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH,
+  RISE_TIME, GATES, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH,
   GATE_STOP, PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE,
   smoothstep, damp, headingAt, pathAt, tangentAt,
 } from './config'
 import * as THREE from 'three'
 import { game, input, setUi, type Phase } from './state'
+import { MUSIC, musicTime } from './music'
 
 const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
@@ -24,6 +25,15 @@ export function GameLoop() {
     g.time += dt
     g.phaseT += dt
     g.pulse = Math.max(0, g.pulse - dt * 1.5)
+
+    // ── Música del nacimiento ───────────────────────────────────
+    const prevMusic = g.musicT
+    g.musicT = musicTime()
+    // un destello en cada frase en la que aparece un elemento
+    for (const t of MUSIC.ELEMENT_TIMES) if (prevMusic < t && g.musicT >= t) g.pulse = 1
+    // la música se corta: silencio, y aparece el título
+    if (prevMusic < MUSIC.CUT && g.musicT >= MUSIC.CUT) setUi({ title: true })
+    if (g.musicT >= MUSIC.CUT + 5.5 && g.musicT < MUSIC.CUT + 6) setUi({ title: false })
 
     // ── Herramientas ────────────────────────────────────────────
     g.tools.forEach((tool, k) => {
@@ -56,10 +66,10 @@ export function GameLoop() {
         g.x = pathAt(0, TMP).x
         g.z = 0
         g.yaw = headingAt(0)
-        // Nace de rodillas y, cuando el bosque ya cargó, se levanta sola
+        // Nace de rodillas y respira con la música; cuando entran los graves, se levanta sola
         // (el jugador toma el control cuando ella ya está de pie)
-        if (!g.loaded) g.phaseT = 0 // espera a que todo esté cargado para empezar
-        if (g.phaseT > BIRTH_TIME * 0.9) setPhase('rise')
+        if (!g.started) g.phaseT = 0 // espera al clic de inicio
+        if (g.musicT >= MUSIC.BASS_IN) setPhase('rise')
         break
 
       case 'rise':
@@ -72,7 +82,10 @@ export function GameLoop() {
 
       case 'look':
         setUi({ inv: true }) // ya tiene los elementos: se muestran abajo
-        if (g.phaseT >= LOOK_TIME) setPhase('play')
+        if (g.phaseT >= LOOK_TIME) {
+          setPhase('play')
+          setUi({ hint: true }) // ahora le toca al jugador: se muestran los controles
+        }
         break
 
       case 'play': {
@@ -88,7 +101,7 @@ export function GameLoop() {
         MOVE.set(Math.sin(cy) * fIn - Math.cos(cy) * sIn, 0, Math.cos(cy) * fIn + Math.sin(cy) * sIn)
         const moving = MOVE.lengthSq() > 0.01
         if (moving) MOVE.normalize()
-        if (moving) setUi({ title: false }) // el título se va al dar el primer paso
+        if (moving && g.phaseT > 4) setUi({ hint: false }) // los controles se van tras los primeros pasos
         if (moving) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
 
