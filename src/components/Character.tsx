@@ -38,9 +38,10 @@ export function Character() {
     s.traverse((o) => {
       const mesh = o as THREE.Mesh
       if (mesh.isMesh) {
-        const mat = mesh.material as THREE.MeshStandardMaterial
-        mat.roughness = 0.85
-        mat.metalness = 0
+        // El modelo viene "sin iluminación" (unlit). Lo pasamos a un material
+        // que reacciona a la luz para que se integre con la noche y el amanecer.
+        const old = mesh.material as THREE.MeshBasicMaterial
+        mesh.material = new THREE.MeshStandardMaterial({ map: old.map, roughness: 0.85, metalness: 0 })
       }
     })
     return s
