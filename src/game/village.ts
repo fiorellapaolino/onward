@@ -51,6 +51,9 @@ export function buildLanterns(): Lantern[] {
   return out
 }
 
+/** Los faroles (siempre los mismos). */
+export const LANTERNS = buildLanterns()
+
 /** La niña: sentada abrazando sus rodillas, al pie del árbol, mirando hacia el sendero. */
 export const GIRL = (() => {
   const p = besidePath(GIRL_S, GIRL_SIDE, GIRL_DIST)
@@ -64,11 +67,32 @@ export const GIRL_TREE = (() => {
   return { x: p.x, z: p.z, rot: headingAt(GIRL_S) }
 })()
 
+/** El anciano: sentado en un taburete junto a la puerta de la primera casa (a la derecha al entrar). */
+export const ELDER_HUT = 0
+export const ELDER = (() => {
+  const h = buildHuts()[ELDER_HUT]
+  // la puerta mira al sendero (rot); se sienta delante, un poco a un lado, mirando también al sendero
+  const fx = Math.sin(h.rot)
+  const fz = Math.cos(h.rot)
+  const d = 1.5 * h.scale + 0.55
+  return { x: h.x + fx * d + fz * 0.8, z: h.z + fz * d - fx * 0.8, rot: h.rot }
+})()
+
+/** Cosas sólidas de la aldea (círculos en el suelo): la elfa no las atraviesa. */
+export const COLLIDERS: { x: number; z: number; r: number }[] = [
+  ...buildHuts().map((h) => ({ x: h.x, z: h.z, r: 1.75 * h.scale })),
+  { x: GIRL_TREE.x, z: GIRL_TREE.z, r: 0.6 },
+  { x: GIRL.x, z: GIRL.z, r: 0.75 },
+  { x: ELDER.x, z: ELDER.z, r: 0.8 },
+  ...LANTERNS.map((l) => ({ x: l.x, z: l.z, r: 0.2 })),
+]
+
 /** ¿Este punto cae encima de una casa, del árbol de la niña o de ella? (para no poner plantas encima) */
 const HUTS = buildHuts()
 export function blockedByVillage(x: number, z: number) {
   for (const h of HUTS) if (Math.hypot(x - h.x, z - h.z) < 2.6 * h.scale) return true
   if (Math.hypot(x - GIRL_TREE.x, z - GIRL_TREE.z) < 2.2) return true
   if (Math.hypot(x - GIRL.x, z - GIRL.z) < 1.2) return true
+  if (Math.hypot(x - ELDER.x, z - ELDER.z) < 1.2) return true
   return false
 }

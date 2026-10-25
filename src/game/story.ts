@@ -17,6 +17,29 @@ export const GIRL_LINES = [
   '…Can you?',
 ]
 
+/** Lo que dice el anciano, sentado a oscuras junto a su puerta. */
+export const ELDER_LINES = [
+  // "…¿Hay alguien ahí?"
+  '…Is someone there?',
+  // "Mi farol se apagó cuando llegó la sombra."
+  'My lantern went out when the shadow came.',
+  // "Soy viejo… y tengo miedo de salir ahí fuera."
+  "I'm old… and I'm afraid to go out there.",
+  // "Sin luz, nadie encontrará el camino a casa."
+  'Without light, nobody will find the way home.',
+]
+
+/** La oscuridad la rodea. "Mantén E · Quédate" (en el móvil: mantén el dedo) */
+export const PROMPT_STAY = 'Stay'
+/** Mensaje mientras la rodea la oscuridad. "La oscuridad se acerca." */
+export const FEAR_MSG = 'The dark closes in.'
+/** Cuando despierta su luz. "Algo despierta dentro de ti." */
+export const AWAKE_MSG = 'Something wakes up inside you.'
+/** Encender los faroles. "Enciende los faroles" + contador */
+export const goalLanterns = (n: number, total: number) => `Light the lanterns  ${n} / ${total}`
+/** Cuando están todos encendidos. "La aldea recuerda su luz." */
+export const LIT_MSG = 'The village remembers its light.'
+
 /** Qué hay que hacer después de hablar con la niña. "Ayuda a la gente de la aldea." */
 export const GOAL_HELP = 'Help the people of the village.'
 

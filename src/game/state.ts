@@ -14,10 +14,14 @@ export type Phase = 'intro' | 'rise' | 'gather' | 'look' | 'play' | 'end'
 export type ToolState = 'around' | 'flyingIn' | 'carried' | 'absorbing' | 'inside'
 
 // La historia de la aldea, en orden:
-// seek   → todavía no habló con la niña
-// talk   → la niña le cuenta lo que pasa
-// help   → tiene que ayudar a la gente de la aldea
-export type Story = 'seek' | 'talk' | 'help'
+// seek      → todavía no habló con la niña
+// help      → la niña le contó lo de la sombra: hay que ayudar a la gente de la aldea
+// fear      → el anciano le contó su miedo; la oscuridad la rodea y tiene que quedarse (mantener E)
+// lanterns  → se despertó su luz: enciende los faroles de la aldea
+// next      → la aldea recuperó la luz (lo siguiente: el niño y su perrito)
+export type Story = 'seek' | 'help' | 'fear' | 'lanterns' | 'next'
+// Con quién está hablando (mientras alguien habla, la elfa se queda quieta escuchando)
+export type Talker = 'girl' | 'elder' | null
 
 // Estado del juego. Se modifica cada frame (no es estado de React a propósito,
 // para que no se re-renderice todo 60 veces por segundo).
@@ -39,14 +43,28 @@ export const game = {
   blocked: false, // empuja contra la sombra (no puede pasar)
   walkPhase: 0,
   story: 'seek' as Story,
-  line: 0, // frase de la niña que se está leyendo
+  talk: null as Talker,
+  line: 0, // frase que se está leyendo
   lineT: 0, // segundos desde que apareció esa frase
   girlNear: 0, // 0..1: lo cerca que está la elfa de la niña (ella levanta la cabeza)
+  elderNear: 0, // 0..1: lo mismo con el anciano
+  fear: 0, // 0..1: la oscuridad la rodea (al escuchar al anciano)
+  courage: 0, // 0..1: se queda aunque tenga miedo (mantener E); al llegar a 1 despierta su luz
+  lightAwake: false, // ya despertó la magia de la luz
+  awakeAt: -99, // momento (game.time) en que despertó
+  lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
   shadowOpen: false, // la sombra de la salida ya deja pasar
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
   tools: [0, 1, 2, 3].map(() => ({ state: 'around' as ToolState, t: 0 })),
+}
+
+/** Cuántos faroles de la aldea hay encendidos (0..1). */
+export function litFraction() {
+  const lit = game.lit
+  if (!lit.length) return 0
+  return lit.filter((t) => t >= 0).length / lit.length
 }
 
 // Controles
@@ -62,6 +80,7 @@ export const input = {
   joyY: 0, // -1 adelante … 1 atrás (como en la pantalla: hacia arriba = adelante)
   jumpPressed: false, // Espacio (se consume en el siguiente frame)
   interact: false, // E (o clic en el diálogo): escuchar / pasar a la siguiente frase
+  hold: false, // E mantenida (o el dedo sobre el aviso): quedarse aunque dé miedo
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
   camYaw: 0, // hacia dónde mira la cámara en el mundo (0 = hacia delante en el sendero)
   camPitch: 0, // altura extra (-0.6 abajo … 1 arriba)
@@ -86,10 +105,11 @@ type Ui = {
   fade: boolean
   final: boolean
   prompt: string | null // aviso de acción, p. ej. "Listen"
+  hold: number // -1 = sin barra; 0..1 = cuánto lleva manteniendo E
   say: string | null // lo que dice la niña
   goal: string | null // qué hay que hacer ahora (arriba a la izquierda)
 }
-let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, prompt: null, say: null, goal: null }
+let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, prompt: null, hold: -1, say: null, goal: null }
 const listeners = new Set<() => void>()
 
 export function setUi(patch: Partial<Ui>) {

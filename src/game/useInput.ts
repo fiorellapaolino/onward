@@ -33,6 +33,7 @@ export function useInput() {
       if (e.code === 'Space' && !e.repeat) input.jumpPressed = true
       // E (o Enter): escuchar a alguien / pasar a la siguiente frase
       if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat && game.started) input.interact = true
+      if (e.code === 'KeyE') input.hold = true // (mantener E: quedarse aunque dé miedo)
       // Al terminar, R vuelve a empezar
       if (e.code === 'KeyR' && game.phase === 'end' && game.phaseT > 10) location.reload()
       keys.add(e.code)
@@ -40,6 +41,7 @@ export function useInput() {
     }
     const onKeyUp = (e: KeyboardEvent) => {
       keys.delete(e.code)
+      if (e.code === 'KeyE') input.hold = false
       sync()
     }
 
@@ -99,6 +101,7 @@ export function useInput() {
       lastY = e.clientY
     }
     const onPointerUp = (e: PointerEvent) => {
+      input.hold = false // (el dedo que mantenía el aviso)
       if (e.pointerId === joyId) {
         joyId = -1
         input.joyX = input.joyY = 0
@@ -116,6 +119,7 @@ export function useInput() {
     }
     const onBlur = () => {
       keys.clear()
+      input.hold = false
       joyId = camId = -1
       input.joyX = input.joyY = 0
       input.dragging = false

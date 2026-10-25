@@ -3,8 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import { Clone, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { SHADOW_S, VILLAGE_R, VILLAGE_S, damp, natureUrl, pathAt, rng, sideAt } from '../game/config'
-import { game } from '../game/state'
-import { GIRL_TREE, buildHuts, buildLanterns, type Hut } from '../game/village'
+import { game, litFraction } from '../game/state'
+import { ELDER, GIRL_TREE, LANTERNS, buildHuts, type Hut, type Lantern } from '../game/village'
 import { useGlowTexture } from './TheLight'
 
 /*
@@ -23,41 +23,112 @@ const mats = {
   thatch: new THREE.MeshStandardMaterial({ color: '#9a7a45', roughness: 1, flatShading: true }),
   thatchDark: new THREE.MeshStandardMaterial({ color: '#7d6136', roughness: 1, flatShading: true }),
   stone: new THREE.MeshStandardMaterial({ color: '#8d8a84', roughness: 1, flatShading: true }),
-  // ventanas y faroles: apagados (más adelante se encenderán con la magia de la elfa)
-  glassOff: new THREE.MeshStandardMaterial({ color: '#2a2833', roughness: 0.4, emissive: '#ffb45e', emissiveIntensity: 0 }),
+  // ventanas: apagadas; se van encendiendo a medida que la elfa enciende los faroles
+  window: new THREE.MeshStandardMaterial({ color: '#2a2833', roughness: 0.4, emissive: '#ffb45e', emissiveIntensity: 0 }),
 }
+const GLASS_OFF = new THREE.Color('#2a2833')
+const GLASS_ON = new THREE.Color('#ffe2b0')
+
 
 export function Village() {
   const huts = useMemo(buildHuts, [])
-  const lanterns = useMemo(buildLanterns, [])
   const { scene: tree } = useGLTF(TREE_URL)
+
+  // las ventanas se encienden con los faroles
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05)
+    const target = litFraction() * 1.6
+    mats.window.emissiveIntensity += (target - mats.window.emissiveIntensity) * damp(1.5, dt)
+    mats.window.color.lerpColors(GLASS_OFF, GLASS_ON, Math.min(1, mats.window.emissiveIntensity))
+  })
 
   return (
     <group>
       {huts.map((h, i) => (
         <HutMesh key={i} hut={h} />
       ))}
-      {lanterns.map((l, i) => (
-        <group key={i} position={[l.x, 0, l.z]}>
-          <mesh material={mats.darkWood} position={[0, 0.95, 0]}>
-            <cylinderGeometry args={[0.05, 0.07, 1.9, 6]} />
-          </mesh>
-          <mesh material={mats.darkWood} position={[0, 1.85, 0.16]}>
-            <boxGeometry args={[0.05, 0.05, 0.36]} />
-          </mesh>
-          <mesh material={mats.glassOff} position={[0, 1.66, 0.3]}>
-            <boxGeometry args={[0.18, 0.24, 0.18]} />
-          </mesh>
-          <mesh material={mats.darkWood} position={[0, 1.83, 0.3]}>
-            <coneGeometry args={[0.16, 0.14, 4]} />
-          </mesh>
-        </group>
+      {LANTERNS.map((l, i) => (
+        <LanternPost key={i} lantern={l} index={i} />
       ))}
+
+      {/* El anciano se sienta en un taburete; a su lado, su farol apagado (se enciende cuando despierta la luz) */}
+      <group position={[ELDER.x, 0, ELDER.z]} rotation-y={ELDER.rot}>
+        <mesh material={mats.wood} position={[0, 0.14, -0.05]}>
+          <cylinderGeometry args={[0.2, 0.18, 0.28, 8]} />
+        </mesh>
+        <LanternLamp position={[0.45, 0, 0.1]} isLit={() => (game.lightAwake ? game.awakeAt : -1)} />
+      </group>
 
       {/* El árbol de la niña */}
       <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} />
 
       <ShadowMist />
+      <FearRing />
+    </group>
+  )
+}
+
+/** Farol de la aldea: poste, brazo y lámpara. */
+function LanternPost({ lantern, index }: { lantern: Lantern; index: number }) {
+  return (
+    <group position={[lantern.x, 0, lantern.z]}>
+      <mesh material={mats.darkWood} position={[0, 0.95, 0]}>
+        <cylinderGeometry args={[0.05, 0.07, 1.9, 6]} />
+      </mesh>
+      <mesh material={mats.darkWood} position={[0, 1.85, 0.16]}>
+        <boxGeometry args={[0.05, 0.05, 0.36]} />
+      </mesh>
+      <LanternLamp position={[0, 1.42, 0.3]} isLit={() => game.lit[index] ?? -1} />
+    </group>
+  )
+}
+
+/**
+ * Lámpara: vidrio oscuro cuando está apagada. Al encenderse da un destello,
+ * el vidrio brilla cálido y un halo de luz la rodea.
+ * isLit devuelve el momento en que se encendió (-1 = apagada).
+ */
+function LanternLamp({ position, isLit }: { position: [number, number, number]; isLit: () => number }) {
+  const tex = useGlowTexture()
+  const glass = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#2a2833', roughness: 0.4, emissive: '#ffb45e', emissiveIntensity: 0 }),
+    [],
+  )
+  const halo = useMemo(
+    () => new THREE.SpriteMaterial({ map: tex, color: '#ffc77a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+    [tex],
+  )
+  const sprite = useRef<THREE.Sprite>(null!)
+
+  useFrame(() => {
+    const at = isLit()
+    if (at < 0) {
+      glass.emissiveIntensity = 0
+      glass.color.copy(GLASS_OFF)
+      halo.opacity = 0
+      return
+    }
+    const t = game.time - at
+    const pop = Math.max(0, 1 - t / 0.8) // destello al encenderse
+    const flicker = 1 + Math.sin(game.time * 9 + at * 7) * 0.05 + Math.sin(game.time * 23 + at) * 0.03
+    glass.emissiveIntensity = (2.2 + pop * 4) * flicker
+    glass.color.copy(GLASS_ON)
+    halo.opacity = Math.min(1, t * 3) * 0.75 * flicker
+    sprite.current.scale.setScalar((1.6 + pop * 2.5) * flicker)
+  })
+
+  return (
+    <group position={position}>
+      <mesh material={glass} position={[0, 0.24, 0]}>
+        <boxGeometry args={[0.18, 0.24, 0.18]} />
+      </mesh>
+      <mesh material={mats.darkWood} position={[0, 0.41, 0]}>
+        <coneGeometry args={[0.16, 0.14, 4]} />
+      </mesh>
+      <mesh material={mats.darkWood} position={[0, 0.11, 0]}>
+        <boxGeometry args={[0.2, 0.03, 0.2]} />
+      </mesh>
+      <sprite ref={sprite} material={halo} position={[0, 0.24, 0]} scale={1.6} />
     </group>
   )
 }
@@ -112,7 +183,7 @@ function HutMesh({ hut }: { hut: Hut }) {
       </mesh>
       {/* ventana a un lado */}
       <group rotation-y={1.1}>
-        <mesh material={mats.glassOff} position={[0, 0.24 + 1.0, R - 0.01]}>
+        <mesh material={mats.window} position={[0, 0.24 + 1.0, R - 0.01]}>
           <boxGeometry args={[0.42, 0.38, 0.06]} />
         </mesh>
         <mesh material={mats.wood} position={[0, 0.24 + 1.0, R + 0.03]}>
@@ -181,6 +252,56 @@ function ShadowMist() {
         <sprite key={i} ref={(el) => {
             refs.current[i] = el
           }} material={material} position={[b.x, b.y, b.z]} scale={b.size} />
+      ))}
+    </>
+  )
+}
+
+/*
+ * El miedo: cuando el anciano cuenta lo de la oscuridad, manchas de sombra rodean a la elfa
+ * y se van cerrando. Si se queda (mantener E), su luz las empuja; al despertar, salen volando.
+ */
+const RING = 22
+function FearRing() {
+  const tex = useGlowTexture()
+  const material = useMemo(
+    () => new THREE.SpriteMaterial({ map: tex, color: '#120f1a', transparent: true, opacity: 0, depthWrite: false, fog: false }),
+    [tex],
+  )
+  const refs = useRef<(THREE.Sprite | null)[]>([])
+  const seeds = useMemo(() => {
+    const r = rng(77)
+    return Array.from({ length: RING }, (_, i) => ({ a: (i / RING) * Math.PI * 2 + r() * 0.3, y: 0.3 + r() * 2.2, size: 1.6 + r() * 1.8, ph: r() * 6.28 }))
+  }, [])
+
+  useFrame(() => {
+    const g = game
+    const blast = g.lightAwake ? Math.min(1, (g.time - g.awakeAt) / 1.2) : 0 // al despertar salen volando
+    const show = g.fear * (1 - blast)
+    material.opacity = 0.85 * show
+    const radius = (5.5 - 3.6 * g.fear) * (1 + g.courage * 0.6) + blast * 14
+    seeds.forEach((sd, i) => {
+      const s = refs.current[i]
+      if (!s) return
+      s.visible = show > 0.01
+      const a = sd.a + g.time * 0.15
+      const r = radius + Math.sin(g.time * 0.8 + sd.ph) * 0.4
+      s.position.set(g.x + Math.cos(a) * r, sd.y + Math.sin(g.time * 0.6 + sd.ph) * 0.2, g.z + Math.sin(a) * r)
+      s.scale.setScalar(sd.size * (1 + Math.sin(g.time * 1.1 + sd.ph) * 0.12))
+    })
+  })
+
+  return (
+    <>
+      {seeds.map((_, i) => (
+        <sprite
+          key={i}
+          ref={(el) => {
+            refs.current[i] = el
+          }}
+          material={material}
+          visible={false}
+        />
       ))}
     </>
   )

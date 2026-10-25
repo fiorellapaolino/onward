@@ -7,7 +7,7 @@ import { Forest } from './components/Forest'
 import { PathStones } from './components/PathStones'
 import { Flowers } from './components/Flowers'
 import { Village } from './components/Village'
-import { Girl } from './components/Girl'
+import { Elder, Girl } from './components/Villager'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character } from './components/Character'
 import { Tools } from './components/Tools'
@@ -28,6 +28,7 @@ export default function App() {
         <Suspense fallback={null}>
           <Character />
           <Girl />
+          <Elder />
         </Suspense>
         <Suspense fallback={null}>
           <PathStones />

@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
 import { PATH_LEN, VILLAGE_R, VILLAGE_S, clamp01, distToVillage, gradient, smoothstep } from '../game/config'
-import { game } from '../game/state'
+import { game, litFraction } from '../game/state'
 import { MUSIC } from '../game/music'
 import { Ground } from './Ground'
 
@@ -34,7 +34,7 @@ export function World() {
 
     // ¿cuánto la cubre la sombra de la aldea? (0 lejos → 1 dentro; pasada la aldea, sigue a oscuras)
     const inside = game.z > VILLAGE_S ? 1 : 1 - smoothstep(VILLAGE_R - 3, VILLAGE_R + 22, distToVillage(game.x, game.z))
-    const gloomTarget = game.shadowOpen ? 0 : inside
+    const gloomTarget = game.shadowOpen ? 0 : inside * (1 - 0.6 * litFraction()) // los faroles la apartan
     gloomRef.current += (gloomTarget - gloomRef.current) * Math.min(1, dt * 1.2)
     const gl = gloomRef.current
 

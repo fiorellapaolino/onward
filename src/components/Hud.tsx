@@ -85,18 +85,31 @@ export function Hud() {
       {/* Qué hay que hacer ahora */}
       <div className={`goal ${ui.goal ? 'show' : ''}`}>{ui.goal}</div>
 
-      {/* Aviso de acción junto a la niña: "E  Escuchar" */}
+      {/* Aviso de acción: "E  Escuchar", o "Mantén E · Quédate" con una barra que se llena */}
       <div
-        className={`prompt ${ui.prompt ? 'show' : ''}`}
+        className={`prompt ${ui.prompt ? 'show' : ''} ${ui.hold >= 0 ? 'holding' : ''}`}
         onPointerDown={(e) => {
-          consumePointer(e) // (en pantallas táctiles también se puede tocar)
+          consumePointer(e) // (en pantallas táctiles también se puede tocar / mantener)
           input.interact = true
+          input.hold = true
         }}
       >
-        {!isTouch && <kbd>E</kbd>} {ui.prompt}
+        {ui.hold >= 0 ? (
+          <>
+            {/* "Mantén E" / "Mantén el dedo aquí" */}
+            {isTouch ? 'Hold here' : <><kbd>E</kbd> hold</>} · {ui.prompt}
+            <span className="bar">
+              <span style={{ transform: `scaleX(${ui.hold})` }} />
+            </span>
+          </>
+        ) : (
+          <>
+            {!isTouch && <kbd>E</kbd>} {ui.prompt}
+          </>
+        )}
       </div>
 
-      {/* Lo que dice la niña. Clic, E o Espacio para seguir. */}
+      {/* Lo que dice quien habla. Clic, E o Espacio para seguir. */}
       <div
         className={`say ${ui.say ? 'show' : ''}`}
         onPointerDown={(e) => {

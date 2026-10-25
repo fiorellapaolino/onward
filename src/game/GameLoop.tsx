@@ -7,8 +7,10 @@ import {
 import * as THREE from 'three'
 import { game, input, setUi, type Phase } from './state'
 import { MUSIC, musicTime } from './music'
-import { GIRL } from './village'
-import { GIRL_LINES, GOAL_HELP, PROMPT_LISTEN, SHADOW_BLOCK } from './story'
+import { COLLIDERS, ELDER, GIRL, LANTERNS } from './village'
+import {
+  AWAKE_MSG, ELDER_LINES, FEAR_MSG, GIRL_LINES, GOAL_HELP, LIT_MSG, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, goalLanterns,
+} from './story'
 import { applyDebug, debugMode } from './debug'
 
 const MOVE = new THREE.Vector3()
@@ -29,6 +31,7 @@ export function GameLoop() {
     g.phaseT += dt
     g.pulse = Math.max(0, g.pulse - dt * 1.5)
 
+    if (g.lit.length !== LANTERNS.length) g.lit = LANTERNS.map(() => -1)
     applyDebug() // (?at=… en la dirección: empezar directamente en un punto, para probar)
 
     // ── Música del nacimiento ───────────────────────────────────
@@ -94,25 +97,39 @@ export function GameLoop() {
         break
 
       case 'play': {
-        // Escuchando a la niña: la elfa se queda quieta mirándola; E / Espacio / clic pasa a la siguiente frase
-        if (g.story === 'talk') {
+        // Escuchando a alguien: la elfa se queda quieta mirándole; E / Espacio / clic pasa a la siguiente frase
+        if (g.talk) {
+          const who = g.talk === 'girl' ? GIRL : ELDER
+          const lines = g.talk === 'girl' ? GIRL_LINES : ELDER_LINES
           g.speed += (0 - g.speed) * damp(8, dt)
-          const want = Math.atan2(GIRL.x - g.x, GIRL.z - g.z)
+          const want = Math.atan2(who.x - g.x, who.z - g.z)
           g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(5, dt)
-          g.girlNear += (1 - g.girlNear) * damp(1.5, dt)
+          if (g.talk === 'girl') g.girlNear += (1 - g.girlNear) * damp(1.5, dt)
+          else g.elderNear += (1 - g.elderNear) * damp(1.5, dt)
           g.lineT += dt
           const next = (input.interact || input.jumpPressed) && g.lineT > 0.35
           input.jumpPressed = false // (Espacio no salta mientras escucha)
           if (next) {
             g.line++
             g.lineT = 0
-            if (g.line >= GIRL_LINES.length) {
-              // terminó de contar: ahora hay que ayudar a la aldea
-              g.story = 'help'
-              g.c = Math.min(1, g.c + 0.15)
-              g.pulse = 0.8
-              setUi({ say: null, goal: GOAL_HELP })
-            } else setUi({ say: GIRL_LINES[g.line] })
+            if (g.line < lines.length) setUi({ say: lines[g.line] })
+            else {
+              const was = g.talk
+              g.talk = null
+              setUi({ say: null })
+              if (was === 'girl') {
+                // terminó de contar: ahora hay que ayudar a la aldea
+                g.story = 'help'
+                g.c = Math.min(1, g.c + 0.15)
+                g.pulse = 0.8
+                setUi({ goal: GOAL_HELP })
+              } else {
+                // el anciano tiene miedo… y la oscuridad se acerca también a ella
+                g.story = 'fear'
+                g.courage = 0
+                setUi({ msg: FEAR_MSG })
+              }
+            }
           }
           break
         }
@@ -156,14 +173,17 @@ export function GameLoop() {
         g.z = THREE.MathUtils.clamp(g.z, -3, maxZ)
         const cx = pathAt(g.z, TMP).x
         g.x = THREE.MathUtils.clamp(g.x, cx - PATH_HALF_WIDTH, cx + PATH_HALF_WIDTH)
-        // no atraviesa a la niña
-        const gdx = g.x - GIRL.x
-        const gdz = g.z - GIRL.z
-        const gd = Math.hypot(gdx, gdz)
-        if (gd < 0.75 && gd > 1e-4) {
-          g.x = GIRL.x + (gdx / gd) * 0.75
-          g.z = GIRL.z + (gdz / gd) * 0.75
+        // no atraviesa las casas, ni a la gente, ni los faroles
+        for (const c of COLLIDERS) {
+          const cdx = g.x - c.x
+          const cdz = g.z - c.z
+          const cd = Math.hypot(cdx, cdz)
+          if (cd < c.r && cd > 1e-4) {
+            g.x = c.x + (cdx / cd) * c.r
+            g.z = c.z + (cdz / cd) * c.r
+          }
         }
+        const gd = Math.hypot(g.x - GIRL.x, g.z - GIRL.z)
         g.p = g.z
         g.pMax = Math.max(g.pMax, g.p)
 
@@ -172,20 +192,59 @@ export function GameLoop() {
         if (g.blocked && moving && MOVE.z > 0.3) {
           g.speed = Math.min(g.speed, 0.2)
           setUi({ msg: SHADOW_BLOCK })
-        } else if (g.z < maxZ - 2) setUi({ msg: null })
+        } else if (g.z < maxZ - 2 && g.story !== 'fear' && g.time - g.awakeAt > 4) setUi({ msg: null })
 
-        // ── La niña ──
+        // ── La gente de la aldea ──
         g.girlNear += ((gd < 6 ? 1 : 0) - g.girlNear) * damp(1.5, dt)
-        if (g.story === 'seek') {
-          const canTalk = gd < TALK_DIST
-          setUi({ prompt: canTalk ? PROMPT_LISTEN : null })
-          if (canTalk && input.interact) {
-            g.story = 'talk'
-            g.line = 0
-            g.lineT = 0
-            setUi({ prompt: null, hint: false, msg: null, say: GIRL_LINES[0] })
+        const ed = Math.hypot(g.x - ELDER.x, g.z - ELDER.z)
+        g.elderNear += ((ed < 5 ? 1 : 0) - g.elderNear) * damp(1.5, dt)
+        const startTalk = (who: 'girl' | 'elder', lines: string[]) => {
+          g.talk = who
+          g.line = 0
+          g.lineT = 0
+          setUi({ prompt: null, hint: false, msg: null, say: lines[0] })
+        }
+        // a quién puede escuchar ahora (la niña primero; el anciano después de ella)
+        const listen = g.story === 'seek' && gd < TALK_DIST ? 'girl' : g.story === 'help' && ed < TALK_DIST ? 'elder' : null
+        if (g.story === 'seek' || g.story === 'help') setUi({ prompt: listen ? PROMPT_LISTEN : null, hold: -1 })
+        if (listen && input.interact) startTalk(listen, listen === 'girl' ? GIRL_LINES : ELDER_LINES)
+
+        // ── El miedo: la oscuridad la rodea. Si se queda (mantener E, quieta), despierta su luz ──
+        if (g.story === 'fear') {
+          g.fear += (1 - g.fear) * damp(0.7, dt)
+          const staying = input.hold && g.speed < 0.4
+          g.courage = staying ? Math.min(1, g.courage + dt / 2.6) : Math.max(0, g.courage - dt / 1.5)
+          setUi({ prompt: PROMPT_STAY, hold: Math.round(g.courage * 40) / 40 })
+          if (g.courage >= 1) {
+            g.story = 'lanterns'
+            g.lightAwake = true
+            g.awakeAt = g.time
+            g.pulse = 1
+            g.c = Math.min(1, g.c + 0.2)
+            setUi({ prompt: null, hold: -1, msg: AWAKE_MSG })
+          }
+        } else g.fear += (0 - g.fear) * damp(1.2, dt)
+
+        // ── Los faroles: con su luz despierta, se encienden al pasar a su lado ──
+        if (g.story === 'lanterns') {
+          if (g.time - g.awakeAt > 3.5) setUi({ msg: null })
+          LANTERNS.forEach((l, i) => {
+            if (g.lit[i] < 0 && Math.hypot(g.x - l.x, g.z - l.z) < 1.7) {
+              g.lit[i] = g.time
+              g.pulse = Math.max(g.pulse, 0.5)
+            }
+          })
+          const n = g.lit.filter((t) => t >= 0).length
+          setUi({ goal: goalLanterns(n, LANTERNS.length) })
+          if (n === LANTERNS.length) {
+            g.story = 'next'
+            g.pulse = 1
+            g.c = Math.min(1, g.c + 0.15)
+            setUi({ goal: GOAL_HELP, msg: LIT_MSG })
+            g.awakeAt = g.time // (para quitar el mensaje después)
           }
         }
+        if (g.story === 'next' && g.time - g.awakeAt > 4) setUi({ msg: null })
 
         if (g.z >= PATH_LEN - 0.01) setPhase('end')
         break

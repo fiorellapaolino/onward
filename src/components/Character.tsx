@@ -180,9 +180,9 @@ export function Character() {
 
     // mirar alrededor: al empezar, y cuando se detiene a dudar (al 65%: el original gira mucho)
     // (con margen: se activa tras 1 s quieta y no se apaga hasta que de verdad camina, sin parpadeos)
-    // (mientras escucha a la niña no mira alrededor: la mira a ella)
-    if (g.phase === 'look' || (g.phase === 'play' && g.story !== 'talk' && (g.idle > 1 || g.blocked))) a.lookOn = true
-    else if (g.speed > 0.4 || g.phase !== 'play' || g.story === 'talk') a.lookOn = false
+    // (mientras escucha a alguien no mira alrededor: le mira a él; con miedo, mira a todos lados)
+    if (g.phase === 'look' || (g.phase === 'play' && !g.talk && (g.idle > 1 || g.blocked || g.fear > 0.3))) a.lookOn = true
+    else if (g.speed > 0.4 || g.phase !== 'play' || g.talk) a.lookOn = false
     const lookTarget = a.lookOn ? 0.4 : 0
     a.look += (lookTarget - a.look) * damp(2.5, dt)
     if (a.look > 0.01) a.lookT += dt
@@ -308,7 +308,10 @@ export function Character() {
 
     // ── Su luz: crece con la confianza y destella en momentos clave
     const birthFlash = g.phase === 'intro' ? (1 - birth) * 8 + (g.started ? musicLevel(g.musicT) * 3 : 0) : 0
-    light.current.intensity = 1.2 + g.c * 3 + g.pulse * 6 + birthFlash
+    // con miedo su luz casi se apaga; al quedarse (mantener E) crece, y al despertar estalla
+    const dim = 1 - 0.85 * g.fear * (1 - g.courage)
+    const awake = Math.max(0, 1 - (g.time - g.awakeAt) / 2.5)
+    light.current.intensity = (1.2 + g.c * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
   })
 
   return (

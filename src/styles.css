@@ -293,3 +293,25 @@ body.grabbing canvas {
 .touch-btn:active {
   transform: scale(0.94);
 }
+
+/* barra de "mantener" */
+.prompt .bar {
+  display: block;
+  width: 160px;
+  height: 4px;
+  margin: 10px auto 0;
+  border-radius: 2px;
+  background: rgba(255, 244, 224, 0.2);
+  overflow: hidden;
+}
+.prompt .bar span {
+  display: block;
+  height: 100%;
+  background: #ffd98a;
+  box-shadow: 0 0 10px rgba(255, 210, 130, 0.9);
+  transform-origin: left center;
+  transition: transform 0.12s linear;
+}
+.prompt.holding.show {
+  padding: 14px 0;
+}
