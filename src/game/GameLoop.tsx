@@ -53,7 +53,7 @@ export function GameLoop() {
         // Nace de rodillas y, cuando el bosque ya cargó, se levanta sola
         // (el jugador toma el control cuando ella ya está de pie)
         if (!g.loaded) g.phaseT = 0 // espera a que todo esté cargado para empezar
-        if (g.phaseT > BIRTH_TIME + 1.2) setPhase('rise')
+        if (g.phaseT > BIRTH_TIME * 0.9) setPhase('rise')
         break
 
       case 'rise':
