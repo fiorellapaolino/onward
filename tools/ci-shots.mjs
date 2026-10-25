@@ -10,7 +10,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const log = []
 for (const line of shots) {
   const [name, query, wait = '15', keys = ''] = line.split(/\s+/)
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+  const page = await browser.newPage({ viewport: { width: 800, height: 450 } })
   page.on('console', (m) => log.push(`[${name}] ${m.type()}: ${m.text()}`))
   page.on('pageerror', (e) => log.push(`[${name}] PAGEERROR: ${e.message}\n${e.stack}`))
   await page.goto(base + query)
@@ -24,7 +24,15 @@ for (const line of shots) {
       await page.keyboard.up(key)
     }
   }
-  await page.screenshot({ path: `ci-out/${name}.png` })
+  try {
+    // (cuánto tarda en dibujar un frame, para saber si va lento)
+    const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 > 3000) res(n / 3); else requestAnimationFrame(f) }; requestAnimationFrame(f) }))
+    log.push(`[${name}] fps≈${fps}`)
+    await page.screenshot({ path: `ci-out/${name}.png`, timeout: 120000 })
+  } catch (e) {
+    log.push(`[${name}] SCREENSHOT FAILED: ${e.message}`)
+  }
+  writeFileSync('ci-out/console.txt', log.join('\n'))
   await page.close()
 }
 writeFileSync('ci-out/console.txt', log.join('\n'))
