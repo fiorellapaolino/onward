@@ -40,7 +40,7 @@ const GIRL_SPEC: Spec = {
   scale: 0.95 / 1.777, // de pie mediría 0.95 m (la elfa mide 1.15)
   headScale: 1.18, // cabeza algo más grande: proporciones de niña
   ground: 0.653,
-  hairColor: '#4a2c1c',
+  hairColor: '#a8703c', // castaño claro: resalta en la aldea gris
   pose: [
     ['thigh_l', 'left', -2.1],
     ['thigh_r', 'left', -2.1],

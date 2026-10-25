@@ -80,7 +80,7 @@ function GirlFireflies() {
   })
   return (
     <group ref={ref} position={[GIRL.x, 0.7, GIRL.z]}>
-      <Sparkles count={16} scale={[1.8, 1.3, 1.8]} size={6} speed={0.3} color="#ffe39a" />
+      <Sparkles count={20} scale={[2, 1.4, 2]} size={9} speed={0.3} color="#ffe39a" />
     </group>
   )
 }
