@@ -1,6 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-start   ?   12
-village ?at=55   15
 girl    ?at=57&yaw=0.35   15
-fear    ?at=66&fear   15   KeyE:3500,wait:2500
-plates  ?at=66&plates   15
+girl2   ?at=61&yaw=0.5   15

@@ -102,7 +102,7 @@ const HUTS = buildHuts()
 export function blockedByVillage(x: number, z: number) {
   for (const h of HUTS) if (Math.hypot(x - h.x, z - h.z) < 2.6 * h.scale) return true
   if (Math.hypot(x - GIRL_TREE.x, z - GIRL_TREE.z) < 2.2) return true
-  if (Math.hypot(x - GIRL.x, z - GIRL.z) < 1.2) return true
+  if (Math.hypot(x - GIRL.x, z - GIRL.z) < 2) return true // (sin pasto alto que la tape)
   if (Math.hypot(x - ELDER.x, z - ELDER.z) < 1.2) return true
   return false
 }
