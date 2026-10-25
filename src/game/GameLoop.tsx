@@ -311,8 +311,8 @@ export function GameLoop() {
                 g.bellBy[n] = 3
               }
             })
-            // la elfa tocó la melodía… y cuando su sombra la repite detrás, suenan las dos: ella se atreve
-            if (endsWith(g.mySeq) && endsWith(g.shadowSeq)) {
+            // la elfa tocó la melodía… y cuando su sombra la repite detrás (canon), ella se atreve
+            if (endsWith(g.shadowSeq)) {
               g.story = 'next'
               g.freedAt = g.awakeAt = g.time
               g.pulse = 1
