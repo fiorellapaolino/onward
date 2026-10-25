@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber'
 import {
-  BIRTH_TIME, RISE_TIME, GATES, GATE_HOLD, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH,
+  BIRTH_TIME, RISE_TIME, GATES, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH,
   GATE_STOP, PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE,
   smoothstep, damp, headingAt, pathAt, tangentAt,
 } from './config'
@@ -39,6 +39,7 @@ export function GameLoop() {
       if (tool.state === 'toGate' && tool.t >= TOOL_TO_GATE) {
         tool.state = 'used'
         g.opened.add(tool.gate) // la herramienta abre el paso
+        setUi({ used: g.tools.map((t, i) => (t.state === 'used' ? i : '')).join('') })
         g.openedAt.set(tool.gate, g.time)
         g.c = Math.min(1, g.c + 0.15) // y le da un empujón de confianza
         g.pulse = 1
@@ -70,6 +71,7 @@ export function GameLoop() {
         break
 
       case 'look':
+        setUi({ inv: true }) // ya tiene los elementos: se muestran abajo
         if (g.phaseT >= LOOK_TIME) setPhase('play')
         break
 
@@ -123,28 +125,30 @@ export function GameLoop() {
         if (g.blocked && pushing) g.speed = Math.min(g.speed, 0.2)
 
         if (g.blocked && closed !== undefined) {
+          // Frente a un obstáculo: hay que elegir el elemento que ayuda (1-4)
           const sending = g.tools.some((t) => t.state === 'toGate')
-          if (pushing && !sending) g.gateHold += dt
-          else if (!sending) g.gateHold = Math.max(0, g.gateHold - dt)
-          // "Sigue adelante."
-          if (g.gateHold > 0.5 || sending) setUi({ msg: 'Keep going.' })
-
-          if (g.gateHold >= GATE_HOLD && !sending) {
-            g.gateHold = 0
-            const tool = g.tools.find((t) => t.state === 'carried')
-            if (tool) {
+          const right = GATES.indexOf(closed) // copa→arroyo, espada→ramas, vara→oscuridad, moneda→barranco
+          if (!sending) {
+            setUi({ choosing: true })
+            // "Pulsa 1, 2, 3 o 4 para elegir el elemento que te ayudará."
+            if (g.time - g.wrongAt > 1.8) setUi({ msg: 'Press 1, 2, 3 or 4 to choose the element that will help you.', wrong: -1 })
+          }
+          const pick = input.choose
+          if (pick >= 0 && !sending && g.tools[pick]?.state === 'carried') {
+            if (pick === right) {
+              const tool = g.tools[pick]
               tool.state = 'toGate'
               tool.t = 0
               tool.gate = closed
+              setUi({ choosing: false, msg: null, wrong: -1 })
             } else {
-              g.opened.add(closed)
-              g.openedAt.set(closed, g.time)
-              setUi({ msg: null })
+              // "Ese no puede ayudar aquí. Prueba con otro."
+              g.wrongAt = g.time
+              setUi({ msg: "That one can't help here. Try another.", wrong: pick })
             }
           }
         } else {
-          g.gateHold = 0
-          if (!g.tools.some((t) => t.state === 'toGate')) setUi({ msg: null })
+          if (!g.tools.some((t) => t.state === 'toGate')) setUi({ msg: null, choosing: false })
         }
 
         if (g.z >= PATH_LEN - 0.01) setPhase('end')
@@ -172,6 +176,8 @@ export function GameLoop() {
         break
       }
     }
+
+    input.choose = -1
 
     // ── Salto (Espacio) ─────────────────────────────────────────
     if (input.jumpPressed && g.jumpT < 0 && (g.phase === 'play' || g.phase === 'end')) g.jumpT = 0

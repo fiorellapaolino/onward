@@ -32,6 +32,9 @@ export function useInput() {
       // (Tab normalmente cambia el foco de la página; aquí lo usamos para correr)
       if (FORWARD.has(e.code) || BACK.has(e.code) || LEFT.has(e.code) || RIGHT.has(e.code) || e.code === 'Tab' || e.code === 'Space') e.preventDefault()
       if (e.code === 'Space' && !e.repeat) input.jumpPressed = true
+      // 1-4: elegir un elemento (copa, espada, vara, moneda)
+      const digit = /^(Digit|Numpad)([1-4])$/.exec(e.code)
+      if (digit && !e.repeat) input.choose = Number(digit[2]) - 1
       // Al terminar, R vuelve a empezar
       if (e.code === 'KeyR' && game.phase === 'end' && game.phaseT > 10) location.reload()
       keys.add(e.code)

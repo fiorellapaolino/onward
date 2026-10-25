@@ -32,6 +32,7 @@ export const game = {
   opened: new Set<number>(),
   openedAt: new Map<number, number>(), // momento (game.time) en que se abrió cada obstáculo
   walkPhase: 0,
+  wrongAt: -99, // momento en que eligió un elemento equivocado
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
@@ -46,6 +47,7 @@ export const input = {
   right: false,
   backPressed: false,
   run: false, // Tab mantenido
+  choose: -1, // elemento elegido con 1-4 (se consume en el siguiente frame)
   jumpPressed: false, // Espacio (se consume en el siguiente frame)
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
   camYaw: 0, // hacia dónde mira la cámara en el mundo (0 = hacia delante en el sendero)
@@ -55,8 +57,17 @@ export const input = {
 }
 
 // ── Textos en pantalla (esto sí es estado de React) ──────────────
-type Ui = { title: boolean; msg: string | null; fade: boolean; final: boolean }
-let ui: Ui = { title: true, msg: null, fade: false, final: false }
+type Ui = {
+  title: boolean
+  msg: string | null
+  fade: boolean
+  final: boolean
+  inv: boolean // mostrar la fila de elementos
+  used: string // elementos ya usados, p. ej. "02" (índices)
+  choosing: boolean // está frente a un obstáculo: hay que elegir un elemento
+  wrong: number // índice del último elemento equivocado (-1 = ninguno)
+}
+let ui: Ui = { title: true, msg: null, fade: false, final: false, inv: false, used: '', choosing: false, wrong: -1 }
 const listeners = new Set<() => void>()
 
 export function setUi(patch: Partial<Ui>) {
