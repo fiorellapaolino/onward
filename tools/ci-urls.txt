@@ -1,3 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-lookgirl  ?at=62.5&dx=1&yaw=1.6&zoom=0.7&talk=1   18
-lookgirl2 ?at=62&dx=0.5&yaw=-0.8&zoom=0.8   18
+lookgirl  ?at=62&dx=1&yaw=0.15&zoom=0.55&talk=1   25
