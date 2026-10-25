@@ -5,10 +5,10 @@ import * as THREE from 'three'
 import { PATH_END, PATH_LEN, clamp01, gradient, pathAt } from '../game/config'
 import { game } from '../game/state'
 
-// El bosque cambia a medida que avanza:
-// noche azul verdosa → bosque en penumbra → luz verde entre las hojas → amanecer dorado
-const SKY = ['#060a12', '#0c1a20', '#1d3534', '#5d7f58', '#d9c48c', '#f7e5c2'].map((c) => new THREE.Color(c))
-const GROUND = ['#0d1712', '#1a2b1c', '#2f4a2a', '#56733b', '#8a9a4e', '#a9a85c'].map((c) => new THREE.Color(c))
+// Versión iluminada (de día). La oscuridad del principio se añadirá más adelante.
+// El bosque cambia a medida que avanza: mañana fresca → luz verde entre las hojas → luz dorada
+const SKY = ['#bcd9e6', '#c4dfe2', '#cfe4d6', '#e4e6c4', '#f6e3b8', '#fbeacb'].map((c) => new THREE.Color(c))
+const GROUND = ['#6f8f45', '#78974a', '#86a04f', '#97a855', '#a9ad5c', '#b5ad62'].map((c) => new THREE.Color(c))
 
 const tmp = new THREE.Color()
 const end = pathAt(PATH_LEN)
@@ -28,13 +28,13 @@ export function World() {
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.color.copy(tmp)
       // la niebla se abre: cada vez ve más lejos
-      scene.fog.near = 5 + f * 25
-      scene.fog.far = 24 + f * 110
+      scene.fog.near = 25 + f * 20
+      scene.fog.far = 110 + f * 60
     }
 
     gradient(GROUND, f, ground.current.color)
-    hemi.current.intensity = 0.35 + f * 1.2
-    sun.current.intensity = 0.1 + f * 2.4
+    hemi.current.intensity = 1.6 + f * 0.4
+    sun.current.intensity = 2.6 + f * 0.8
 
     // las luciérnagas acompañan a la elfa
     pathAt(game.p, fireflies.current.position)
@@ -42,11 +42,12 @@ export function World() {
 
   return (
     <>
-      <color attach="background" args={['#060a12']} />
-      <fog attach="fog" args={['#060a12', 5, 24]} />
-      <hemisphereLight ref={hemi} args={['#b9d4ff', '#2a3320', 0.35]} />
+      <color attach="background" args={['#bcd9e6']} />
+      <fog attach="fog" args={['#bcd9e6', 25, 110]} />
+      <hemisphereLight ref={hemi} args={['#e6f2ff', '#5a6b3a', 1.6]} />
+      <ambientLight intensity={0.35} />
       {/* El "sol" viene desde la luz del final */}
-      <directionalLight ref={sun} position={[end.x + 20, 45, end.z + 40]} intensity={0.1} color="#ffe2b8" />
+      <directionalLight ref={sun} position={[end.x + 20, 45, end.z + 40]} intensity={2.6} color="#fff1d6" />
 
       {/* Suelo del bosque */}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, PATH_END / 2]}>
