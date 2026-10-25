@@ -48,14 +48,20 @@ export function CameraRig() {
       mid.set((g.x + GIRL.x) / 2, 0, (g.z + GIRL.z) / 2)
       perp.set(GIRL.z - g.z, 0, -(GIRL.x - g.x)).normalize()
       // del lado de la aldea (ahí solo hay pasto: nada tapa la vista)
-      if (cineSide.current === 0) cineSide.current = perp.dot(tangentAt(GIRL_S, tmpV)) >= 0 ? 1 : -1
+      const first = cineSide.current === 0
+      if (first) cineSide.current = perp.dot(tangentAt(GIRL_S, tmpV)) >= 0 ? 1 : -1
       const rise = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 3))
       const dist = 1.7 + rise * 0.8
       target.copy(mid).addScaledVector(perp, dist * cineSide.current)
       target.y = 0.85 + rise * 0.3
-      camera.position.lerp(target, damp(2.2, dt))
       giftSeedPos(k, elfHand(tmpV), seedP)
       look.set(mid.x, 0.75 + Math.max(0, Math.min(seedP.y, 3) - 0.75) * 0.55, mid.z)
+      if (first) {
+        // corte de cámara: directamente al plano de las dos
+        camera.position.copy(target)
+        lookSmooth.current.copy(look)
+      }
+      camera.position.lerp(target, damp(2.2, dt))
       lookSmooth.current.lerp(look, damp(2.5, dt))
       camera.lookAt(lookSmooth.current)
       // al terminar, la cámara vuelve detrás de ella mirando hacia donde mira
