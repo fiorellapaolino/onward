@@ -17,8 +17,6 @@ export const GIRL_LINES = [
 
 /** Objetivo: "Atrapa una semilla que gira para ella." */
 export const GOAL_SEED = 'Catch a spinning seed for her.'
-/** Al darle la semilla, ella la suelta y sonríe. "Cuando ayudas a alguien, ayudas a todos." */
-export const GIFT_MSG = 'When you help someone, you help everyone.'
 
 /** Lo que dice el anciano, sentado a oscuras junto a su puerta. */
 export const ELDER_LINES = [

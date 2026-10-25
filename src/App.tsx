@@ -8,6 +8,7 @@ import { PathStones } from './components/PathStones'
 import { Flowers } from './components/Flowers'
 import { Village } from './components/Village'
 import { Moments } from './components/Moments'
+import { Guide } from './components/Guide'
 import { Elder, Girl, Musician } from './components/Villager'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
@@ -36,6 +37,7 @@ export default function App() {
           <Flowers />
           <Village />
           <Moments />
+          <Guide />
           <Forest />
         </Suspense>
       </Canvas>

@@ -78,6 +78,11 @@ export const GIRL_TREE = (() => {
   return { x: p.x, z: p.z, rot: headingAt(GIRL_S) }
 })()
 
+/** Dónde quedarse quieta para que baje una semilla del árbol de la niña (un círculo de luz en el suelo). */
+export const SEED_SPOT = besidePath(GIRL_S + 2, GIRL_SIDE, GIRL_DIST + 0.3)
+/** Radio del círculo: dentro y quieta, la semilla baja. */
+export const SPOT_R = 0.95
+
 /** El anciano: sentado en un taburete junto a la puerta de la primera casa (a la derecha al entrar). */
 export const ELDER_HUT = 0
 export const ELDER = (() => {

@@ -28,9 +28,13 @@ export function useInput() {
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
+      // (algunos teclados / navegadores no dan e.code para el espacio: también se mira e.key)
+      const space = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar'
       // (Tab normalmente cambia el foco de la página; aquí lo usamos para correr)
-      if (FORWARD.has(e.code) || BACK.has(e.code) || LEFT.has(e.code) || RIGHT.has(e.code) || e.code === 'Tab' || e.code === 'Space') e.preventDefault()
-      if (e.code === 'Space' && !e.repeat) input.jumpPressed = true
+      if (FORWARD.has(e.code) || BACK.has(e.code) || LEFT.has(e.code) || RIGHT.has(e.code) || e.code === 'Tab' || space) e.preventDefault()
+      if (space && !e.repeat) input.jumpPressed = true
+      // (si un botón quedó con el foco después de un clic, que no se lleve las teclas)
+      if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) document.activeElement.blur()
       // E (o Enter): escuchar a alguien / pasar a la siguiente frase
       if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat && game.started) input.interact = true
       if (e.code === 'KeyE') input.hold = true // (mantener E: quedarse aunque dé miedo)
@@ -127,7 +131,7 @@ export function useInput() {
       sync()
     }
 
-    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown, true)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('pointerdown', onPointerDown)
     window.addEventListener('pointermove', onPointerMove)
@@ -136,7 +140,7 @@ export function useInput() {
     window.addEventListener('wheel', onWheel, { passive: true })
     window.addEventListener('blur', onBlur)
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('pointerdown', onPointerDown)
       window.removeEventListener('pointermove', onPointerMove)

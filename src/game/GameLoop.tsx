@@ -8,19 +8,20 @@ import * as THREE from 'three'
 import { ECHO_DELAY, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime, playThemeAgain } from './music'
 import { CLIPS, duration } from './anim'
-import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, GIRL_TREE, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
+import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, SEED_SPOT, SPOT_R, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
 import { NOTES, bell, flute } from './sfx'
 import {
-  ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIFT_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
+  ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
-import { updateMoments } from './moments'
+import { SEED_FALL, STILL_NEEDED, updateMoments } from './moments'
 import { GIFT, inGiftScene } from './gift'
 
 const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
 const TMP2 = new THREE.Vector3()
 
+let jumpBuf = 0 // Espacio pulsado hace poco: salta en cuanto pueda (no se pierde la pulsación)
 let blockMsg = false // se está mostrando "la sombra es demasiado espesa"
 
 function setPhase(phase: Phase) {
@@ -86,7 +87,7 @@ export function GameLoop() {
           g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(4, dt)
           g.girlNear = 1
           input.jumpPressed = false
-          if (g.time - g.giftAt > GIFT.LOOK_EACH) setUi({ msg: GIFT_MSG }) // "Cuando ayudas a alguien, ayudas a todos."
+          jumpBuf = 0
           break
         }
         // Escuchando a alguien: la elfa se queda quieta mirándole; E / Espacio / clic pasa a la siguiente frase
@@ -101,6 +102,7 @@ export function GameLoop() {
           g.lineT += dt
           const next = (input.interact || input.jumpPressed) && g.lineT > 0.35
           input.jumpPressed = false // (Espacio no salta mientras escucha)
+          jumpBuf = 0
           if (next) {
             g.line++
             g.lineT = 0
@@ -223,15 +225,16 @@ export function GameLoop() {
 
         // ── La semilla para la niña: quieta bajo su árbol → una semilla baja a su mano → se la lleva ──
         if (g.story === 'seed') {
-          const dt2 = Math.hypot(g.x - GIRL_TREE.x, g.z - GIRL_TREE.z)
+          // (dentro del círculo de luz bajo el árbol, quieta)
+          const dSpot = Math.hypot(g.x - SEED_SPOT.x, g.z - SEED_SPOT.z)
           if (!g.carrying) {
-            if (dt2 < 3.4 && g.speed < 0.15 && g.jumpT < 0) g.giftStill += dt
+            if (dSpot < SPOT_R && g.speed < 0.15 && g.jumpT < 0) g.giftStill += dt
             else g.giftStill = Math.max(0, g.giftStill - dt * 2)
-            if (g.giftSeedT < 0 && g.giftStill > 1.6) g.giftSeedT = 0
+            if (g.giftSeedT < 0 && g.giftStill > STILL_NEEDED) g.giftSeedT = 0
             if (g.giftSeedT >= 0) {
               g.giftSeedT += dt
-              if (dt2 > 3.8) g.giftSeedT = -1 // se fue antes de que llegara
-              if (g.giftSeedT > 4.2) {
+              if (dSpot > SPOT_R + 0.6) g.giftSeedT = -1 // salió del círculo antes de que llegara
+              if (g.giftSeedT > SEED_FALL) {
                 g.carrying = true
                 g.pulse = 0.6
                 bell(NOTES[4] * 2, true)
@@ -468,8 +471,14 @@ export function GameLoop() {
     input.interact = false
 
     // ── Salto (Espacio) ─────────────────────────────────────────
-    if (input.jumpPressed && g.jumpT < 0 && g.phase === 'play') g.jumpT = 0
+    if (input.jumpPressed) jumpBuf = 0.3
     input.jumpPressed = false
+    if (!(g.jumpT >= 0)) g.jumpT = -1 // (nunca queda en un valor raro)
+    if (jumpBuf > 0 && g.jumpT < 0 && g.phase === 'play' && !g.talk && !inGiftScene()) {
+      g.jumpT = 0
+      jumpBuf = 0
+    }
+    jumpBuf = Math.max(0, jumpBuf - dt)
     if (g.jumpT >= 0) {
       g.jumpT += dt
       const t = (g.jumpT - JUMP_CROUCH) / JUMP_AIR // 0..1 en el aire

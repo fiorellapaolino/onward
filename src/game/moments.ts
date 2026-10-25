@@ -1,5 +1,6 @@
 import { besidePath, damp, rng } from './config'
 import { game } from './state'
+import { SPOT_R } from './village'
 import { NOTES, bell, chord, splash } from './sfx'
 
 /*
@@ -17,6 +18,12 @@ export const MOMENT_COUNT = 7 // (con el viento, las nubes y el atardecer, que v
 
 // ── Dónde está cada uno ──────────────────────────────────────────
 export const SEED_TREE = besidePath(14, 1, 3.4)
+/** El círculo de luz bajo ese árbol: quedarse quieta dentro hace bajar una semilla. */
+export const FOREST_SPOT = besidePath(14.6, 1, 1.9)
+/** Cuánto tarda la semilla en bajar girando hasta su mano (segundos). */
+export const SEED_FALL = 3
+/** Cuánto hay que estar quieta antes de que se suelte (segundos). */
+export const STILL_NEEDED = 1.2
 export const PUDDLES = [
   { ...xz(besidePath(23.5, -1, 0.5)), r: 0.75 },
   { ...xz(besidePath(26, 1, 0.7)), r: 0.6 },
@@ -80,16 +87,16 @@ export function updateMoments(dt: number) {
   const m = moments
 
   // ── La semilla que gira: quieta bajo el árbol unos segundos → una semilla baja girando a su mano ──
-  const dTree = Math.hypot(g.x - SEED_TREE.x, g.z - SEED_TREE.z)
+  const dSpot = Math.hypot(g.x - FOREST_SPOT.x, g.z - FOREST_SPOT.z)
   if (!m.done.seed) {
-    if (dTree < 3.2 && g.speed < 0.15 && g.jumpT < 0) m.stillT += dt
+    if (dSpot < SPOT_R && g.speed < 0.15 && g.jumpT < 0) m.stillT += dt
     else m.stillT = Math.max(0, m.stillT - dt * 2)
-    if (m.seedT < 0 && m.stillT > 1.6) m.seedT = 0
+    if (m.seedT < 0 && m.stillT > STILL_NEEDED) m.seedT = 0
     if (m.seedT >= 0) {
       m.seedT += dt
-      // si se va antes de que llegue, la semilla sigue cayendo sola
-      if (dTree > 3.6) m.seedT = -1
-      if (m.seedT > 4.2) live('seed')
+      // si sale del círculo antes de que llegue, la semilla sigue cayendo sola
+      if (dSpot > SPOT_R + 0.6) m.seedT = -1
+      if (m.seedT > SEED_FALL) live('seed')
     }
   }
 

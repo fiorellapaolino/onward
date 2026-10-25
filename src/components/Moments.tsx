@@ -4,8 +4,8 @@ import { Clone, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clamp01, natureUrl, rng } from '../game/config'
 import { game } from '../game/state'
-import { BUDS, GROVE, PUDDLES, SEED_TREE, moments } from '../game/moments'
-import { GIRL_TREE } from '../game/village'
+import { BUDS, FOREST_SPOT, GROVE, PUDDLES, SEED_FALL, SEED_TREE, STILL_NEEDED, moments } from '../game/moments'
+import { GIRL_TREE, SEED_SPOT, SPOT_R } from '../game/village'
 import { GIFT, giftSeedPos } from '../game/gift'
 import { DynamicModel, placeMatrix } from './instancing'
 import { useGlowTexture } from './TheLight'
@@ -18,6 +18,21 @@ export function Moments() {
     <>
       <SeedTree />
       <GirlSeeds />
+      {/* los círculos de luz donde quedarse quieta para que baje una semilla */}
+      <StillSpot
+        at={FOREST_SPOT}
+        state={() => {
+          const m = moments
+          return { show: m.done.seed === undefined, still: m.stillT, fall: m.seedT }
+        }}
+      />
+      <StillSpot
+        at={SEED_SPOT}
+        state={() => {
+          const g = game
+          return { show: g.story === 'seed' && !g.carrying && g.giftAt < 0, still: g.giftStill, fall: g.giftSeedT }
+        }}
+      />
       <Relay />
       <Puddles />
       <GroveFireflies />
@@ -122,7 +137,7 @@ function SeedTree() {
       glowMat.opacity = 0.9 * (1 - k)
       glow.current.position.copy(s.position)
     } else if (m.seedT >= 0) {
-      const u = clamp01(m.seedT / 4.2)
+      const u = clamp01(m.seedT / SEED_FALL)
       const e = u * u * (3 - 2 * u)
       const swirl = u * 9
       const rad = 0.9 * (1 - e)
@@ -206,7 +221,7 @@ function GirlSeeds() {
       s.rotation.set(0.3, t * 2, 0)
       gl = 0.6 + Math.sin(t * 4) * 0.15
     } else if (g.giftSeedT >= 0) {
-      const u = clamp01(g.giftSeedT / 4.2)
+      const u = clamp01(g.giftSeedT / SEED_FALL)
       const e = u * u * (3 - 2 * u)
       const swirl = u * 9
       const rad = 0.9 * (1 - e)
@@ -467,3 +482,53 @@ function Meadow() {
 }
 
 useGLTF.preload(TREE_URL)
+
+/*
+ * Un círculo de luz en el suelo: "quédate aquí". Late suave mientras espera;
+ * al entrar se ilumina, y se va llenando mientras está quieta (así se entiende sin leer
+ * que hay que esperar). Cuando baja la semilla se llena del todo y se apaga.
+ */
+const RING_GEO = new THREE.RingGeometry(SPOT_R * 0.9, SPOT_R, 48).rotateX(-Math.PI / 2)
+const FILL_GEO = new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2)
+type SpotState = { show: boolean; still: number; fall: number }
+function StillSpot({ at, state }: { at: { x: number; z: number }; state: () => SpotState }) {
+  const ring = useRef<THREE.Mesh>(null!)
+  const fill = useRef<THREE.Mesh>(null!)
+  const glow = useRef<THREE.Sprite>(null!)
+  const tex = useGlowTexture()
+  const mats = useMemo(
+    () => ({
+      ring: new THREE.MeshBasicMaterial({ color: '#ffe2a6', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+      fill: new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+      glow: new THREE.SpriteMaterial({ map: tex, color: '#ffe2a6', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+    }),
+    [tex],
+  )
+  const vis = useRef(0)
+  const prog = useRef(0)
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05)
+    const g = game
+    const st = state()
+    const inside = Math.hypot(g.x - at.x, g.z - at.z) < SPOT_R
+    vis.current += ((st.show && g.phase === 'play' ? 1 : 0) - vis.current) * Math.min(1, dt * 2)
+    // cuánto falta: primero quedarse quieta, luego la semilla baja (el círculo se llena)
+    const p = st.fall >= 0 ? 0.35 + 0.65 * clamp01(st.fall / SEED_FALL) : 0.35 * clamp01(st.still / STILL_NEEDED)
+    prog.current += (p - prog.current) * Math.min(1, dt * 6)
+    const v = vis.current
+    const beat = 0.5 + 0.5 * Math.sin(g.time * 2.4)
+    mats.ring.opacity = v * (inside ? 0.95 : 0.45 + 0.35 * beat)
+    ring.current.scale.setScalar(inside ? 1 : 1 + 0.06 * beat)
+    mats.fill.opacity = v * 0.45
+    fill.current.scale.setScalar(Math.max(0.001, SPOT_R * 0.9 * prog.current))
+    mats.glow.opacity = v * (inside ? 0.55 : 0.25 + 0.15 * beat)
+    ring.current.visible = fill.current.visible = glow.current.visible = v > 0.01
+  })
+  return (
+    <group position={[at.x, 0.03, at.z]}>
+      <mesh ref={ring} geometry={RING_GEO} material={mats.ring} renderOrder={2} />
+      <mesh ref={fill} geometry={FILL_GEO} material={mats.fill} position-y={0.005} renderOrder={2} />
+      <sprite ref={glow} material={mats.glow} position-y={0.5} scale={[2.2, 1.4, 1]} />
+    </group>
+  )
+}
