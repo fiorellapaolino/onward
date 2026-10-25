@@ -4,6 +4,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRTH_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game, shadow } from '../game/state'
+import { ELDER, GIRL } from '../game/village'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { MUSIC, musicLevel } from '../game/music'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
@@ -100,11 +101,29 @@ const SHADOW_MAT = new THREE.MeshStandardMaterial({
 /** Su sombra: el mismo personaje, oscuro, que repite lo que ella hizo segundos antes (state.shadow). */
 export const ShadowSelf = () => <Character echo />
 
+// Altura de sus ojos y de la cara de cada persona de la aldea (sentados), en metros
+const EYE_H = 1.05
+const FACE = { girl: 0.52, elder: 0.76 }
+const LOOK_DIST = { girl: 5.5, elder: 4.5 }
+
+/** A quién mira: a quien la está hablando, o a la persona de la aldea más cercana (si está cerca). */
+function whoToLookAt(x: number, z: number, talk: 'girl' | 'elder' | null) {
+  const girl = { x: GIRL.x, z: GIRL.z, h: FACE.girl }
+  const elder = { x: ELDER.x, z: ELDER.z, h: FACE.elder }
+  if (talk === 'girl') return girl
+  if (talk === 'elder') return elder
+  const dg = Math.hypot(x - GIRL.x, z - GIRL.z)
+  const de = Math.hypot(x - ELDER.x, z - ELDER.z)
+  if (dg < LOOK_DIST.girl && dg <= de) return girl
+  if (de < LOOK_DIST.elder) return elder
+  return null
+}
+
 export function Character({ echo = false }: { echo?: boolean }) {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ tryLevel: 0, tryT: 0, phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false })
+  const anim = useRef({ tryLevel: 0, tryT: 0, phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false, atW: 0, atYaw: 0, atPitch: 0 })
   const S = useMemo(() => ({ base: makeSample(), tmp: makeSample(), tmp2: makeSample(), smooth: makeSample() }), [])
 
   const bodyG = useGLTF(BODY_URL)
@@ -221,8 +240,10 @@ export function Character({ echo = false }: { echo?: boolean }) {
     // mirar alrededor: al empezar, y cuando se detiene a dudar (al 65%: el original gira mucho)
     // (con margen: se activa tras 1 s quieta y no se apaga hasta que de verdad camina, sin parpadeos)
     // (mientras escucha a alguien no mira alrededor: le mira a él; con miedo, mira a todos lados)
-    if (g.phase === 'look' || (g.phase === 'play' && !g.talk && (g.idle > 1 || g.blocked || g.fear > 0.3))) a.lookOn = true
-    else if (g.speed > 0.4 || g.phase !== 'play' || g.talk) a.lookOn = false
+    // ¿hay alguien cerca a quien mirar? (la niña o el anciano, o con quien está hablando)
+    const lookAt = !echo && g.phase === 'play' ? whoToLookAt(g.x, g.z, g.talk) : null
+    if (g.phase === 'look' || (g.phase === 'play' && !g.talk && !lookAt && (g.idle > 1 || g.blocked || g.fear > 0.3))) a.lookOn = true
+    else if (g.speed > 0.4 || g.phase !== 'play' || g.talk || lookAt) a.lookOn = false
     const lookTarget = a.lookOn ? 0.4 : 0
     a.look += (lookTarget - a.look) * damp(2.5, dt)
     if (a.look > 0.01) a.lookT += dt
@@ -336,6 +357,30 @@ export function Character({ echo = false }: { echo?: boolean }) {
       rotateBoneLocal(bones.Head, axes.head.up, yaw * 0.6 * fade)
       rotateBoneLocal(bones.Head, axes.head.left, pitch * fade)
       if (roll) rotateBoneLocal(bones.Head, axes.head.fwd, roll * fade)
+    }
+
+    // Mira a la persona que tiene cerca: gira y baja la cabeza hacia su cara
+    {
+      let want = 0
+      if (lookAt) {
+        const dx = lookAt.x - g.x
+        const dz = lookAt.z - g.z
+        const yawRaw = Math.atan2(Math.sin(Math.atan2(dx, dz) - g.yaw), Math.cos(Math.atan2(dx, dz) - g.yaw))
+        // si la persona queda detrás de ella, no se retuerce: deja de mirarla
+        want = 1 - smoothstep(1.3, 1.9, Math.abs(yawRaw))
+        const yawT = THREE.MathUtils.clamp(yawRaw, -1.3, 1.3)
+        const pitchT = THREE.MathUtils.clamp(Math.atan2(EYE_H + g.jumpY - lookAt.h, Math.hypot(dx, dz)), -0.2, 0.85)
+        a.atYaw += (yawT - a.atYaw) * damp(4, dt)
+        a.atPitch += (pitchT - a.atPitch) * damp(4, dt)
+      }
+      a.atW += (want - a.atW) * damp(3, dt)
+      if (a.atW > 0.001) {
+        const w = a.atW
+        rotateBoneLocal(bones.neck_01, axes.neck.up, a.atYaw * 0.4 * w)
+        rotateBoneLocal(bones.Head, axes.head.up, a.atYaw * 0.6 * w)
+        rotateBoneLocal(bones.neck_01, axes.neck.left, a.atPitch * 0.45 * w)
+        rotateBoneLocal(bones.Head, axes.head.left, a.atPitch * 0.55 * w)
+      }
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
