@@ -60,3 +60,14 @@ export function musicTime() {
   }
   return (performance.now() - startedAt) / 1000
 }
+
+/** Al final vuelve a sonar el tema, desde el principio y sin modificar (otro reproductor: no toca el reloj del nacimiento). */
+export function playThemeAgain() {
+  try {
+    const a = new Audio(`${import.meta.env.BASE_URL}audio/theme.flac`)
+    a.volume = 0.9
+    void a.play().catch(() => {})
+  } catch {
+    /* sin sonido */
+  }
+}

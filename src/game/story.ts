@@ -60,3 +60,8 @@ export const SHADOW_BLOCK = 'The shadow is too thick to walk through.'
 
 /** Aviso para escuchar a la niña. "Escuchar" */
 export const PROMPT_LISTEN = 'Listen'
+
+/** La única frase de la elfa en todo el juego (al abrazar a su sombra). "No estás sola." */
+export const ELF_WORDS = 'You are not alone.'
+/** Al final, caminando juntas hacia la luz. "Siempre hay un paso más." */
+export const LAST_STEP = 'There is always one more step.'

@@ -77,7 +77,6 @@ export function Village() {
       <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} />
 
       <Square />
-      <StoneBells />
       <ShadowMist />
       <FearRing />
     </group>

@@ -13,7 +13,7 @@ import { game, input, setUi } from './state'
  *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
- *   ?at=80&music    … con el gran farol ya arriba, para el reto de las campanas
+ *   ?at=105&ending  … con la aldea iluminada y su sombra: caminar hasta el claro del final
  * Sin parámetros, el juego es normal.
  */
 const params = new URLSearchParams(location.search)
@@ -69,6 +69,15 @@ export function applyDebug() {
     game.lightAwake = true
     game.awakeAt = game.time - 4.9
     game.lit = game.lit.map(() => game.time)
+  }
+  if (params.has('ending')) {
+    game.story = 'next'
+    game.shadowOn = true
+    game.shadowAt = game.time - 5
+    game.shadowOpen = true
+    game.liftAt = game.time - 20
+    game.lightAwake = true
+    game.lit = game.lit.map(() => game.time - 10)
   }
   if (params.has('plates')) {
     game.story = 'plates'

@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { GIRL_S, clamp01, damp, tangentAt } from '../game/config'
+import { GIRL_S, clamp01, damp, headingAt, tangentAt } from '../game/config'
 import { game, input } from '../game/state'
 import { GIRL } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
@@ -26,13 +26,14 @@ const seedP = new THREE.Vector3()
 export function CameraRig() {
   const lookSmooth = useRef(new THREE.Vector3(0, 1.3, 4))
   const cineSide = useRef(0)
+  const endSide = useRef(0)
 
   useFrame(({ camera }, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
     const g = game
 
     const intro = g.phase === 'intro' || g.phase === 'rise' || g.phase === 'gather' || g.phase === 'look'
-    const e = g.phase === 'end' ? clamp01(g.phaseT / 7) : 0
+    const e = g.phase === 'end' ? clamp01((g.phaseT - 10) / 9) : 0
     const ee = e * e * (3 - 2 * e)
 
     // Al principio y al final la cámara se coloca sola detrás de ella
@@ -67,6 +68,25 @@ export function CameraRig() {
       camera.lookAt(lookSmooth.current)
       // al terminar, la cámara vuelve detrás de ella mirando hacia donde mira
       input.camYaw = g.yaw
+      return
+    }
+    // ── El final: plano de la elfa y su sombra, de perfil (hasta que se levantan) ──
+    if (g.phase === 'end' && g.phaseT < 10) {
+      mid.set((g.x + g.endShadow.x) / 2, 0, (g.z + g.endShadow.z) / 2)
+      perp.set(g.endShadow.z - g.z, 0, -(g.endShadow.x - g.x))
+      if (perp.lengthSq() < 1e-4) perp.set(1, 0, 0)
+      perp.normalize()
+      const first = endSide.current === 0
+      if (first) endSide.current = perp.dot(tmpV.copy(camera.position).sub(mid)) >= 0 ? 1 : -1
+      const T = g.phaseT
+      const close = clamp01((T - 4) / 2) // se acerca para el abrazo
+      target.copy(mid).addScaledVector(perp, (3.4 - close * 1.2) * endSide.current)
+      target.y = 1.1 - close * 0.35
+      look.set(mid.x, 0.7 - close * 0.15, mid.z)
+      camera.position.lerp(target, damp(first ? 20 : 1.6, dt))
+      lookSmooth.current.lerp(look, damp(first ? 20 : 2, dt))
+      camera.lookAt(lookSmooth.current)
+      input.camYaw = headingAt(g.z) // (al levantarse, la cámara vuelve detrás, mirando hacia adelante)
       return
     }
     cineSide.current = 0

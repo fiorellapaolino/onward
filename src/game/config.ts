@@ -3,8 +3,8 @@ import * as THREE from 'three'
 // ── El sendero ───────────────────────────────────────────────────
 // Avanza hacia +Z y serpentea suavemente a izquierda y derecha.
 // "p" (progreso) son los metros recorridos por el sendero.
-export const PATH_LEN = 300 // metros hasta llegar a la luz
-export const PATH_END = 345 // metros totales (el final sigue un poco más)
+export const PATH_LEN = 125 // metros hasta el claro del final (pasada la aldea)
+export const PATH_END = 170 // metros totales (el final sigue un poco más, hacia la luz)
 
 // ── La aldea ─────────────────────────────────────────────────────
 // Una aldea pequeña en un claro del bosque, apagada por una sombra.

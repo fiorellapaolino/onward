@@ -79,6 +79,12 @@ export const game = {
   relayTo: { x: 0, z: 0 },
   lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
   shadowOpen: false, // la sombra de la salida ya deja pasar
+  // ── el final: se da vuelta, su sombra (su pasado) está encogida; la abraza y caminan juntas hacia adelante ──
+  kneel: 0, // 0..1: cuánto está de rodillas (pose de "Standing Up")
+  kneelT: 0, // momento de esa animación (0 = de rodillas … final = de pie)
+  hug: 0, // 0..1: abrazo (brazos hacia delante, rodeando)
+  endStart: { x: 0, z: 0 }, // dónde se detuvo
+  endShadow: { x: 0, z: 0 }, // dónde se encoge su sombra
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)

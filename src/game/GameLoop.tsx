@@ -2,15 +2,16 @@ import { useFrame } from '@react-three/fiber'
 import {
   RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST,
   PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_ABSORB, TOOL_DELAY, TOOL_FLY,
-  smoothstep, damp, headingAt, pathAt, tangentAt,
+  smoothstep, damp, headingAt, pathAt, sideAt, tangentAt,
 } from './config'
 import * as THREE from 'three'
 import { ECHO_DELAY, game, input, setUi, shadow, trail, type Phase } from './state'
-import { MUSIC, musicTime } from './music'
+import { MUSIC, musicTime, playThemeAgain } from './music'
+import { CLIPS, duration } from './anim'
 import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, GIRL_TREE, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
 import { NOTES, bell, flute } from './sfx'
 import {
-  ELDER_LINES, FEAR_MSG, GIFT_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
+  ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIFT_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
 import { updateMoments } from './moments'
@@ -306,14 +307,19 @@ export function GameLoop() {
           })
           if (g.story === 'plates' && g.plates.every(Boolean)) {
             // ¡sube! y los faroles de la aldea se encienden en cadena desde la plaza
-            g.story = 'music'
+            g.story = 'next'
             g.liftAt = g.awakeAt = g.time
             g.lightAwake = true
             g.pulse = 1
             g.c = Math.min(1, g.c + 0.2)
             LANTERNS.forEach((l, i) => (g.lit[i] = g.time + 1.2 + Math.hypot(l.x - POLE.x, l.z - POLE.z) * 0.12))
-            setUi({ goal: GOAL_HELP, msg: LIT_MSG })
+            setUi({ goal: null, msg: LIT_MSG })
           }
+        }
+        // con la aldea iluminada, la sombra de la salida se deshace: el camino sigue hacia adelante
+        if (g.liftAt >= 0 && !g.shadowOpen && g.time - g.liftAt > 6) {
+          g.shadowOpen = true
+          g.pulse = 0.6
         }
         // ── La música escondida: tocar su melodía en las campanas; la sombra la repite detrás (canon) ──
         if (g.story === 'music' || g.story === 'next') {
@@ -388,28 +394,97 @@ export function GameLoop() {
         // ── Momentos de estar viva (semilla, charcos, luciérnagas, flores…) ──
         updateMoments(dt)
 
-        if (g.z >= PATH_LEN - 0.01) setPhase('end')
+        // el claro del final: se detiene… y se da vuelta
+        if (g.shadowOpen && g.z >= PATH_LEN - 12) {
+          setPhase('end')
+          g.speed = 0
+          g.jumpT = -1
+          g.endStart = { x: g.x, z: g.z }
+          const back = pathAt(g.z - 3.4, TMP)
+          g.endShadow = { x: back.x, z: back.z }
+          setUi({ msg: null, goal: null, hint: false, prompt: null })
+        }
         break
       }
 
       case 'end': {
-        // Llega arriba… y descubre que hay más camino. Sigue corriendo.
-        g.blocked = false
-        g.c += (1 - g.c) * dt
-        g.speed += (2.8 - g.speed) * damp(2, dt)
-        // sigue el sendero sola, hacia la luz
-        const t = tangentAt(g.z, TMP)
-        const want = Math.atan2(t.x, t.z)
-        g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(3, dt)
-        g.x += Math.sin(g.yaw) * g.speed * dt
-        g.z = Math.min(g.z + Math.cos(g.yaw) * g.speed * dt, PATH_END - 4)
-        g.x += (pathAt(g.z, TMP2).x - g.x) * damp(1, dt)
+        // ── El final ──────────────────────────────────────────────
+        //  0.0–1.6  se detiene; detrás, su sombra (su pasado) se encoge de rodillas
+        //  1.6–4.6  se da vuelta y camina despacio hasta ella
+        //  4.6–5.6  se arrodilla frente a ella
+        //  5.6–8.0  la abraza: "You are not alone."
+        //  8.0–10   se levantan las dos (la sombra se vuelve luz)
+        //  10–      caminan juntas, una al lado de la otra, hacia la luz; vuelve la canción
+        const T = g.phaseT
+        const sh = shadow
+        const toShadow = Math.atan2(g.endShadow.x - g.x, g.endShadow.z - g.z)
+        const turn = (want: number, rate: number) => {
+          g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(rate, dt)
+        }
+        // la sombra: quieta en su sitio, mirando hacia la elfa
+        if (T < 10) {
+          Object.assign(sh, g)
+          sh.x = g.endShadow.x
+          sh.z = g.endShadow.z
+          sh.yaw = Math.atan2(g.x - sh.x, g.z - sh.z)
+          sh.speed = 0
+          sh.jumpT = -1
+          sh.jumpY = 0
+          sh.talk = null
+          sh.fear = 0
+          sh.kneel = Math.min(1, T / 1.2)
+          sh.kneelT = 0
+        }
+        if (T < 1.6) {
+          g.speed = 0
+        } else if (T < 4.6) {
+          turn(toShadow, 4)
+          const d = Math.hypot(g.endShadow.x - g.x, g.endShadow.z - g.z)
+          const want = d > 0.85 && T > 2.2 ? 0.6 : 0
+          g.speed += (want - g.speed) * damp(4, dt)
+          g.x += Math.sin(g.yaw) * g.speed * dt
+          g.z += Math.cos(g.yaw) * g.speed * dt
+        } else if (T < 8) {
+          g.speed = 0
+          turn(toShadow, 6)
+          g.kneel = Math.min(1, (T - 4.6) / 0.9)
+          g.kneelT = 0
+          g.hug = Math.max(0, Math.min(1, (T - 5.4) / 0.8))
+          sh.hug = g.hug
+          if (T > 5.6 && T - dt <= 5.6) g.pulse = 1
+          if (T > 5.8) setUi({ msg: ELF_WORDS })
+        } else if (T < 10) {
+          // se levantan juntas (el resto de "Standing Up")
+          const u = (T - 8) / 2
+          g.hug = sh.hug = Math.max(0, 1 - u * 2)
+          g.kneelT = sh.kneelT = u * duration(CLIPS.standup)
+          g.kneel = sh.kneel = 1 - Math.max(0, (u - 0.85) / 0.15)
+          if (T > 9.2) setUi({ msg: null })
+        } else {
+          // caminan juntas hacia adelante, la sombra a su lado (ya no detrás)
+          if (T - dt <= 10) playThemeAgain()
+          g.kneel = sh.kneel = 0
+          g.hug = sh.hug = 0
+          g.c += (1 - g.c) * dt
+          g.speed += (1.1 - g.speed) * damp(1.2, dt)
+          const t = tangentAt(g.z, TMP)
+          turn(Math.atan2(t.x, t.z), 2)
+          g.x += Math.sin(g.yaw) * g.speed * dt
+          g.z = Math.min(g.z + Math.cos(g.yaw) * g.speed * dt, PATH_END - 4)
+          g.x += (pathAt(g.z, TMP2).x - 0.45 - g.x) * damp(1, dt)
+          Object.assign(sh, g)
+          const side = sideAt(g.z, TMP2)
+          sh.x = g.x + side.x * 0.9
+          sh.z = g.z + side.z * 0.9
+          sh.talk = null
+          sh.fear = 0
+          // "Siempre hay un paso más."
+          if (T > 17 && T <= 25) setUi({ msg: LAST_STEP })
+          if (T > 25) setUi({ fade: true, msg: null })
+          if (T > 28) setUi({ final: true })
+        }
         g.p = g.z
         g.pMax = Math.max(g.pMax, g.p)
-        // "Siempre hay un paso más."
-        if (g.phaseT > 2.5 && g.phaseT <= 8) setUi({ msg: 'There is always one more step.' })
-        if (g.phaseT > 8) setUi({ fade: true, msg: null })
-        if (g.phaseT > 10) setUi({ final: true })
         break
       }
     }
@@ -417,7 +492,7 @@ export function GameLoop() {
     input.interact = false
 
     // ── Salto (Espacio) ─────────────────────────────────────────
-    if (input.jumpPressed && g.jumpT < 0 && (g.phase === 'play' || g.phase === 'end')) g.jumpT = 0
+    if (input.jumpPressed && g.jumpT < 0 && g.phase === 'play') g.jumpT = 0
     input.jumpPressed = false
     if (g.jumpT >= 0) {
       g.jumpT += dt
@@ -429,6 +504,7 @@ export function GameLoop() {
     g.idle = g.speed < 0.15 && g.jumpT < 0 ? g.idle + dt : 0
 
     // ── La sombra: guarda lo que hace ella y la sombra lo repite ECHO_DELAY segundos después ──
+    if (g.phase !== 'end') {
     trail.push({ t: g.time, x: g.x, z: g.z, yaw: g.yaw, speed: g.speed, jumpT: g.jumpT, jumpY: g.jumpY, idle: g.idle })
     const past = g.time - ECHO_DELAY
     while (trail.length > 2 && trail[1].t <= past) trail.shift() // (solo hace falta desde ahí)
@@ -447,6 +523,7 @@ export function GameLoop() {
     shadow.fear = 0
     shadow.blocked = false
     shadow.phase = 'play'
+    }
   }, -1)
 
   return null

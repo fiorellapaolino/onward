@@ -35,7 +35,7 @@ export function useInput() {
       if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat && game.started) input.interact = true
       if (e.code === 'KeyE') input.hold = true // (mantener E: quedarse aunque dé miedo)
       // Al terminar, R vuelve a empezar
-      if (e.code === 'KeyR' && game.phase === 'end' && game.phaseT > 10) location.reload()
+      if (e.code === 'KeyR' && game.phase === 'end' && game.phaseT > 28) location.reload()
       keys.add(e.code)
       sync()
     }

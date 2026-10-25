@@ -1,4 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-give1  ?at=60&give=-1.2   25
-give2  ?at=60&give=-4   25
-give3  ?at=60&give=-7   25
+end1  ?at=112.5&ending   30
+end2  ?at=112.5&ending   55
+end3  ?at=112.5&ending   80

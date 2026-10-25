@@ -38,7 +38,7 @@ export function TheLight() {
   useFrame(() => {
     const g = game
     const near = clamp01(1 - (LIGHT_S - g.p) / LIGHT_S) // 0 al empezar, 1 al llegar
-    const end = g.phase === 'end' ? g.phaseT : 0
+    const end = g.phase === 'end' ? Math.max(0, g.phaseT - 10) : 0
     const breathe = 1 + Math.sin(g.time * 1.2) * 0.06
     halo.current.scale.setScalar((14 + near * 30 + end * 12) * breathe)
     core.current.scale.setScalar((3 + near * 4 + end * 2) * breathe)
@@ -91,7 +91,7 @@ export function OtherPaths() {
   }, [])
 
   useFrame(() => {
-    const end = game.phase === 'end' ? game.phaseT : 0
+    const end = game.phase === 'end' ? Math.max(0, game.phaseT - 10) : 0
     material.opacity = clamp01(end / 3) * 0.9
   })
 

@@ -99,6 +99,11 @@ const SHADOW_MAT = new THREE.MeshStandardMaterial({
   depthWrite: true,
 })
 
+const SHADOW_COLOR = new THREE.Color('#07060c')
+const SHADOW_EMISSIVE = new THREE.Color('#2b1f48')
+const WARM_COLOR = new THREE.Color('#e9d6b8')
+const WARM_EMISSIVE = new THREE.Color('#ffcf8a')
+
 /** Su sombra: el mismo personaje, oscuro, que repite lo que ella hizo segundos antes (state.shadow). */
 export const ShadowSelf = () => <Character echo />
 
@@ -240,6 +245,11 @@ export function Character({ echo = false }: { echo?: boolean }) {
       const born = game.shadowOn ? Math.min(1, (game.time - game.shadowAt) / 1.5) : 0
       root.current.visible = born > 0
       SHADOW_MAT.opacity = 0.82 * born
+      // al final, después del abrazo, la sombra se vuelve luz cálida
+      const warm = game.phase === 'end' ? clamp01((game.phaseT - 6) / 4) : 0
+      SHADOW_MAT.emissive.copy(SHADOW_EMISSIVE).lerp(WARM_EMISSIVE, warm)
+      SHADOW_MAT.emissiveIntensity = 0.55 + warm * 0.9
+      SHADOW_MAT.color.copy(SHADOW_COLOR).lerp(WARM_COLOR, warm * 0.6)
       if (!born) return
     }
 
@@ -274,7 +284,13 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
     // al nacer está de rodillas (inicio de "Standing Up"); al empezar se levanta con esa animación
     const standW =
-      g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.85) / (RISE_TIME * 0.15))) : 0
+      g.phase === 'intro'
+        ? 1
+        : g.phase === 'rise'
+          ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.85) / (RISE_TIME * 0.15)))
+          : g.phase === 'end'
+            ? smooth(g.kneel) // al final: de rodillas frente a su sombra, y se levantan juntas
+            : 0
 
     // pose del Mago: al terminar de incorporarse alza el brazo, hasta que agarra las herramientas
     // (alza el brazo justo cuando entran los graves en la canción)
@@ -302,7 +318,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
       // 0–8 s de rodillas; de 8 s hasta que entran los graves se va levantando poco a poco, sin volver atrás
       if (g.phase === 'intro') a.tryT = g.started ? smoothstep(3.5, MUSIC.RISE_AT, g.musicT) * STAND_BY_BASS : 0
       const total = duration(CLIPS.standup)
-      const t = g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
+      const t = g.phase === 'end' ? g.kneelT : g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
       // respira de rodillas al ritmo de las frases de la canción (inhala cuando la música sube)
       if (g.phase === 'intro') {
@@ -314,7 +330,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
       }
     }
     // al final levanta la mirada hacia la luz
-    if (g.phase === 'end') base.q.Head?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, -0.3 * clamp01(g.phaseT / 2)))
+    if (g.phase === 'end') base.q.Head?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, -0.3 * clamp01((g.phaseT - 10) / 2)))
 
     // ── Aplicar a los huesos (cabeza y manos con algo de retraso) ──
     const snap = g.phase === 'intro'
@@ -414,6 +430,22 @@ export function Character({ echo = false }: { echo?: boolean }) {
         rotateBoneLocal(bones.neck_01, axes.neck.left, a.atPitch * 0.45 * w)
         rotateBoneLocal(bones.Head, axes.head.left, a.atPitch * 0.55 * w)
       }
+    }
+
+    // De rodillas al final: la pose de "Standing Up" trae la cabeza girada; se corrige para que mire al frente
+    if (g.phase === 'end' && g.kneel > 0.001) {
+      const k = smooth(g.kneel)
+      rotateBoneLocal(bones.neck_01, axes.neck.up, HEAD_FRONT * 0.4 * k)
+      rotateBoneLocal(bones.Head, axes.head.up, HEAD_FRONT * 0.6 * k)
+    }
+    // El abrazo: brazos hacia delante, rodeando (al final, la elfa y su sombra)
+    if (g.hug > 0.001) {
+      const w = smooth(g.hug)
+      rotateBoneLocal(bones.upperarm_l, axes.armL.left, -1.15 * w)
+      rotateBoneLocal(bones.upperarm_r, axes.armR.left, -1.15 * w)
+      rotateBoneLocal(bones.lowerarm_l, axes.foreL.fwd, -1.3 * w)
+      rotateBoneLocal(bones.lowerarm_r, axes.foreR.fwd, 1.3 * w)
+      rotateBoneLocal(bones.spine_02, axes.spine.left, 0.12 * w)
     }
 
     // Pose del Mago: el brazo derecho se alza hacia el cielo y el izquierdo se abre un poco hacia abajo
