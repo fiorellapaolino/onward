@@ -6,6 +6,7 @@ import { SHADOW_S, VILLAGE_R, VILLAGE_S, damp, natureUrl, pathAt, rng, sideAt } 
 import { game, litFraction } from '../game/state'
 import { ELDER, GIRL, GIRL_TREE, LANTERNS, PLATES, PLATE_R, POLE, buildHuts, type Hut, type Lantern } from '../game/village'
 import { useGlowTexture } from './TheLight'
+import HOUSE_TYPES from '../game/houseTypes.json'
 
 /*
  * La aldea: casas de entramado y piedra (Medieval Village MegaKit de Quaternius, CC0),
@@ -43,7 +44,7 @@ export function Village() {
     glass.emissive.set('#ffb45e')
     glass.emissiveIntensity += (on * 1.8 - glass.emissiveIntensity) * damp(1.5, dt)
     glass.color.lerpColors(GLASS_OFF, GLASS_ON, Math.min(1, on))
-    glass.opacity = 0.75 + 0.25 * on
+    glass.opacity = 0.3 + 0.65 * on
     glass.transparent = true
   })
 
@@ -166,8 +167,18 @@ function LanternLamp({ position, isLit }: { position: [number, number, number]; 
  */
 function HouseMesh({ hut }: { hut: Hut }) {
   const { nodes } = useGLTF(HOUSES_URL)
-  return <Clone object={nodes['House_' + hut.type]} position={[hut.x, 0, hut.z]} rotation-y={hut.rot} scale={hut.scale} />
+  const t = HOUSE_TYPES[hut.type]
+  return (
+    <group position={[hut.x, 0, hut.z]} rotation-y={hut.rot} scale={hut.scale}>
+      <Clone object={nodes['House_' + hut.type]} />
+      {/* interior a oscuras: por las ventanas no se ve nada hasta que vuelve la luz */}
+      <mesh material={INTERIOR} position={[0, 1.6, 0]}>
+        <boxGeometry args={[t.hx * 2 - 0.7, 3.1, t.hz * 2 - 0.7]} />
+      </mesh>
+    </group>
+  )
 }
+const INTERIOR = new THREE.MeshBasicMaterial({ color: '#120e0c' })
 
 /*
  * La sombra: manchas oscuras que flotan sobre la aldea y un muro espeso a la salida.
