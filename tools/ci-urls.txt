@@ -1,3 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-seedclose  ?at=60&gift&carry&yaw=2.6&zoom=0.4   15
-seedtree   ?at=60&gift&yaw=0.55&zoom=0.55&noelf   15
+give1  ?at=60&give=-1.2   25
+give2  ?at=60&give=-4   25
+give3  ?at=60&give=-7   25

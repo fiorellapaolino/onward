@@ -1,5 +1,6 @@
 import { headingAt, pathAt } from './config'
 import { GIRL_LINES } from './story'
+import { GIRL } from './village'
 import { game, input, setUi } from './state'
 
 /*
@@ -8,6 +9,7 @@ import { game, input, setUi } from './state'
  *   ?at=60&yaw=1.2  … con la cámara girada (radianes)
  *   ?at=60&talk=2   … escuchando la frase 2 de la niña
  *   ?at=60&gift     … después de hablar con la niña: atrapar una semilla para ella (&carry: ya la lleva)
+ *   ?at=60&give     … la escena de darle la semilla a la niña
  *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
@@ -48,6 +50,14 @@ export function applyDebug() {
     game.story = 'seed'
     game.carrying = params.has('carry')
     setUi({ goal: 'Catch a spinning seed for her.' })
+  }
+  if (params.has('give')) {
+    // delante de la niña, y empieza la escena
+    game.story = 'seed'
+    game.x = GIRL.x + Math.sin(GIRL.rot) * 1.4
+    game.z = GIRL.z + Math.cos(GIRL.rot) * 1.4
+    game.yaw = GIRL.rot + Math.PI
+    game.giftAt = game.time + Number(params.get('give') || 0)
   }
   if (params.has('fear')) game.story = 'fear'
   if (params.has('music')) {

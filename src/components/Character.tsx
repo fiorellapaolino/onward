@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { BIRTH_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game, shadow } from '../game/state'
 import { ELDER, GIRL } from '../game/village'
+import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { MUSIC, musicLevel } from '../game/music'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
@@ -101,6 +102,8 @@ const SHADOW_MAT = new THREE.MeshStandardMaterial({
 /** Su sombra: el mismo personaje, oscuro, que repite lo que ella hizo segundos antes (state.shadow). */
 export const ShadowSelf = () => <Character echo />
 
+const TMP_HAND = new THREE.Vector3()
+const TMP_SEED = new THREE.Vector3()
 const HIDE_ELF = new URLSearchParams(location.search).has('noelf')
 
 // Altura de sus ojos y de la cara de cada persona de la aldea (sentados), en metros
@@ -111,6 +114,15 @@ const LOOK_DIST = { girl: 5.5, elder: 4.5 }
 /** A quién mira: a quien la está hablando, o a la persona de la aldea más cercana (si está cerca). */
 function whoToLookAt(x: number, z: number, talk: 'girl' | 'elder' | null) {
   const girl = { x: GIRL.x, z: GIRL.z, h: FACE.girl }
+  // en la escena de la semilla: mira la semilla y, al final, a la niña
+  if (inGiftScene()) {
+    const k = game.time - game.giftAt
+    if (k < GIFT.LOOK_EACH) {
+      giftSeedPos(k, elfHand(TMP_HAND), TMP_SEED)
+      return { x: TMP_SEED.x, z: TMP_SEED.z, h: TMP_SEED.y }
+    }
+    return girl
+  }
   const elder = { x: ELDER.x, z: ELDER.z, h: FACE.elder }
   if (talk === 'girl') return girl
   if (talk === 'elder') return elder
@@ -205,7 +217,15 @@ export function Character({ echo = false }: { echo?: boolean }) {
         fwd: new THREE.Vector3(0, 0, 1).applyQuaternion(inv),
       }
     }
-    const axes = { head: axesOf(bones.Head), neck: axesOf(bones.neck_01) }
+    const axes = {
+      head: axesOf(bones.Head),
+      neck: axesOf(bones.neck_01),
+      spine: axesOf(bones.spine_02),
+      armL: axesOf(bones.upperarm_l),
+      armR: axesOf(bones.upperarm_r),
+      foreL: axesOf(bones.lowerarm_l),
+      foreR: axesOf(bones.lowerarm_r),
+    }
 
     return { model, bones, axes }
   }, [bodyG, outfitG, hairG, echo])
@@ -372,11 +392,21 @@ export function Character({ echo = false }: { echo?: boolean }) {
         // si la persona queda detrás de ella, no se retuerce: deja de mirarla
         want = 1 - smoothstep(1.3, 1.9, Math.abs(yawRaw))
         const yawT = THREE.MathUtils.clamp(yawRaw, -1.3, 1.3)
-        const pitchT = THREE.MathUtils.clamp(Math.atan2(EYE_H + g.jumpY - lookAt.h, Math.hypot(dx, dz)), -0.2, 0.85)
+        const pitchT = THREE.MathUtils.clamp(Math.atan2(EYE_H + g.jumpY - lookAt.h, Math.hypot(dx, dz)), inGiftScene() ? -0.95 : -0.2, 0.85)
         a.atYaw += (yawT - a.atYaw) * damp(4, dt)
         a.atPitch += (pitchT - a.atPitch) * damp(4, dt)
       }
       a.atW += (want - a.atW) * damp(3, dt)
+      // sorpresa al ver subir la semilla: se echa un poco hacia atrás y se lleva las manos al pecho
+      if (!echo && inGiftScene()) {
+        const k = g.time - g.giftAt
+        const wow = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 0.5)) * Math.max(0, Math.min(1, (GIFT.END - 0.5 - k) / 1))
+        rotateBoneLocal(bones.spine_02, axes.spine.left, -0.14 * wow)
+        rotateBoneLocal(bones.upperarm_l, axes.armL.left, -0.55 * wow)
+        rotateBoneLocal(bones.upperarm_r, axes.armR.left, -0.55 * wow)
+        rotateBoneLocal(bones.lowerarm_l, axes.foreL.up, -0.9 * wow)
+        rotateBoneLocal(bones.lowerarm_r, axes.foreR.up, 0.9 * wow)
+      }
       if (a.atW > 0.001) {
         const w = a.atW
         rotateBoneLocal(bones.neck_01, axes.neck.up, a.atYaw * 0.4 * w)

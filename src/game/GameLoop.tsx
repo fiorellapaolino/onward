@@ -14,6 +14,7 @@ import {
 } from './story'
 import { applyDebug, debugMode } from './debug'
 import { updateMoments } from './moments'
+import { GIFT, inGiftScene } from './gift'
 
 const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
@@ -101,6 +102,16 @@ export function GameLoop() {
         break
 
       case 'play': {
+        // La escena de la semilla: quieta, mirando a la niña (la cámara se acerca a las dos)
+        if (inGiftScene()) {
+          g.speed += (0 - g.speed) * damp(8, dt)
+          const want = Math.atan2(GIRL.x - g.x, GIRL.z - g.z)
+          g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(4, dt)
+          g.girlNear = 1
+          input.jumpPressed = false
+          if (g.time - g.giftAt > GIFT.LOOK_EACH) setUi({ msg: GIFT_MSG }) // "Cuando ayudas a alguien, ayudas a todos."
+          break
+        }
         // Escuchando a alguien: la elfa se queda quieta mirándole; E / Espacio / clic pasa a la siguiente frase
         if (g.talk) {
           const who = g.talk === 'girl' ? GIRL : ELDER
@@ -255,9 +266,9 @@ export function GameLoop() {
             g.carrying = false
             g.pulse = 1
             g.spark = Math.min(1, g.spark + 1 / 7)
-            setUi({ msg: GIFT_MSG, goal: null })
+            setUi({ msg: null, goal: null, hint: false })
           }
-          if (g.giftAt >= 0 && g.time - g.giftAt > 4) {
+          if (g.giftAt >= 0 && g.time - g.giftAt > GIFT.END + 0.3) {
             // su alegría viaja como una luz hasta el anciano: ahora se le puede escuchar
             g.story = 'help'
             g.relayAt = g.time
@@ -266,7 +277,7 @@ export function GameLoop() {
             setUi({ goal: GOAL_HELP })
           }
         }
-        if (g.giftAt >= 0 && g.time - g.giftAt > 7 && g.time - g.giftAt < 7.2) setUi({ msg: null })
+        if (g.giftAt >= 0 && g.time - g.giftAt > GIFT.END + 2 && g.time - g.giftAt < GIFT.END + 2.2) setUi({ msg: null })
 
         // ── El miedo: la oscuridad la rodea. Si se queda (mantener E, quieta), la oscuridad toma su forma ──
         if (g.story === 'fear') {

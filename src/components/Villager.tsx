@@ -7,6 +7,7 @@ import { clamp01 } from '../game/config'
 import { game } from '../game/state'
 import { CLIPS, makeSample, sampleAt } from '../game/anim'
 import { ELDER, GIRL, MUSICIAN } from '../game/village'
+import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
 
 /*
  * La gente de la aldea. Usan los personajes de Quaternius (CC0) con ropa de campesino,
@@ -64,14 +65,32 @@ const GIRL_SPEC: Spec = {
   spot: GIRL,
   gestures: (rot, _t, near, yaw) => {
     // (quieta: sin temblores ni sollozos)
-    // le dieron la semilla: la mira subir girando, con la cabeza levantada y los brazos un poco hacia arriba
-    const joy = game.giftAt < 0 ? 0 : Math.min(1, (game.time - game.giftAt - 1.2) / 1.5)
-    if (joy > 0) {
-      rot('neck_01', 'left', -0.35 * joy)
-      rot('Head', 'left', -0.45 * joy)
-      rot('upperarm_l', 'left', -0.5 * joy)
-      rot('upperarm_r', 'left', -0.5 * joy)
-      near *= 1 - joy
+    if (inGiftScene() || game.giftAt >= 0) {
+      // la escena de la semilla: mira la semilla en sus manos, la sigue mientras sube y luego mira a la elfa
+      const k = game.time - game.giftAt
+      if (k < GIFT.LOOK_EACH) giftSeedPos(k, elfHand(TMP_A), TMP_B)
+      else TMP_B.set(game.x, 1.05, game.z) // la cara de la elfa
+      const dx = TMP_B.x - GIRL.x
+      const dz = TMP_B.z - GIRL.z
+      let ty = Math.atan2(dx, dz) - GIRL.rot
+      ty = THREE.MathUtils.clamp(Math.atan2(Math.sin(ty), Math.cos(ty)), -1.2, 1.2)
+      const tp = THREE.MathUtils.clamp(Math.atan2(GIRL_FACE - TMP_B.y, Math.max(0.2, Math.hypot(dx, dz))), -1.1, 0.9)
+      LOOK.yaw += (ty - LOOK.yaw) * 0.08
+      LOOK.pitch += (tp - LOOK.pitch) * 0.08
+      // (la pose base tiene la cabeza agachada 0.65: se compensa para mirar a donde toca)
+      rot('neck_01', 'left', LOOK.pitch * 0.45 - 0.3)
+      rot('Head', 'left', LOOK.pitch * 0.55 - 0.35)
+      rot('neck_01', 'up', LOOK.yaw * 0.4)
+      rot('Head', 'up', LOOK.yaw * 0.6)
+      // sorpresa: al soltarla se echa hacia atrás y levanta los brazos; después queda contenta, más erguida
+      const wow = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 0.5))
+      const fall = k < GIFT.LOOK_EACH ? 1 : Math.max(0, 1 - (k - GIFT.LOOK_EACH) / 1.5)
+      rot('spine_01', 'left', -0.2 * wow)
+      rot('upperarm_l', 'left', -0.9 * wow * fall)
+      rot('upperarm_r', 'left', -0.9 * wow * fall)
+      rot('upperarm_l', 'fwd', 0.3 * wow * fall)
+      rot('upperarm_r', 'fwd', -0.3 * wow * fall)
+      return
     }
     // la elfa se acerca: se endereza un poco, levanta la cabeza y la mira
     rot('spine_01', 'left', -0.15 * near)
@@ -81,6 +100,10 @@ const GIRL_SPEC: Spec = {
     rot('Head', 'up', yaw * 0.5 * near)
   },
 }
+const GIRL_FACE = 0.64 // altura de su cara (sentada en la piedra)
+const LOOK = { yaw: 0, pitch: 0.6 }
+const TMP_A = new THREE.Vector3()
+const TMP_B = new THREE.Vector3()
 
 // ── El anciano: sentado en un taburete junto a su puerta a oscuras, encorvado, con las manos en las rodillas ──
 const ELDER_SPEC: Spec = {

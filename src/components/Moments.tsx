@@ -5,7 +5,8 @@ import * as THREE from 'three'
 import { clamp01, natureUrl, rng } from '../game/config'
 import { game } from '../game/state'
 import { BUDS, GROVE, PUDDLES, SEED_TREE, moments } from '../game/moments'
-import { GIRL, GIRL_TREE } from '../game/village'
+import { GIRL_TREE } from '../game/village'
+import { GIFT, giftSeedPos } from '../game/gift'
 import { DynamicModel, placeMatrix } from './instancing'
 import { useGlowTexture } from './TheLight'
 
@@ -194,19 +195,12 @@ function GirlSeeds() {
     let vis = true
     let gl = 0.5
     if (g.giftAt >= 0) {
-      // se la da a la niña, ella la suelta y sube girando hacia el cielo
+      // se la da a la niña, ella la mira, la suelta y sube girando hacia el cielo (game/gift.ts)
       const k = t - g.giftAt
-      const toGirl = clamp01(k / 0.8)
-      const gx = GIRL.x + Math.sin(GIRL.rot) * 0.25
-      const gz = GIRL.z + Math.cos(GIRL.rot) * 0.25
-      if (k < 1.4) s.position.set(hand.x + (gx - hand.x) * toGirl, hand.y + (0.55 - hand.y) * toGirl, hand.z + (gz - hand.z) * toGirl)
-      else {
-        const up = k - 1.4
-        s.position.set(gx + Math.sin(up * 2) * 0.3, 0.55 + up * 0.9, gz + Math.cos(up * 2) * 0.3)
-      }
-      s.rotation.set(0.3, t * (k < 1.4 ? 3 : 10), 0)
-      vis = k < 8
-      gl = 0.8 * Math.max(0, 1 - (k - 5) / 3)
+      giftSeedPos(k, hand, s.position)
+      s.rotation.set(0.3, t * (k < GIFT.RELEASE ? 1.5 : 10), 0)
+      vis = k < 11
+      gl = 0.8 * Math.max(0, 1 - (k - 8) / 3)
     } else if (g.carrying) {
       s.position.set(hand.x, hand.y, hand.z)
       s.rotation.set(0.3, t * 2, 0)

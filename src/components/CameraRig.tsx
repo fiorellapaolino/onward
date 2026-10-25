@@ -3,12 +3,18 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { clamp01, damp } from '../game/config'
 import { game, input } from '../game/state'
+import { GIRL } from '../game/village'
+import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
 
 const pos = new THREE.Vector3()
 const fwd = new THREE.Vector3()
 const target = new THREE.Vector3()
 const look = new THREE.Vector3()
 const ahead = new THREE.Vector3()
+const mid = new THREE.Vector3()
+const perp = new THREE.Vector3()
+const tmpV = new THREE.Vector3()
+const seedP = new THREE.Vector3()
 
 /**
  * Cámara en tercera persona que gira alrededor de la elfa.
@@ -19,6 +25,7 @@ const ahead = new THREE.Vector3()
  */
 export function CameraRig() {
   const lookSmooth = useRef(new THREE.Vector3(0, 1.3, 4))
+  const cineSide = useRef(0)
 
   useFrame(({ camera }, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
@@ -34,6 +41,28 @@ export function CameraRig() {
       input.camYaw += d * damp(intro ? 4 : 1.2, dt)
       input.camPitch += (0 - input.camPitch) * damp(1, dt)
     }
+
+    // ── La escena de la semilla: plano de las dos, de perfil, mirando la semilla subir ──
+    if (inGiftScene()) {
+      const k = g.time - g.giftAt
+      mid.set((g.x + GIRL.x) / 2, 0, (g.z + GIRL.z) / 2)
+      perp.set(GIRL.z - g.z, 0, -(GIRL.x - g.x)).normalize()
+      // del lado en que ya está la cámara (sin saltar al otro lado)
+      if (cineSide.current === 0) cineSide.current = perp.dot(tmpV.copy(camera.position).sub(mid)) >= 0 ? 1 : -1
+      const rise = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 3))
+      const dist = 1.9 + rise * 0.9
+      target.copy(mid).addScaledVector(perp, dist * cineSide.current)
+      target.y = 0.85 + rise * 0.3
+      camera.position.lerp(target, damp(2.2, dt))
+      giftSeedPos(k, elfHand(tmpV), seedP)
+      look.set(mid.x, 0.75 + Math.max(0, Math.min(seedP.y, 3) - 0.75) * 0.55, mid.z)
+      lookSmooth.current.lerp(look, damp(2.5, dt))
+      camera.lookAt(lookSmooth.current)
+      // al terminar, la cámara vuelve detrás de ella mirando hacia donde mira
+      input.camYaw = g.yaw
+      return
+    }
+    cineSide.current = 0
 
     pos.set(g.x, g.jumpY * 0.5, g.z)
     const cy = input.camYaw
