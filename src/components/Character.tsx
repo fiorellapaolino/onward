@@ -4,7 +4,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRTH_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game } from '../game/state'
-import { musicLevel } from '../game/music'
+import { MUSIC, musicLevel } from '../game/music'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
 
 /*
@@ -45,6 +45,8 @@ const easeOutBack = (t: number) => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
 }
 const smooth = (t: number) => t * t * (3 - 2 * t)
+// momento de "Standing Up" (segundos) en el que ya está casi de pie: ahí llega cuando entran los graves
+const STAND_BY_BASS = 3.0
 const SIDE_TURN = Math.PI / 2 // al nacer mira hacia su izquierda: la cámara la ve de perfil
 
 /** Velocidad con la que cada hueso alcanza su pose (más bajo = más retraso, más suelto). */
@@ -167,8 +169,9 @@ export function Character() {
       g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.85) / (RISE_TIME * 0.15))) : 0
 
     // pose del Mago: al terminar de incorporarse alza el brazo, hasta que agarra las herramientas
-    const magoTarget = (g.phase === 'rise' && g.phaseT > RISE_TIME * 0.8) || (g.phase === 'gather' && g.phaseT < 1.6) ? 1 : 0
-    a.mago += (magoTarget - a.mago) * damp(3, dt)
+    // (alza el brazo justo cuando entran los graves en la canción)
+    const magoTarget = (g.phase === 'rise' && g.phaseT > 0.15) || (g.phase === 'gather' && g.phaseT < 1.6) ? 1 : 0
+    a.mago += (magoTarget - a.mago) * damp(g.phase === 'rise' ? 7 : 3, dt)
 
     // ── Ritmo del paso: los pies avanzan lo mismo que ella (sin patinar) ──
     const cycle = cycleLength(CLIPS.walk) + (cycleLength(CLIPS.run) - cycleLength(CLIPS.walk)) * a.run
@@ -188,7 +191,8 @@ export function Character() {
       // (usa el principio de "Standing Up"); con los graves se levanta del todo desde donde esté.
       const level = g.started ? musicLevel(g.musicT) : 0
       a.tryLevel += (level - a.tryLevel) * damp(3.5, dt)
-      a.tryT = 0 // se queda de rodillas (los intentos se hacen con el pecho y la cabeza, abajo)
+      // 0–8 s de rodillas; de 8 s hasta que entran los graves se va levantando poco a poco, sin volver atrás
+      if (g.phase === 'intro') a.tryT = g.started ? smoothstep(8, MUSIC.BASS_IN, g.musicT) * STAND_BY_BASS : 0
       const total = duration(CLIPS.standup)
       const t = g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
