@@ -101,6 +101,8 @@ const SHADOW_MAT = new THREE.MeshStandardMaterial({
 /** Su sombra: el mismo personaje, oscuro, que repite lo que ella hizo segundos antes (state.shadow). */
 export const ShadowSelf = () => <Character echo />
 
+const HIDE_ELF = new URLSearchParams(location.search).has('noelf')
+
 // Altura de sus ojos y de la cara de cada persona de la aldea (sentados), en metros
 const EYE_H = 1.05
 const FACE = { girl: 0.64, elder: 0.76 }
@@ -210,6 +212,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
+    if (HIDE_ELF && !echo) root.current.visible = false // (?noelf: para capturas de prueba)
     // (la sombra lee el pasado de la elfa; solo se ve cuando ya nació)
     const g = echo ? shadow : game
     const a = anim.current
