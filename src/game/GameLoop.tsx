@@ -73,9 +73,7 @@ export function GameLoop() {
         if (forward) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
 
-        // Con poca confianza da pasitos y se frena a ratos
-        const hesitant = g.c < 0.3 && Math.sin(g.time * 1.7) < -0.45
-        const target = forward && !hesitant ? 0.9 + 3.4 * g.c : 0 // metros por segundo
+        const target = forward ? 0.9 + 3.4 * g.c : 0 // metros por segundo
         g.speed += (target - g.speed) * damp(5, dt)
 
         // ¿Hay un obstáculo más adelante?
