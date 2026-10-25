@@ -95,6 +95,19 @@ export function buildUndergrowth(): Placement[] {
     }
   }
 
+  // Hierba extra: matas densas al borde del sendero y salpicadas por el pasto
+  for (let s = -20; s < PATH_END + 30; s += 0.6) {
+    const avoid = nearOpenGround(s)
+    for (const side of [-1, 1]) {
+      if (r() < 0.7) {
+        const d = avoid ? 8 + r() * 4 : 1.7 + r() * 1.6
+        add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short', 'Grass_Common_Tall'], r), s + r() * 0.6, side, d, 0.28 + r() * 0.25)
+      }
+      if (r() < 0.55) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + r() * 0.6, side, avoid ? 9 + r() * 10 : 3.2 + r() * 14, 0.3 + r() * 0.3)
+      if (r() < 0.06) add('Clover_1', s, side, avoid ? 9 : 2 + r() * 6, 0.35 + r() * 0.2)
+    }
+  }
+
   // Donde nace: un pequeño círculo de hongos
   for (let i = 0; i < 7; i++) {
     const a = (i / 7) * Math.PI * 2
