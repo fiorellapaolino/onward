@@ -3,7 +3,7 @@ import { game, input } from './state'
 
 // Moverse (relativo a la cámara): W/↑ adelante, S/↓ atrás, A/← izquierda, D/→ derecha
 // (en móvil/tablet: mantener el dedo en la pantalla = caminar hacia donde mira la cámara).
-// Correr: mantener Tab mientras camina. Saltar: Espacio.
+// Correr: mantener Tab mientras camina. Saltar: Espacio. Escuchar / hablar: E.
 // Cámara: arrastrar con el ratón gira alrededor de la elfa; la rueda acerca o aleja.
 const FORWARD = new Set(['ArrowUp', 'KeyW'])
 const BACK = new Set(['ArrowDown', 'KeyS'])
@@ -32,9 +32,8 @@ export function useInput() {
       // (Tab normalmente cambia el foco de la página; aquí lo usamos para correr)
       if (FORWARD.has(e.code) || BACK.has(e.code) || LEFT.has(e.code) || RIGHT.has(e.code) || e.code === 'Tab' || e.code === 'Space') e.preventDefault()
       if (e.code === 'Space' && !e.repeat) input.jumpPressed = true
-      // 1-4: elegir un elemento (copa, espada, vara, moneda)
-      const digit = /^(Digit|Numpad)([1-4])$/.exec(e.code)
-      if (digit && !e.repeat) input.choose = Number(digit[2]) - 1
+      // E (o Enter): escuchar a alguien / pasar a la siguiente frase
+      if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat && game.started) input.interact = true
       // Al terminar, R vuelve a empezar
       if (e.code === 'KeyR' && game.phase === 'end' && game.phaseT > 10) location.reload()
       keys.add(e.code)

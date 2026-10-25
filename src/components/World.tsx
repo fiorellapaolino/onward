@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
-import { PATH_LEN, clamp01, gradient } from '../game/config'
+import { PATH_LEN, VILLAGE_R, VILLAGE_S, clamp01, distToVillage, gradient, smoothstep } from '../game/config'
 import { game } from '../game/state'
 import { MUSIC } from '../game/music'
 import { Ground } from './Ground'
@@ -13,6 +13,10 @@ const SKY = ['#bcd9e6', '#c4dfe2', '#cfe4d6', '#e4e6c4', '#f6e3b8', '#fbeacb'].m
 // tinte que se aplica sobre la textura del pasto (blanco = color original)
 const GROUND = ['#f2f7ee', '#ffffff', '#ffffff', '#fffbe8', '#fff4d6', '#ffefcc'].map((c) => new THREE.Color(c))
 
+// la sombra de la aldea apaga los colores: cielo gris, luz débil
+const GLOOM_SKY = new THREE.Color('#646a76')
+const GLOOM_GROUND = new THREE.Color('#9a9c9e')
+
 const tmp = new THREE.Color()
 
 export function World() {
@@ -22,12 +26,20 @@ export function World() {
   const sun = useRef<THREE.DirectionalLight>(null!)
   const fireflies = useRef<THREE.Group>(null!)
   const fogOpen = useRef(0)
+  const gloomRef = useRef(0)
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
     const f = clamp01(game.pMax / PATH_LEN) // lo más lejos que llegó: la luz no retrocede
 
+    // ¿cuánto la cubre la sombra de la aldea? (0 lejos → 1 dentro; pasada la aldea, sigue a oscuras)
+    const inside = game.z > VILLAGE_S ? 1 : 1 - smoothstep(VILLAGE_R - 3, VILLAGE_R + 22, distToVillage(game.x, game.z))
+    const gloomTarget = game.shadowOpen ? 0 : inside
+    gloomRef.current += (gloomTarget - gloomRef.current) * Math.min(1, dt * 1.2)
+    const gl = gloomRef.current
+
     gradient(SKY, f, tmp)
+    tmp.lerp(GLOOM_SKY, gl * 0.8)
     if (scene.background instanceof THREE.Color) scene.background.copy(tmp)
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.color.copy(tmp)
@@ -36,13 +48,13 @@ export function World() {
       const open = game.started && game.musicT >= MUSIC.BASS_IN ? 1 : 0
       fogOpen.current += (open - fogOpen.current) * Math.min(1, dt * (open ? 0.9 : 5))
       const o = fogOpen.current
-      scene.fog.near = (2 + o * 23) + f * 20
-      scene.fog.far = (12 + o * 98) + f * 60
+      scene.fog.near = ((2 + o * 23) + f * 20) * (1 - 0.5 * gl)
+      scene.fog.far = ((12 + o * 98) + f * 60) * (1 - 0.45 * gl)
     }
 
-    if (ground.current) gradient(GROUND, f, ground.current.color)
-    hemi.current.intensity = 1.6 + f * 0.4
-    sun.current.intensity = 2.6 + f * 0.8
+    if (ground.current) gradient(GROUND, f, ground.current.color).lerp(GLOOM_GROUND, gl * 0.7)
+    hemi.current.intensity = (1.6 + f * 0.4) * (1 - 0.45 * gl)
+    sun.current.intensity = (2.6 + f * 0.8) * (1 - 0.6 * gl)
 
     // las luciérnagas acompañan a la elfa
     fireflies.current.position.set(game.x, 0, game.z)

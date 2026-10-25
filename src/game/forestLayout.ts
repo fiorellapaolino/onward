@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { GATES, GATE_KINDS, PATH_END, PATH_LEN, pathAt, rng, sideAt, smoothstep } from './config'
+import { PATH_END, PATH_LEN, VILLAGE_R, distToVillage, pathAt, rng, sideAt, smoothstep } from './config'
+import { blockedByVillage } from './village'
 import { placeMatrix } from '../components/instancing'
 
 /*
@@ -11,6 +12,7 @@ import { placeMatrix } from '../components/instancing'
  *   0.33–0.66  bosque medio: pinos y árboles comunes
  *   0.66–1.00  bosque luminoso: árboles comunes y muchas flores
  *   final      un claro abierto donde está la luz
+ * En medio está la aldea: ahí no hay árboles, ni plantas encima de las casas, ni flores (la sombra las apagó).
  */
 
 export type Placement = { model: string; s: number; matrix: THREE.Matrix4 }
@@ -24,29 +26,38 @@ const TWISTED = ['TwistedTree_1', 'TwistedTree_2', 'TwistedTree_3']
 const p = new THREE.Vector3()
 const sd = new THREE.Vector3()
 
-function placer(out: Placement[], r: () => number) {
+type Keep = (x: number, z: number, model: string) => boolean
+
+function placer(out: Placement[], r: () => number, keep: Keep = () => true) {
   return (model: string, s: number, side: number, dist: number, scale: number, y = 0) => {
     pathAt(s, p)
     sideAt(s, sd)
+    const x = p.x + sd.x * side * dist
+    const z = p.z + sd.z * side * dist
+    const angle = r() * Math.PI * 2 // (se saca siempre, para que el resto del bosque no cambie)
+    if (!keep(x, z, model)) return
     out.push({
       model,
       s,
-      matrix: placeMatrix(p.x + sd.x * side * dist, y, p.z + sd.z * side * dist, r() * Math.PI * 2, scale),
+      matrix: placeMatrix(x, y, z, angle, scale),
     })
   }
 }
 
 const oneOf = <T,>(list: T[], r: () => number) => list[Math.floor(r() * list.length)]
 
-/** ¿Hay un obstáculo de agua o barranco cerca? (ahí no ponemos plantas encima) */
-function nearOpenGround(s: number) {
-  return GATES.some((G, i) => (GATE_KINDS[i] === 'water' || GATE_KINDS[i] === 'chasm') && Math.abs(s - G) < 2.5)
-}
+// En el claro de la aldea no hay árboles (los grandes de las filas de atrás sí, rodeándola)
+const treeKeep: Keep = (x, z, model) => distToVillage(x, z) > VILLAGE_R + (model.startsWith('Twisted') ? 6 : 1)
+// Plantas: nunca encima de una casa; dentro de la aldea, solo pasto (nada de hongos, arbustos ni rocas)
+const plantKeep: Keep = (x, z, model) =>
+  !blockedByVillage(x, z) && (distToVillage(x, z) > VILLAGE_R || model.startsWith('Grass') || model === 'Clover_1')
+// Flores: la sombra las apagó
+const flowerKeep: Keep = (x, z) => distToVillage(x, z) > VILLAGE_R + 4
 
 export function buildTrees(): Placement[] {
   const r = rng(7)
   const out: Placement[] = []
-  const add = placer(out, r)
+  const add = placer(out, r, treeKeep)
 
   for (let s = -45; s < PATH_END + 70; s += 3) {
     const f = s / PATH_LEN
@@ -74,17 +85,13 @@ export function buildTrees(): Placement[] {
 export function buildUndergrowth(): Placement[] {
   const r = rng(21)
   const out: Placement[] = []
-  const add = placer(out, r)
+  const add = placer(out, r, plantKeep)
 
   for (let s = -30; s < PATH_END + 40; s += 1.5) {
     const f = s / PATH_LEN
     const dark = f < 0.33
-    const avoid = nearOpenGround(s)
     for (const side of [-1, 1]) {
-      const near = (min: number, max: number) => {
-        const d = min + r() * (max - min)
-        return avoid ? Math.max(d, 8) : d
-      }
+      const near = (min: number, max: number) => min + r() * (max - min)
       if (r() < 0.85) add(oneOf(['Grass_Common_Short', 'Grass_Common_Tall', 'Grass_Wispy_Short'], r), s, side, near(1.6, 9), 0.35 + r() * 0.25)
       if (r() < 0.45) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + 0.7, side, near(1.4, 5), 0.3 + r() * 0.2)
       if (r() < 0.16) add('Fern_1', s, side, near(3, 9), 0.35 + r() * 0.25)
@@ -97,14 +104,13 @@ export function buildUndergrowth(): Placement[] {
 
   // Hierba extra: matas densas al borde del sendero y salpicadas por el pasto
   for (let s = -20; s < PATH_END + 30; s += 0.6) {
-    const avoid = nearOpenGround(s)
     for (const side of [-1, 1]) {
       if (r() < 0.7) {
-        const d = avoid ? 8 + r() * 4 : 1.7 + r() * 1.6
+        const d = 1.7 + r() * 1.6
         add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short', 'Grass_Common_Tall'], r), s + r() * 0.6, side, d, 0.28 + r() * 0.25)
       }
-      if (r() < 0.55) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + r() * 0.6, side, avoid ? 9 + r() * 10 : 3.2 + r() * 14, 0.3 + r() * 0.3)
-      if (r() < 0.06) add('Clover_1', s, side, avoid ? 9 : 2 + r() * 6, 0.35 + r() * 0.2)
+      if (r() < 0.55) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + r() * 0.6, side, 3.2 + r() * 14, 0.3 + r() * 0.3)
+      if (r() < 0.06) add('Clover_1', s, side, 2 + r() * 6, 0.35 + r() * 0.2)
     }
   }
 
@@ -120,11 +126,10 @@ export function buildUndergrowth(): Placement[] {
 export function buildFlowers(): Placement[] {
   const r = rng(99)
   const out: Placement[] = []
-  const add = placer(out, r)
+  const add = placer(out, r, flowerKeep)
   for (let s = 4; s < PATH_END; s += 1.2) {
     const f = s / PATH_LEN
     const chance = 0.06 + 0.75 * smoothstep(0.25, 0.9, f)
-    if (nearOpenGround(s)) continue
     for (const side of [-1, 1]) {
       if (r() > chance) continue
       const dist = 1.3 + r() * 4

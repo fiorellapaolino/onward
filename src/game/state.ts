@@ -9,8 +9,15 @@ import { useSyncExternalStore } from 'react'
 // end    → llega a la luz y sigue hacia otros caminos
 export type Phase = 'intro' | 'rise' | 'gather' | 'look' | 'play' | 'end'
 
-// Estado de cada herramienta del Mago
-export type ToolState = 'around' | 'flyingIn' | 'carried' | 'toGate' | 'used'
+// Estado de cada elemento del Mago: flotan al nacer, vuelan a ella y entran en su pecho
+// (la magia queda dormida dentro de ella; se despierta ayudando a otros)
+export type ToolState = 'around' | 'flyingIn' | 'carried' | 'absorbing' | 'inside'
+
+// La historia de la aldea, en orden:
+// seek   → todavía no habló con la niña
+// talk   → la niña le cuenta lo que pasa
+// help   → tiene que ayudar a la gente de la aldea
+export type Story = 'seek' | 'talk' | 'help'
 
 // Estado del juego. Se modifica cada frame (no es estado de React a propósito,
 // para que no se re-renderice todo 60 veces por segundo).
@@ -29,16 +36,17 @@ export const game = {
   c: 0, // confianza 0..1 → de dudar a correr
   speed: 0, // metros por segundo
   idle: 0, // segundos sin moverse
-  blocked: false, // está frente a un obstáculo
-  gateHold: 0,
-  opened: new Set<number>(),
-  openedAt: new Map<number, number>(), // momento (game.time) en que se abrió cada obstáculo
+  blocked: false, // empuja contra la sombra (no puede pasar)
   walkPhase: 0,
-  wrongAt: -99, // momento en que eligió un elemento equivocado
+  story: 'seek' as Story,
+  line: 0, // frase de la niña que se está leyendo
+  lineT: 0, // segundos desde que apareció esa frase
+  girlNear: 0, // 0..1: lo cerca que está la elfa de la niña (ella levanta la cabeza)
+  shadowOpen: false, // la sombra de la salida ya deja pasar
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
-  tools: [0, 1, 2, 3].map(() => ({ state: 'around' as ToolState, t: 0, gate: -1 })),
+  tools: [0, 1, 2, 3].map(() => ({ state: 'around' as ToolState, t: 0 })),
 }
 
 // Controles
@@ -49,8 +57,8 @@ export const input = {
   right: false,
   backPressed: false,
   run: false, // Tab mantenido
-  choose: -1, // elemento elegido con 1-4 (se consume en el siguiente frame)
   jumpPressed: false, // Espacio (se consume en el siguiente frame)
+  interact: false, // E (o clic en el diálogo): escuchar / pasar a la siguiente frase
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
   camYaw: 0, // hacia dónde mira la cámara en el mundo (0 = hacia delante en el sendero)
   camPitch: 0, // altura extra (-0.6 abajo … 1 arriba)
@@ -66,12 +74,11 @@ type Ui = {
   msg: string | null
   fade: boolean
   final: boolean
-  inv: boolean // mostrar la fila de elementos
-  used: string // elementos ya usados, p. ej. "02" (índices)
-  choosing: boolean // está frente a un obstáculo: hay que elegir un elemento
-  wrong: number // índice del último elemento equivocado (-1 = ninguno)
+  prompt: string | null // aviso de acción, p. ej. "Listen"
+  say: string | null // lo que dice la niña
+  goal: string | null // qué hay que hacer ahora (arriba a la izquierda)
 }
-let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, inv: false, used: '', choosing: false, wrong: -1 }
+let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, prompt: null, say: null, goal: null }
 const listeners = new Set<() => void>()
 
 export function setUi(patch: Partial<Ui>) {

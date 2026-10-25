@@ -1,0 +1,23 @@
+# Herramienta de desarrollo: empaqueta las dependencias (node_modules) para poder
+# compilar y probar el juego en un entorno sin acceso al registro de npm.
+# Se ejecuta a mano desde "Actions" → "Deps" → "Run workflow".
+name: Deps
+
+on:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: rm -rf node_modules/electron node_modules/electron-builder node_modules/app-builder-bin node_modules/7zip-bin && tar czf node_modules.tgz node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node_modules
+          path: node_modules.tgz
+          retention-days: 3

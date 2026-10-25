@@ -1,12 +1,15 @@
 import { useFrame } from '@react-three/fiber'
 import {
-  RISE_TIME, GATES, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH,
-  GATE_STOP, PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_DELAY, TOOL_FLY, TOOL_TO_GATE,
+  RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST,
+  PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, TOOL_ABSORB, TOOL_DELAY, TOOL_FLY,
   smoothstep, damp, headingAt, pathAt, tangentAt,
 } from './config'
 import * as THREE from 'three'
 import { game, input, setUi, type Phase } from './state'
 import { MUSIC, musicTime } from './music'
+import { GIRL } from './village'
+import { GIRL_LINES, GOAL_HELP, PROMPT_LISTEN, SHADOW_BLOCK } from './story'
+import { applyDebug, debugMode } from './debug'
 
 const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
@@ -26,16 +29,20 @@ export function GameLoop() {
     g.phaseT += dt
     g.pulse = Math.max(0, g.pulse - dt * 1.5)
 
+    applyDebug() // (?at=… en la dirección: empezar directamente en un punto, para probar)
+
     // ── Música del nacimiento ───────────────────────────────────
     const prevMusic = g.musicT
-    g.musicT = musicTime()
+    if (!debugMode) g.musicT = musicTime()
     // un destello en cada frase en la que aparece un elemento
     for (const t of MUSIC.ELEMENT_TIMES) if (prevMusic < t && g.musicT >= t) g.pulse = 1
     // la música se corta: silencio, y aparece el título
     if (prevMusic < MUSIC.CUT && g.musicT >= MUSIC.CUT) setUi({ title: true })
     if (g.musicT >= MUSIC.CUT + 5.5 && g.musicT < MUSIC.CUT + 6) setUi({ title: false })
 
-    // ── Herramientas ────────────────────────────────────────────
+    // ── Elementos del Mago ──────────────────────────────────────
+    // al incorporarse vuelan a ella; cuando empieza a caminar entran en su pecho y desaparecen
+    // (la magia queda dormida dentro: se despertará ayudando a otros)
     g.tools.forEach((tool, k) => {
       if (tool.state === 'around' && g.phase === 'gather' && g.phaseT >= k * TOOL_DELAY) {
         tool.state = 'flyingIn'
@@ -46,14 +53,13 @@ export function GameLoop() {
         tool.state = 'carried'
         g.pulse = 1
       }
-      if (tool.state === 'toGate' && tool.t >= TOOL_TO_GATE) {
-        tool.state = 'used'
-        g.opened.add(tool.gate) // la herramienta abre el paso
-        setUi({ used: g.tools.map((t, i) => (t.state === 'used' ? i : '')).join('') })
-        g.openedAt.set(tool.gate, g.time)
-        g.c = Math.min(1, g.c + 0.15) // y le da un empujón de confianza
-        g.pulse = 1
-        setUi({ msg: null })
+      if (tool.state === 'carried' && g.phase === 'play' && g.phaseT >= 1 + k * 0.25) {
+        tool.state = 'absorbing'
+        tool.t = 0
+      }
+      if (tool.state === 'absorbing' && tool.t >= TOOL_ABSORB) {
+        tool.state = 'inside'
+        g.pulse = 0.7
       }
     })
 
@@ -81,7 +87,6 @@ export function GameLoop() {
         break
 
       case 'look':
-        setUi({ inv: true }) // ya tiene los elementos: se muestran abajo
         if (g.phaseT >= LOOK_TIME) {
           setPhase('play')
           setUi({ hint: true }) // ahora le toca al jugador: se muestran los controles
@@ -89,6 +94,28 @@ export function GameLoop() {
         break
 
       case 'play': {
+        // Escuchando a la niña: la elfa se queda quieta mirándola; E / Espacio / clic pasa a la siguiente frase
+        if (g.story === 'talk') {
+          g.speed += (0 - g.speed) * damp(8, dt)
+          const want = Math.atan2(GIRL.x - g.x, GIRL.z - g.z)
+          g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(5, dt)
+          g.girlNear += (1 - g.girlNear) * damp(1.5, dt)
+          g.lineT += dt
+          const next = (input.interact || input.jumpPressed) && g.lineT > 0.35
+          input.jumpPressed = false // (Espacio no salta mientras escucha)
+          if (next) {
+            g.line++
+            g.lineT = 0
+            if (g.line >= GIRL_LINES.length) {
+              // terminó de contar: ahora hay que ayudar a la aldea
+              g.story = 'help'
+              g.c = Math.min(1, g.c + 0.15)
+              g.pulse = 0.8
+              setUi({ say: null, goal: GOAL_HELP })
+            } else setUi({ say: GIRL_LINES[g.line] })
+          }
+          break
+        }
         const f = g.pMax / PATH_LEN
         // La confianza máxima crece a medida que avanza: al principio duda, al final va decidida
         const cMax = 0.25 + 0.75 * smoothstep(0, 0.7, f)
@@ -123,45 +150,40 @@ export function GameLoop() {
         g.x += Math.sin(g.yaw) * step * dt
         g.z += Math.cos(g.yaw) * step * dt
 
-        // ── Límites: no sale del bosque, no vuelve más atrás del inicio, y los obstáculos cortan el paso ──
-        const closed = GATES.find((G) => !g.opened.has(G))
-        const maxZ = Math.min(closed !== undefined ? closed - GATE_STOP : Infinity, PATH_LEN)
+        // ── Límites: no sale del bosque, no vuelve más atrás del inicio, y la sombra corta el paso ──
+        const maxZ = g.shadowOpen ? PATH_LEN : SHADOW_S - 1.2
         g.z = THREE.MathUtils.clamp(g.z, -3, maxZ)
         const cx = pathAt(g.z, TMP).x
         g.x = THREE.MathUtils.clamp(g.x, cx - PATH_HALF_WIDTH, cx + PATH_HALF_WIDTH)
+        // no atraviesa a la niña
+        const gdx = g.x - GIRL.x
+        const gdz = g.z - GIRL.z
+        const gd = Math.hypot(gdx, gdz)
+        if (gd < 0.75 && gd > 1e-4) {
+          g.x = GIRL.x + (gdx / gd) * 0.75
+          g.z = GIRL.z + (gdz / gd) * 0.75
+        }
         g.p = g.z
         g.pMax = Math.max(g.pMax, g.p)
 
-        // empuja contra un obstáculo: se queda delante y duda
-        const pushing = moving && MOVE.z > 0.3
-        g.blocked = closed !== undefined && g.z >= maxZ - 0.001 && maxZ < PATH_LEN
-        if (g.blocked && pushing) g.speed = Math.min(g.speed, 0.2)
+        // empuja contra la sombra: duda, y un texto lo explica
+        g.blocked = !g.shadowOpen && g.z >= maxZ - 0.05
+        if (g.blocked && moving && MOVE.z > 0.3) {
+          g.speed = Math.min(g.speed, 0.2)
+          setUi({ msg: SHADOW_BLOCK })
+        } else if (g.z < maxZ - 2) setUi({ msg: null })
 
-        if (g.blocked && closed !== undefined) {
-          // Frente a un obstáculo: hay que elegir el elemento que ayuda (1-4)
-          const sending = g.tools.some((t) => t.state === 'toGate')
-          const right = GATES.indexOf(closed) // copa→arroyo, espada→ramas, vara→oscuridad, moneda→barranco
-          if (!sending) {
-            setUi({ choosing: true })
-            // "Pulsa 1, 2, 3 o 4 para elegir el elemento que te ayudará."
-            if (g.time - g.wrongAt > 1.8) setUi({ msg: 'Press 1, 2, 3 or 4 to choose the element that will help you.', wrong: -1 })
+        // ── La niña ──
+        g.girlNear += ((gd < 6 ? 1 : 0) - g.girlNear) * damp(1.5, dt)
+        if (g.story === 'seek') {
+          const canTalk = gd < TALK_DIST
+          setUi({ prompt: canTalk ? PROMPT_LISTEN : null })
+          if (canTalk && input.interact) {
+            g.story = 'talk'
+            g.line = 0
+            g.lineT = 0
+            setUi({ prompt: null, hint: false, msg: null, say: GIRL_LINES[0] })
           }
-          const pick = input.choose
-          if (pick >= 0 && !sending && g.tools[pick]?.state === 'carried') {
-            if (pick === right) {
-              const tool = g.tools[pick]
-              tool.state = 'toGate'
-              tool.t = 0
-              tool.gate = closed
-              setUi({ choosing: false, msg: null, wrong: -1 })
-            } else {
-              // "Ese no puede ayudar aquí. Prueba con otro."
-              g.wrongAt = g.time
-              setUi({ msg: "That one can't help here. Try another.", wrong: pick })
-            }
-          }
-        } else {
-          if (!g.tools.some((t) => t.state === 'toGate')) setUi({ msg: null, choosing: false })
         }
 
         if (g.z >= PATH_LEN - 0.01) setPhase('end')
@@ -190,7 +212,7 @@ export function GameLoop() {
       }
     }
 
-    input.choose = -1
+    input.interact = false
 
     // ── Salto (Espacio) ─────────────────────────────────────────
     if (input.jumpPressed && g.jumpT < 0 && (g.phase === 'play' || g.phase === 'end')) g.jumpT = 0

@@ -2,21 +2,21 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { MUSIC } from '../game/music'
-import { TOOL_FLY, TOOL_TO_GATE, clamp01, pathAt } from '../game/config'
+import { TOOL_ABSORB, TOOL_FLY, clamp01, pathAt } from '../game/config'
 import { game } from '../game/state'
 
 /*
  * Las cuatro herramientas del Mago: copa, espada, vara y oro.
  * 1. Flotan alrededor de la personita cuando nace.
  * 2. Al empezar, vuelan a ella una por una y la acompañan girando.
- * 3. En cada obstáculo, una vuela hasta él y le abre paso.
- * Mensaje: ya tienes lo que necesitas para seguir adelante.
+ * 3. Cuando empieza a caminar, entran en su pecho una por una y desaparecen:
+ *    la magia queda dormida dentro de ella. Se despertará ayudando a otros.
  */
 
 const player = new THREE.Vector3()
 const around = new THREE.Vector3()
 const carried = new THREE.Vector3()
-const gatePos = new THREE.Vector3()
+const chest = new THREE.Vector3()
 const ease = (t: number) => t * t * (3 - 2 * t)
 
 function aroundPos(k: number, out: THREE.Vector3) {
@@ -86,17 +86,16 @@ export function Tools() {
           scale = 0.55
           break
         }
-        case 'toGate': {
-          const t = ease(clamp01(tool.t / TOOL_TO_GATE))
+        case 'absorbing': {
+          // gira hacia su pecho y se encoge hasta desaparecer dentro de ella
+          const t = ease(clamp01(tool.t / TOOL_ABSORB))
           carriedPos(k, carried)
-          pathAt(tool.gate, gatePos)
-          gatePos.y += 0.9
-          obj.position.copy(carried).lerp(gatePos, t)
-          obj.position.y += Math.sin(t * Math.PI) * 0.8
-          scale = 0.55 + t * 0.9
+          chest.set(g.x, 0.62 + g.jumpY, g.z)
+          obj.position.copy(carried).lerp(chest, t)
+          scale = 0.55 * (1 - t)
           break
         }
-        case 'used':
+        case 'inside':
           scale = 0
           break
       }

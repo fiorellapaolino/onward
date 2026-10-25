@@ -180,8 +180,9 @@ export function Character() {
 
     // mirar alrededor: al empezar, y cuando se detiene a dudar (al 65%: el original gira mucho)
     // (con margen: se activa tras 1 s quieta y no se apaga hasta que de verdad camina, sin parpadeos)
-    if (g.phase === 'look' || (g.phase === 'play' && (g.idle > 1 || g.blocked))) a.lookOn = true
-    else if (g.speed > 0.4 || g.phase !== 'play') a.lookOn = false
+    // (mientras escucha a la niña no mira alrededor: la mira a ella)
+    if (g.phase === 'look' || (g.phase === 'play' && g.story !== 'talk' && (g.idle > 1 || g.blocked))) a.lookOn = true
+    else if (g.speed > 0.4 || g.phase !== 'play' || g.story === 'talk') a.lookOn = false
     const lookTarget = a.lookOn ? 0.4 : 0
     a.look += (lookTarget - a.look) * damp(2.5, dt)
     if (a.look > 0.01) a.lookT += dt

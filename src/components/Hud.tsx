@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useProgress } from '@react-three/drei'
-import { game, setUi, useUi } from '../game/state'
+import { game, input, setUi, useUi } from '../game/state'
 import { startMusic } from '../game/music'
-import { Elements } from './Elements'
 
 // Textos en pantalla. Están en inglés porque las reglas lo piden;
 // la traducción está en el comentario de al lado.
@@ -11,6 +10,8 @@ export function Hud() {
   // Guardamos el último mensaje para que se desvanezca en vez de desaparecer de golpe
   const lastMsg = useRef('')
   if (ui.msg) lastMsg.current = ui.msg
+  const lastSay = useRef('')
+  if (ui.say) lastSay.current = ui.say
 
   // Carga de modelos: no se puede empezar hasta que el bosque esté listo
   const { active, progress } = useProgress()
@@ -71,7 +72,27 @@ export function Hud() {
 
       <div className={`msg ${ui.msg ? 'show' : ''}`}>{lastMsg.current}</div>
 
-      <Elements />
+      {/* Qué hay que hacer ahora */}
+      <div className={`goal ${ui.goal ? 'show' : ''}`}>{ui.goal}</div>
+
+      {/* Aviso de acción junto a la niña: "E  Escuchar" */}
+      <div className={`prompt ${ui.prompt ? 'show' : ''}`}>
+        <kbd>E</kbd> {ui.prompt}
+      </div>
+
+      {/* Lo que dice la niña. Clic, E o Espacio para seguir. */}
+      <div
+        className={`say ${ui.say ? 'show' : ''}`}
+        onPointerDown={(e) => {
+          e.stopPropagation() // (no mover la cámara)
+          input.interact = true
+        }}
+      >
+        <p>{lastSay.current}</p>
+        <small>
+          <kbd>E</kbd>
+        </small>
+      </div>
 
       <div className={`fade ${ui.fade ? 'show' : ''}`} />
 

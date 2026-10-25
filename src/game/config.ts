@@ -6,13 +6,17 @@ import * as THREE from 'three'
 export const PATH_LEN = 300 // metros hasta llegar a la luz
 export const PATH_END = 345 // metros totales (el final sigue un poco más)
 
-// ── Obstáculos: uno por cada herramienta ─────────────────────────
-// copa → arroyo · espada → ramas · vara → oscuridad · oro → barranco
-export type GateKind = 'water' | 'branches' | 'dark' | 'chasm'
-export const GATES = [60, 130, 195, 255]
-export const GATE_KINDS: GateKind[] = ['water', 'branches', 'dark', 'chasm']
-export const GATE_STOP = 2.2 // se detiene a esta distancia del obstáculo
-export const GATE_HOLD = 1.6 // segundos insistiendo para usar la herramienta
+// ── La aldea ─────────────────────────────────────────────────────
+// Una aldea pequeña en un claro del bosque, apagada por una sombra.
+// El sendero la cruza; a la salida, la sombra corta el paso.
+export const VILLAGE_S = 72 // centro de la aldea (metros del sendero)
+export const VILLAGE_R = 15 // radio del claro
+export const SHADOW_S = VILLAGE_S + 16 // muro de sombra a la salida de la aldea
+// La niña llora al pie de un árbol, a un lado del sendero, al entrar en la aldea
+export const GIRL_S = VILLAGE_S - 8
+export const GIRL_SIDE = 1 // 1 = a la izquierda del sendero (mirando hacia delante), -1 = a la derecha
+export const GIRL_DIST = 4.2
+export const TALK_DIST = 2.4 // a esta distancia se puede escuchar a la niña
 
 // ── Tiempos de las animaciones ───────────────────────────────────
 export const BIRTH_TIME = 1.0 // nace de la luz (de rodillas)
@@ -21,8 +25,7 @@ export const GATHER_TIME = 1.8 // agarra las herramientas
 export const LOOK_TIME = 1.4 // mira a los costados antes de andar
 export const TOOL_DELAY = 0.3 // separación entre que agarra una herramienta y la siguiente
 export const TOOL_FLY = 0.7 // lo que tarda cada una en llegar a sus manos
-export const TOOL_TO_GATE = 0.9 // lo que tarda en volar hasta el obstáculo
-export const OPEN_TIME = 1.6 // lo que tarda el obstáculo en abrirse
+export const TOOL_ABSORB = 0.9 // lo que tardan en entrar en ella (la magia queda dormida dentro)
 
 // ── Salto ────────────────────────────────────────────────────────
 export const JUMP_CROUCH = 0.12 // se agacha antes de saltar
@@ -92,3 +95,18 @@ export function rng(seed: number) {
 
 /** Ruta de un modelo del bosque (Quaternius). */
 export const natureUrl = (name: string) => `${import.meta.env.BASE_URL}models/nature/${name}.gltf`
+
+/** Posición de un punto a s metros del sendero, desplazado hacia un costado. */
+export function besidePath(s: number, side: number, dist: number, out = new THREE.Vector3()) {
+  pathAt(s, out)
+  const sd = sideAt(s, _sd)
+  return out.addScaledVector(sd, side * dist)
+}
+const _sd = new THREE.Vector3()
+
+/** Distancia (en el suelo) desde un punto al centro de la aldea. */
+export function distToVillage(x: number, z: number) {
+  const c = pathAt(VILLAGE_S, _vc)
+  return Math.hypot(x - c.x, z - c.z)
+}
+const _vc = new THREE.Vector3()
