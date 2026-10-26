@@ -53,7 +53,9 @@ export function CameraRig() {
       if (first) cineSide.current = perp.dot(tangentAt(GIRL_S, tmpV)) >= 0 ? 1 : -1
       const rise = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 3))
       // se aleja un poco mientras la semilla sube, para ver sus caras y la semilla a la vez
-      const dist = 2.3 + rise * 1.3
+      // (en el móvil en vertical la pantalla es estrecha: la cámara se aleja hasta que entran las dos)
+      const half = Math.hypot(GIRL.x - g.x, GIRL.z - g.z) / 2 + 0.45
+      const dist = Math.max(2.3, fitDist(camera as THREE.PerspectiveCamera, half)) + rise * 1.3
       target.copy(mid).addScaledVector(perp, dist * cineSide.current)
       target.y = 0.8 + rise * 0.15
       giftSeedPos(k, elfHand(tmpV), seedP)
@@ -82,7 +84,8 @@ export function CameraRig() {
       if (first) endSide.current = perp.dot(tmpV.copy(camera.position).sub(mid)) >= 0 ? 1 : -1
       const T = g.phaseT
       const close = clamp01((T - 4) / 2) // se acerca para el abrazo
-      target.copy(mid).addScaledVector(perp, (3.2 - close * 1.1) * endSide.current)
+      const fit = fitDist(camera as THREE.PerspectiveCamera, Math.hypot(g.endShadow.x - g.x, g.endShadow.z - g.z) / 2 + 0.5)
+      target.copy(mid).addScaledVector(perp, Math.max(3.2 - close * 1.1, fit) * endSide.current)
       target.y = 1.1 - close * 0.35
       look.set(mid.x, 0.7 - close * 0.15, mid.z)
       if (first) {
@@ -121,4 +124,11 @@ export function CameraRig() {
   })
 
   return null
+}
+
+/** A qué distancia tiene que estar la cámara para que entre un ancho (2 × half metros) en la pantalla. */
+function fitDist(camera: THREE.PerspectiveCamera, half: number) {
+  const vfov = THREE.MathUtils.degToRad(camera.fov)
+  const hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect)
+  return half / Math.tan(hfov / 2)
 }

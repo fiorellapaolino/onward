@@ -10,7 +10,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const log = []
 for (const line of shots) {
   const [name, query, wait = '15', keys = ''] = line.split(/\s+/)
-  const page = await browser.newPage({ viewport: { width: 800, height: 450 } })
+  const page = await browser.newPage({ viewport: name.endsWith('_m') ? { width: 390, height: 780 } : { width: 800, height: 450 } }) // (_m: móvil en vertical)
   page.on('console', (m) => log.push(`[${name}] ${m.type()}: ${m.text()}`))
   page.on('pageerror', (e) => log.push(`[${name}] PAGEERROR: ${e.message}\n${e.stack}`))
   await page.goto(base + query)
