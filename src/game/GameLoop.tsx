@@ -5,11 +5,11 @@ import {
   smoothstep, damp, headingAt, pathAt, sideAt, tangentAt,
 } from './config'
 import * as THREE from 'three'
-import { ECHO_DELAY, game, input, setUi, shadow, trail, type Phase } from './state'
+import { ECHO_DELAY, RETURN_TIME, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime, playThemeAgain } from './music'
 import { CLIPS, duration } from './anim'
 import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, SEED_SPOT, SPOT_R, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
-import { NOTES, bell, flute } from './sfx'
+import { NOTES, bell, chord, flute } from './sfx'
 import {
   ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
@@ -254,6 +254,8 @@ export function GameLoop() {
             g.relayAt = g.time
             g.relayFrom = { x: GIRL.x, z: GIRL.z }
             g.relayTo = { x: ELDER.x, z: ELDER.z }
+            // …y otra parte de su alegría vuelve a la elfa
+            g.returns.push({ x: GIRL.x, y: 0.9, z: GIRL.z, at: g.time + 0.6 })
             setUi({ goal: GOAL_HELP })
           }
         }
@@ -292,6 +294,8 @@ export function GameLoop() {
             g.pulse = 1
             g.c = Math.min(1, g.c + 0.2)
             LANTERNS.forEach((l, i) => (g.lit[i] = g.time + 1.2 + Math.hypot(l.x - POLE.x, l.z - POLE.z) * 0.12))
+            // el anciano ve la luz y se levanta su ánimo: su luz también vuelve a ella
+            g.returns.push({ x: ELDER.x, y: 1.0, z: ELDER.z, at: g.time + 2.2 })
             setUi({ goal: null, msg: LIT_MSG })
           }
         }
@@ -469,6 +473,16 @@ export function GameLoop() {
     }
 
     input.interact = false
+
+    // la luz de alguien a quien ayudó llega a su pecho: destello y unas campanitas
+    for (const r of g.returns) {
+      const arrive = r.at + RETURN_TIME
+      if (g.time - dt < arrive && g.time >= arrive) {
+        g.pulse = 1
+        g.c = Math.min(1, g.c + 0.1)
+        chord()
+      }
+    }
 
     // ── Salto (Espacio) ─────────────────────────────────────────
     if (input.jumpPressed) jumpBuf = 0.3

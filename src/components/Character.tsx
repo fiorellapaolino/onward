@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
-import { game, shadow } from '../game/state'
+import { game, shadow, helpedLights } from '../game/state'
 import { ELDER, GIRL } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene, girlStand, STAND_STEP } from '../game/gift'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -470,7 +470,10 @@ export function Character({ echo = false }: { echo?: boolean }) {
       light.current.intensity = 0 // la sombra no da luz
       return
     }
-    light.current.intensity = (1.2 + g.c * 3 + g.spark * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
+    // cada persona a la que ayudó le devuelve luz: su luz es más fuerte y llega más lejos
+    const helped = helpedLights()
+    light.current.intensity = (1.2 + g.c * 3 + g.spark * 3 + helped * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
+    light.current.distance = 9 + helped * 5
   })
 
   return (

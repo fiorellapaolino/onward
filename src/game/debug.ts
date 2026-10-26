@@ -1,6 +1,6 @@
 import { headingAt, pathAt } from './config'
 import { GIRL_LINES } from './story'
-import { GIRL } from './village'
+import { ELDER, GIRL } from './village'
 import { game, input, setUi } from './state'
 
 /*
@@ -77,6 +77,7 @@ export function applyDebug() {
     game.liftAt = game.time - 20
     game.lightAwake = true
     game.lit = game.lit.map(() => game.time - 10)
+    game.returns = [GIRL, ELDER].map((p) => ({ x: p.x, y: 1, z: p.z, at: game.time - 20 }))
     if (params.has('endT')) {
       // directamente dentro del final, en el segundo endT (la elfa ya se dio vuelta y fue hasta su sombra)
       const T = Number(params.get('endT'))

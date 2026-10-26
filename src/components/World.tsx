@@ -2,8 +2,8 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
-import { PATH_END, PATH_LEN, pathAt, VILLAGE_R, VILLAGE_S, clamp01, distToVillage, gradient, smoothstep, RISE_TIME } from '../game/config'
-import { game, litFraction } from '../game/state'
+import { PATH_END, PATH_LEN, pathAt, SHADOW_S, VILLAGE_R, VILLAGE_S, clamp01, distToVillage, gradient, smoothstep, RISE_TIME } from '../game/config'
+import { game, helpedLights, litFraction } from '../game/state'
 import { MUSIC } from '../game/music'
 import { debugMode } from '../game/debug'
 import { Ground } from './Ground'
@@ -36,6 +36,17 @@ function wakeTarget() {
   return 1
 }
 
+/*
+ * El bosque oscuro después de la aldea: el último tramo antes del claro está a oscuras.
+ * Solo se ve lo que ilumina su luz… y las luces de la gente a la que ayudó, que van con ella.
+ * (0 = de día, 1 = en lo más oscuro). Al llegar al claro del final vuelve la luz.
+ */
+function darkStretch() {
+  const g = game
+  if (g.phase !== 'play' && g.phase !== 'end') return 0
+  return smoothstep(SHADOW_S + 1, SHADOW_S + 7, g.z) * (1 - smoothstep(PATH_LEN - 19, PATH_LEN - 13, g.z))
+}
+
 // un grupo de luciérnagas cada 24 m del sendero
 const FIREFLY_SPOTS = Array.from({ length: Math.ceil((PATH_END + 30) / 24) }, (_, i) => pathAt(i * 24 - 6))
 
@@ -48,6 +59,7 @@ export function World() {
   const gloomRef = useRef(0)
   const ambient = useRef<THREE.AmbientLight>(null!)
   const wake = useRef(debugMode ? 1 : 0)
+  const dark = useRef(0)
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
@@ -63,7 +75,10 @@ export function World() {
     const wt = wakeTarget()
     wake.current += (wt - wake.current) * Math.min(1, dt * (wt > wake.current ? 0.9 : 4))
     const w = wake.current
-    const night = 1 - w
+    // el tramo oscuro del final (más suave que la noche del nacimiento)
+    const dk = darkStretch()
+    dark.current += (dk - dark.current) * Math.min(1, dt * 1.5)
+    const night = Math.max(1 - w, dark.current * 0.85)
 
     const dull = 1 - Math.min(1, game.spark * 1.4)
     gradient(SKY, f, tmp)
@@ -83,14 +98,19 @@ export function World() {
       // a oscuras apenas se ve alrededor de ella
       scene.fog.near *= 0.3 + 0.7 * w
       scene.fog.far = scene.fog.far * (0.45 + 0.55 * w)
+      // en el tramo oscuro se ve tan lejos como llega su luz: más lejos cuanta más gente ayudó
+      const sight = 6 + helpedLights() * 6
+      scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, 1, dark.current)
+      scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, sight, dark.current)
     }
 
     if (ground.current) gradient(GROUND, f, ground.current.color).lerp(DULL_GROUND, dull * 0.35).lerp(GLOOM_GROUND, gl * 0.7).lerp(NIGHT_GROUND, night * 0.9)
     hemi.current.intensity = (1.6 + f * 0.4) * (1 - 0.45 * gl)
     sun.current.intensity = (2.6 + f * 0.8) * (1 - 0.6 * gl)
-    hemi.current.intensity *= 0.04 + 0.96 * w
-    sun.current.intensity *= w * w
-    ambient.current.intensity = 0.35 * (0.2 + 0.8 * w)
+    const lightW = Math.min(w, 1 - dark.current * 0.85)
+    hemi.current.intensity *= 0.04 + 0.96 * lightW
+    sun.current.intensity *= lightW * lightW
+    ambient.current.intensity = 0.35 * (0.2 + 0.8 * lightW)
 
   })
 

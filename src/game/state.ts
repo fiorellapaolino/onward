@@ -74,6 +74,8 @@ export const game = {
   relayAt: -1, // momento en que la luz de una persona ayudada sale hacia la siguiente
   relayFrom: { x: 0, z: 0 },
   relayTo: { x: 0, z: 0 },
+  // la luz que vuelve: cuando ayuda a alguien, una parte de su alegría vuelve a ella y se queda a su lado
+  returns: [] as { x: number; y: number; z: number; at: number }[],
   lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
   shadowOpen: false, // la sombra de la salida ya deja pasar
   // ── el final: se da vuelta, su sombra (su pasado) está encogida; la abraza y caminan juntas hacia adelante ──
@@ -85,6 +87,13 @@ export const game = {
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
+}
+
+/** Cuánto tarda en volar hasta ella la luz de alguien a quien ayudó (segundos). */
+export const RETURN_TIME = 2.4
+/** Cuántas luces de gente ayudada ya llegaron a ella. */
+export function helpedLights() {
+  return game.returns.filter((r) => game.time - r.at >= RETURN_TIME).length
 }
 
 /** Cuántos faroles de la aldea hay encendidos (0..1). */

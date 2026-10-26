@@ -1,4 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-stand ?at=60&give=-2.2   10
-wow ?at=60&give=-4.5   10
-cheer ?at=60&give=-7.6   10
+dark ?at=100&ending   14
+village ?at=70&ending   12
