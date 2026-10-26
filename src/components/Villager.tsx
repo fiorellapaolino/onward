@@ -7,7 +7,7 @@ import { clamp01 } from '../game/config'
 import { game } from '../game/state'
 import { CLIPS, makeSample, sampleAt } from '../game/anim'
 import { ELDER, GIRL, MUSICIAN } from '../game/village'
-import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
+import { GIFT, STAND_STEP, elfHand, giftSeedPos, girlStand } from '../game/gift'
 
 /*
  * La gente de la aldea. Usan los personajes de Quaternius (CC0) con ropa de campesino,
@@ -35,7 +35,49 @@ type Spec = {
   visible?: () => boolean
   /** Gestos de cada frame. near = 0..1 cuánto se ha acercado la elfa; yaw = hacia dónde está ella. */
   gestures: (rot: Rot, t: number, near: number, yaw: number) => void
+  /** Cuánto está de pie (0 = la pose sentada, 1 = de pie). */
+  stand?: () => number
+  /** De pie da un paso hacia delante (metros en el mundo). */
+  standStep?: number
+  /** Saltitos (metros hacia arriba en este momento). */
+  bounce?: () => number
 }
+
+// Gestos de la niña de pie (ajustados con tools/girlpose.py sobre la pose "idle")
+type Pose = [string, Axis, number][]
+// sostiene la semilla delante, con las dos manos
+const HOLD: Pose = [
+  ['upperarm_l', 'left', -0.5],
+  ['upperarm_r', 'left', -0.5],
+  ['lowerarm_l', 'fwd', -1.3],
+  ['lowerarm_r', 'fwd', 1.3],
+]
+// "¡wow!": las manos abiertas delante del pecho, un poco echada hacia atrás
+const WOW: Pose = [
+  ['upperarm_l', 'fwd', 0.8],
+  ['upperarm_r', 'fwd', -0.8],
+  ['upperarm_l', 'left', -0.6],
+  ['upperarm_r', 'left', -0.6],
+  ['lowerarm_l', 'left', -1.3],
+  ['lowerarm_r', 'left', -1.3],
+  ['lowerarm_l', 'fwd', -0.9],
+  ['lowerarm_r', 'fwd', 0.9],
+  ['spine_01', 'left', -0.12],
+]
+// las dos manos al pecho: contenta, celebra
+const CHEER: Pose = [
+  ['upperarm_l', 'left', -1.0],
+  ['upperarm_r', 'left', -1.0],
+  ['upperarm_l', 'fwd', -0.25],
+  ['upperarm_r', 'fwd', 0.25],
+  ['lowerarm_l', 'fwd', -1.9],
+  ['lowerarm_r', 'fwd', 1.9],
+  ['spine_01', 'left', -0.1],
+]
+const applyPose = (rot: Rot, pose: Pose, w: number) => {
+  if (w > 0.001) for (const [b, a, ang] of pose) rot(b, a, ang * w)
+}
+const ramp = (x: number, a: number, b: number) => Math.max(0, Math.min(1, (x - a) / (b - a)))
 
 // ── La niña: sentada en una piedra al pie de su árbol, con las manos en el regazo y la cabeza baja ──
 const GIRL_SPEC: Spec = {
@@ -63,33 +105,46 @@ const GIRL_SPEC: Spec = {
     ['lowerarm_r', 'fwd', 1.2],
   ],
   spot: GIRL,
+  stand: girlStand,
+  standStep: STAND_STEP,
+  bounce: () => {
+    // celebra: unos saltitos con las manos en el pecho
+    if (game.giftAt < 0) return 0
+    const k = game.time - game.giftAt
+    if (k < GIFT.LOOK_EACH + 0.3 || k > GIFT.CHEER_END) return 0
+    return 0.045 * Math.abs(Math.sin((k - GIFT.LOOK_EACH - 0.3) * 7))
+  },
   gestures: (rot, _t, near, yaw) => {
     // (quieta: sin temblores ni sollozos)
-    if (inGiftScene() || game.giftAt >= 0) {
-      // la escena de la semilla: mira la semilla en sus manos, la sigue mientras sube y luego mira a la elfa
+    const st = girlStand()
+    const sit = 1 - st // (la pose sentada tiene la cabeza agachada: se compensa solo sentada)
+    if (game.giftAt >= 0) {
+      // la escena de la semilla: mira la semilla en sus manos, se pone de pie, la suelta y la sigue
+      // con la mirada ("¡wow!"); luego se lleva las manos al pecho, celebra y mira a la elfa
       const k = game.time - game.giftAt
       if (k < GIFT.LOOK_EACH) giftSeedPos(k, elfHand(TMP_A), TMP_B)
       else TMP_B.set(game.x, 1.05, game.z) // la cara de la elfa
-      const dx = TMP_B.x - GIRL.x
-      const dz = TMP_B.z - GIRL.z
+      const face = GIRL_FACE + 0.2 * st
+      const fx = GIRL.x + Math.sin(GIRL.rot) * STAND_STEP * st
+      const fz = GIRL.z + Math.cos(GIRL.rot) * STAND_STEP * st
+      const dx = TMP_B.x - fx
+      const dz = TMP_B.z - fz
       let ty = Math.atan2(dx, dz) - GIRL.rot
       ty = THREE.MathUtils.clamp(Math.atan2(Math.sin(ty), Math.cos(ty)), -1.2, 1.2)
-      const tp = THREE.MathUtils.clamp(Math.atan2(GIRL_FACE - TMP_B.y, Math.max(0.2, Math.hypot(dx, dz))), -1.1, 0.9)
+      const tp = THREE.MathUtils.clamp(Math.atan2(face - TMP_B.y, Math.max(0.2, Math.hypot(dx, dz))), -1.1, 0.9)
       LOOK.yaw += (ty - LOOK.yaw) * 0.08
       LOOK.pitch += (tp - LOOK.pitch) * 0.08
-      // (la pose base tiene la cabeza agachada 0.65: se compensa para mirar a donde toca)
-      rot('neck_01', 'left', LOOK.pitch * 0.45 - 0.3)
-      rot('Head', 'left', LOOK.pitch * 0.55 - 0.35)
+      rot('neck_01', 'left', LOOK.pitch * 0.45 - 0.3 * sit)
+      rot('Head', 'left', LOOK.pitch * 0.55 - 0.35 * sit)
       rot('neck_01', 'up', LOOK.yaw * 0.4)
       rot('Head', 'up', LOOK.yaw * 0.6)
-      // sorpresa: al soltarla se echa hacia atrás y levanta los brazos; después queda contenta, más erguida
-      const wow = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 0.5))
-      const fall = k < GIFT.LOOK_EACH ? 1 : Math.max(0, 1 - (k - GIFT.LOOK_EACH) / 1.5)
-      rot('spine_01', 'left', -0.2 * wow)
-      rot('upperarm_l', 'left', -0.9 * wow * fall)
-      rot('upperarm_r', 'left', -0.9 * wow * fall)
-      rot('upperarm_l', 'fwd', 0.3 * wow * fall)
-      rot('upperarm_r', 'fwd', -0.3 * wow * fall)
+      // de pie: sostiene la semilla → "¡wow!" al soltarla → manos al pecho y celebra
+      const wow = ramp(k, GIFT.RELEASE, GIFT.RELEASE + 0.5) * (1 - ramp(k, GIFT.LOOK_EACH - 0.2, GIFT.LOOK_EACH + 0.3))
+      const cheer = ramp(k, GIFT.LOOK_EACH - 0.2, GIFT.LOOK_EACH + 0.3) * (1 - 0.6 * ramp(k, GIFT.CHEER_END, GIFT.CHEER_END + 1.2))
+      applyPose(rot, HOLD, st * (1 - ramp(k, GIFT.RELEASE, GIFT.RELEASE + 0.4)))
+      applyPose(rot, WOW, st * wow)
+      applyPose(rot, CHEER, st * cheer)
+      if (cheer > 0) rot('Head', 'fwd', 0.12 * cheer * Math.sin(k * 3)) // ladea la cabeza, feliz
       return
     }
     // la elfa se acerca: se endereza un poco, levanta la cabeza y la mira
@@ -166,6 +221,7 @@ const MUSICIAN_SPEC: Spec = {
 }
 
 const TMP_Q = new THREE.Quaternion()
+const STAND_GROUND = 0.025 // de pie, lo más bajo del cuerpo (las botas) queda un poco bajo el origen
 
 export const Musician = () => <Villager spec={MUSICIAN_SPEC} />
 export const Girl = () => <Villager spec={GIRL_SPEC} nearKey="girlNear" />
@@ -176,7 +232,7 @@ function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elder
   const S = useMemo(() => ({ near: 0, yaw: 0 }), [])
   const root = useRef<THREE.Group>(null!)
 
-  const { model, bones, axes, posed } = useMemo(() => {
+  const { model, bones, axes, posed, standing } = useMemo(() => {
     // los cuerpos se comparten (la elfa usa el mismo): hay que clonarlos con su esqueleto
     const [body, ...rest] = gltfs.map((g) => cloneSkinned(g.scene))
     // (si la elfa ya se montó, su cuerpo lleva las orejas de elfa pegadas a la cabeza: aquí no)
@@ -227,13 +283,17 @@ function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elder
     // pose fija: primer frame de "estar de pie" + los ajustes
     const sample = sampleAt(CLIPS.idle, 0, makeSample())
     const posed: Record<string, THREE.Quaternion> = {}
-    for (const [name, q] of Object.entries(sample.q)) if (q && bones[name]) posed[name] = q.clone()
+    const standing: Record<string, THREE.Quaternion> = {} // (de pie: la pose "idle" sin ajustes)
+    for (const [name, q] of Object.entries(sample.q)) if (q && bones[name]) {
+      posed[name] = q.clone()
+      standing[name] = q.clone()
+    }
     for (const [name, axis, angle] of spec.pose) posed[name]?.multiply(TMP_Q.setFromAxisAngle(axes[name][axis], angle))
 
     bones.Head?.scale.setScalar(spec.headScale)
     model.scale.setScalar(spec.scale)
     model.position.y = -spec.ground * spec.scale + (spec.lift ?? 0)
-    return { model, bones, axes, posed }
+    return { model, bones, axes, posed, standing }
   }, [gltfs, spec])
 
   useFrame((_, rawDt) => {
@@ -246,7 +306,14 @@ function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elder
     const nearT = nearKey ? g[nearKey] : Math.hypot(g.x - spec.spot.x, g.z - spec.spot.z) < 5 ? 1 : 0
     S.near += (nearT - S.near) * (1 - Math.exp(-3 * dt))
 
-    for (const [name, q] of Object.entries(posed)) bones[name].quaternion.copy(q)
+    const st = spec.stand ? spec.stand() : 0
+    for (const [name, q] of Object.entries(posed)) {
+      bones[name].quaternion.copy(q)
+      if (st > 0) bones[name].quaternion.slerp(standing[name], st)
+    }
+    // de pie: los pies en el suelo (sin la piedra), un paso adelante, y algún saltito
+    model.position.y = (-spec.ground * (1 - st) + STAND_GROUND * st) * spec.scale + (spec.lift ?? 0) + (spec.bounce ? spec.bounce() : 0)
+    model.position.z = (spec.standStep ?? 0) * st
     const rot: Rot = (name, axis, angle) => {
       const b = bones[name]
       if (b && angle) b.quaternion.multiply(TMP_Q.setFromAxisAngle(axes[name][axis], angle))

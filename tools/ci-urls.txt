@@ -1,3 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-guide ?at=20   14
-birth ?probe   12   Enter:100,wait:5000
+stand ?at=60&give=-2.2   10
+wow ?at=60&give=-4.5   10
+cheer ?at=60&give=-7.6   10

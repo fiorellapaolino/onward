@@ -53,11 +53,13 @@ export function CameraRig() {
       if (first) cineSide.current = perp.dot(tangentAt(GIRL_S, tmpV)) >= 0 ? 1 : -1
       const rise = Math.max(0, Math.min(1, (k - GIFT.RELEASE) / 3))
       // se aleja un poco mientras la semilla sube, para ver sus caras y la semilla a la vez
-      const dist = 2.1 + rise * 1.3
+      const dist = 2.3 + rise * 1.3
       target.copy(mid).addScaledVector(perp, dist * cineSide.current)
       target.y = 0.8 + rise * 0.15
       giftSeedPos(k, elfHand(tmpV), seedP)
-      look.set(mid.x, 0.75 + rise * 0.7, mid.z)
+      // al final baja a sus caras: la niña celebra y se miran
+      const down = Math.max(0, Math.min(1, (k - GIFT.LOOK_EACH) / 1.2))
+      look.set(mid.x, 0.8 + rise * 0.7 * (1 - down), mid.z)
       if (first) {
         // corte de cámara: directamente al plano de las dos
         camera.position.copy(target)

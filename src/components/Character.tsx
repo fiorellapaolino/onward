@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game, shadow } from '../game/state'
 import { ELDER, GIRL } from '../game/village'
-import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
+import { GIFT, elfHand, giftSeedPos, inGiftScene, girlStand, STAND_STEP } from '../game/gift'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { MUSIC, musicLevel } from '../game/music'
 import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
@@ -119,7 +119,9 @@ const LOOK_DIST = { girl: 5.5, elder: 4.5 }
 
 /** A quién mira: a quien la está hablando, o a la persona de la aldea más cercana (si está cerca). */
 function whoToLookAt(x: number, z: number, talk: 'girl' | 'elder' | null) {
-  const girl = { x: GIRL.x, z: GIRL.z, h: FACE.girl }
+  // (después de la semilla está de pie: un paso adelante y la cara más alta)
+  const st = girlStand()
+  const girl = { x: GIRL.x + Math.sin(GIRL.rot) * STAND_STEP * st, z: GIRL.z + Math.cos(GIRL.rot) * STAND_STEP * st, h: FACE.girl + 0.2 * st }
   // en la escena de la semilla: mira la semilla y, al final, a la niña
   if (inGiftScene()) {
     const k = game.time - game.giftAt

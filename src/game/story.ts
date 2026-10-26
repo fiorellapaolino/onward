@@ -3,16 +3,20 @@
  * Los textos van en inglés porque lo piden las reglas de la jam; al lado, la traducción.
  */
 export const GIRL_LINES = [
-  // "…"  (todavía solloza; levanta la cabeza y la mira)
+  // "…"  (todavía está triste; levanta la cabeza y la mira)
   '…',
-  // "¿Quién eres? Brillas… como brillaban antes los faroles."
-  'Who are you? You glow… like the lanterns used to.',
-  // "Una sombra llegó a nuestra aldea. Todos dejaron de… jugar, cantar, reír."
-  'A shadow came to our village. Everyone stopped… playing, singing, laughing.',
-  // "Antes atrapaba las semillas que giran de mi árbol."
-  'I used to catch the spinning seeds from my tree.',
-  // "Ahora solo caen."
-  'Now they just fall.',
+  // "¿Quién eres? Brillas… como brillaba antes nuestra aldea."
+  'Who are you? You glow… like our village used to.',
+  // "Llegaste a nuestra aldea. Hace tanto que esperábamos una luz…"
+  'You came to our village. We have waited so long for a light…',
+  // "Llegó una sombra y todos nos fuimos apagando."
+  'A shadow came, and one by one we all went dim.',
+  // "Ahora nadie juega, nadie canta. Solo nos sentamos a recordar cómo era antes."
+  'Now nobody plays, nobody sings. We just sit and remember how it used to be.',
+  // "Antes atrapaba las semillas que giran de mi árbol… ahora solo caen."
+  'I used to catch the spinning seeds from my tree… now they just fall.',
+  // "¿Me ayudas a atrapar una? Quizás así volvamos a brillar."
+  'Will you catch one with me? Maybe we can shine again.',
 ]
 
 /** Objetivo: "Atrapa una semilla que gira para ella." */
