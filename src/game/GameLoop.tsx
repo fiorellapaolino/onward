@@ -2,11 +2,12 @@ import { useFrame } from '@react-three/fiber'
 import {
   RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST,
   PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END,
-  smoothstep, damp, headingAt, pathAt, sideAt, tangentAt,
+  smoothstep, damp, headingAt, pathAt, sideAt, tangentAt, VILLAGE_S, VILLAGE_R, distToVillage,
 } from './config'
 import * as THREE from 'three'
-import { ECHO_DELAY, RETURN_TIME, game, input, setUi, shadow, trail, type Phase } from './state'
-import { MUSIC, musicTime, playThemeAgain } from './music'
+import { ECHO_DELAY, RETURN_TIME, helpedLights, game, input, setUi, shadow, trail, type Phase } from './state'
+import { MUSIC, musicTime, playThemeAgain, setThemeVolume } from './music'
+import { updateAmbient } from './ambient'
 import { CLIPS, duration } from './anim'
 import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, SEED_SPOT, SPOT_R, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
 import { NOTES, bell, chord, flute } from './sfx'
@@ -22,6 +23,7 @@ const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
 const TMP2 = new THREE.Vector3()
 
+let villageMix = 0 // 0 en el bosque → 1 dentro de la aldea (para la música)
 let jumpBuf = 0 // Espacio pulsado hace poco: salta en cuanto pueda (no se pierde la pulsación)
 let blockMsg = false // se está mostrando "la sombra es demasiado espesa"
 
@@ -474,6 +476,15 @@ export function GameLoop() {
     }
 
     input.interact = false
+
+    // ── La música ──
+    // la canción del tema (alegre) suena al nacer y por el bosque; al entrar en la aldea triste se aleja,
+    // y suena la música de la aldea (original): lenta y en menor, que se vuelve mayor con cada persona ayudada
+    const inVillage = g.z > VILLAGE_S ? 1 : 1 - smoothstep(VILLAGE_R + 2, VILLAGE_R + 20, distToVillage(g.x, g.z))
+    villageMix += (inVillage - villageMix) * damp(0.8, dt)
+    setThemeVolume(1 - villageMix)
+    const sadLevel = g.phase === 'play' ? villageMix * (g.z > SHADOW_S + 4 ? 0.6 : 1) : 0
+    updateAmbient(sadLevel, Math.min(1, helpedLights() / 2), g.memory)
 
     // el recuerdo: mientras la niña cuenta cómo era antes, la aldea vuelve a verse como era
     const remembering = g.talk === 'girl' && (g.line === MEMORY_LINES[0] || g.line === MEMORY_LINES[1])

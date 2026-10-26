@@ -7,7 +7,7 @@
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
 
-function audio() {
+export function audio() {
   if (!ctx) {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     if (!AC) return null
@@ -19,6 +19,9 @@ function audio() {
   if (ctx.state === 'suspended') void ctx.resume()
   return ctx
 }
+
+/** La salida general de los sonidos (para la música de la aldea). */
+export const sfxOut = () => (audio(), master)
 
 // los navegadores solo dejan sonar audio después de una tecla o un toque
 if (typeof window !== 'undefined') {

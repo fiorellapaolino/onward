@@ -49,6 +49,14 @@ export function startMusic() {
   }
 }
 
+/**
+ * Volumen del tema (0..1): al entrar en la aldea triste la canción alegre se aleja.
+ * (Solo el volumen de reproducción: la grabación se usa tal cual, sin cortar ni modificar.)
+ */
+export function setThemeVolume(v: number) {
+  if (audio) audio.volume = Math.max(0, Math.min(1, 0.9 * v))
+}
+
 /** Segundos de música transcurridos (-1 si todavía no empezó). */
 export function musicTime() {
   if (startedAt < 0) return -1

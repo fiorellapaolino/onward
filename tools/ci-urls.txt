@@ -1,2 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-memory ?at=61&talk=4&yaw=0.5   14
+village ?at=62   10
