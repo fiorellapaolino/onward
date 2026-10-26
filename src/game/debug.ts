@@ -41,6 +41,7 @@ export function applyDebug() {
     game.line = Number(params.get('talk'))
     game.girlNear = 1
     setUi({ say: GIRL_LINES[game.line] })
+    game.memory = 1 // (si es una frase del recuerdo, que se vea ya)
   }
   if (params.has('help') || params.has('fear') || params.has('plates') || params.has('music')) {
     game.story = 'help'
