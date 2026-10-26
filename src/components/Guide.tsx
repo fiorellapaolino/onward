@@ -89,8 +89,8 @@ export function Guide() {
         WANT.set(tg.x, tg.y + 0.3, tg.z)
       } else if (d > 8 && tg.z - g.z > 6) {
         // lejos y hacia delante: va unos pasos por delante, siguiendo el sendero
-        const p = pathAt(Math.min(g.z + 3.4, tg.z), TMP)
-        WANT.set(p.x + Math.sin(t * 0.7) * 0.5, 1.35, p.z)
+        const p = pathAt(Math.min(g.z + 2.4, tg.z), TMP)
+        WANT.set(p.x + Math.sin(t * 0.7) * 0.5, 1.6, p.z)
       } else {
         // cerca: entre ella y el sitio, invitándola a acercarse
         const k = Math.min(2.6, Math.max(0, d - tg.near)) / Math.max(d, 1e-3)
@@ -131,7 +131,7 @@ export function Guide() {
 
   return (
     <group>
-      <sprite ref={core} material={mats.core} scale={0.5} />
+      <sprite ref={core} material={mats.core} scale={0.6} />
       <sprite ref={halo} material={mats.halo} scale={0.9} />
       {Array.from({ length: TRAIL }, (_, i) => (
         <sprite key={i} ref={(el) => (trail.current[i] = el)} material={mats.trail} />
