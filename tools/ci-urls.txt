@@ -1,3 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
 dark ?at=100&ending   14
-seed_m ?at=60&give=-4.5   12

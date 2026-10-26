@@ -78,6 +78,7 @@ export function World() {
     // el tramo oscuro del final (más suave que la noche del nacimiento)
     const dk = darkStretch()
     dark.current += (dk - dark.current) * Math.min(1, dt * 1.5)
+    if (debugMode) dark.current = dk // (en las pruebas, sin esperar)
     const night = Math.max(1 - w, dark.current * 0.85)
 
     const dull = 1 - Math.min(1, game.spark * 1.4)
