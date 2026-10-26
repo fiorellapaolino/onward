@@ -1,2 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-dark ?at=100&ending   14
+memory ?at=61&talk=4&yaw=0.5   14

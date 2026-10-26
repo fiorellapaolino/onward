@@ -25,6 +25,7 @@ const tmp = new THREE.Color()
 
 // al nacer todo está a oscuras: solo se ve la luz de la elfa. Al ponerse de pie, el mundo se ilumina.
 const NIGHT = new THREE.Color('#06080f')
+const MEMORY_SKY = new THREE.Color('#f6d9a2')
 const NIGHT_GROUND = new THREE.Color('#1a1d24')
 
 /** Cuánto se ha despertado el mundo: 0 a oscuras (recién nacida) → 1 de día. */
@@ -69,7 +70,7 @@ export function World() {
     const inside = game.z > VILLAGE_S ? 1 : 1 - smoothstep(VILLAGE_R - 3, VILLAGE_R + 22, distToVillage(game.x, game.z))
     const gloomTarget = game.shadowOpen ? 0 : inside * (1 - 0.6 * litFraction()) // los faroles la apartan
     gloomRef.current += (gloomTarget - gloomRef.current) * Math.min(1, dt * 1.2)
-    const gl = gloomRef.current
+    const gl = gloomRef.current * (1 - game.memory) // (en el recuerdo no hay sombra)
 
     // amanece despacio (unos 3 s), nunca de golpe
     const wt = wakeTarget()
@@ -81,11 +82,12 @@ export function World() {
     if (debugMode) dark.current = dk // (en las pruebas, sin esperar)
     const night = Math.max(1 - w, dark.current * 0.85)
 
-    const dull = 1 - Math.min(1, game.spark * 1.4)
+    const dull = (1 - Math.min(1, game.spark * 1.4)) * (1 - game.memory)
     gradient(SKY, f, tmp)
     tmp.lerp(DULL_SKY, dull * 0.45)
     tmp.lerp(GLOOM_SKY, gl * 0.8)
     tmp.lerp(NIGHT, night)
+    tmp.lerp(MEMORY_SKY, game.memory * 0.55) // el recuerdo: cálido, dorado
     if (scene.background instanceof THREE.Color) scene.background.copy(tmp)
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.color.copy(tmp)

@@ -193,11 +193,11 @@ function GirlSeeds() {
   useFrame(() => {
     const g = game
     const t = g.time
-    // caen solas, girando (solo mientras la niña todavía no tiene la suya)
+    // caen solas, girando
     seeds.forEach((sd, i) => {
       const o = refs.current[i]
       if (!o) return
-      o.visible = g.giftAt < 0
+      o.visible = true // (después de ayudarla vuelven a caer a su alrededor: el recuerdo se vuelve real)
       const u = ((t + sd.off) % sd.period) / sd.period
       const swirl = sd.a + u * 5
       o.position.set(GIRL_TREE.x + Math.cos(swirl) * sd.d, Math.max(0.02, 4.2 * (1 - u)), GIRL_TREE.z + Math.sin(swirl) * sd.d)

@@ -75,6 +75,7 @@ export const game = {
   relayFrom: { x: 0, z: 0 },
   relayTo: { x: 0, z: 0 },
   // la luz que vuelve: cuando ayuda a alguien, una parte de su alegría vuelve a ella y se queda a su lado
+  memory: 0, // 0..1: el recuerdo de cómo era la aldea antes (mientras la niña lo cuenta)
   returns: [] as { x: number; y: number; z: number; at: number }[],
   lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
   shadowOpen: false, // la sombra de la salida ya deja pasar

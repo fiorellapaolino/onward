@@ -14,6 +14,7 @@ import {
   ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
+import { MEMORY_LINES } from './story'
 import { SEED_FALL, STILL_NEEDED, updateMoments } from './moments'
 import { GIFT, inGiftScene } from './gift'
 
@@ -473,6 +474,10 @@ export function GameLoop() {
     }
 
     input.interact = false
+
+    // el recuerdo: mientras la niña cuenta cómo era antes, la aldea vuelve a verse como era
+    const remembering = g.talk === 'girl' && (g.line === MEMORY_LINES[0] || g.line === MEMORY_LINES[1])
+    g.memory += ((remembering ? 1 : 0) - g.memory) * damp(remembering ? 1.2 : 1.6, dt)
 
     // la luz de alguien a quien ayudó llega a su pecho: destello y unas campanitas
     for (const r of g.returns) {

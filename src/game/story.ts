@@ -19,6 +19,9 @@ export const GIRL_LINES = [
   'Will you catch one with me? Maybe we can shine again.',
 ]
 
+/** Mientras dice estas dos frases se ve el recuerdo de cómo era la aldea (Memory.tsx). */
+export const MEMORY_LINES = [4, 5]
+
 /** Objetivo: "Atrapa una semilla que gira para ella." */
 export const GOAL_SEED = 'Catch a spinning seed for her.'
 
