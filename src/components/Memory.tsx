@@ -23,9 +23,9 @@ const BODY_H = 1.777 // altura del modelo original
 
 // material de las figuras del recuerdo: luz cálida, medio transparente
 const GHOST_MAT = new THREE.MeshStandardMaterial({
-  color: '#fff1d6',
-  emissive: '#ffc777',
-  emissiveIntensity: 0.9,
+  color: '#ffe3b3',
+  emissive: '#ffb347',
+  emissiveIntensity: 1.3,
   transparent: true,
   opacity: 0,
   depthWrite: false,
@@ -175,7 +175,7 @@ function MemorySeeds() {
   useFrame(() => {
     const m = game.memory
     // el material de las figuras también sigue al recuerdo
-    GHOST_MAT.opacity = 0.55 * m
+    GHOST_MAT.opacity = 0.7 * m
     mat.opacity = 0.9 * m
     light.current.intensity = 6 * m
     const t = game.time
