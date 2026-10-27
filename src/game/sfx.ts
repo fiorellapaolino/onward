@@ -131,3 +131,32 @@ export function splash() {
   o.start(t)
   o.stop(t + 0.2)
 }
+
+/*
+ * El zumbido del espejo: mientras mira en la obsidiana se oye un sonido grave y quieto,
+ * como el agua oscura (dos notas graves que laten despacio).
+ */
+let hum: { g: GainNode } | null = null
+export function setMirrorHum(v: number) {
+  if (v <= 0 && !hum) return
+  const a = audio()
+  if (!a || !master) return
+  if (!hum) {
+    const g = a.createGain()
+    g.gain.value = 0
+    const lp = a.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 600
+    g.connect(lp).connect(master)
+    for (const [f, det] of [[110, 0], [110, 7], [164.8, -5]] as const) {
+      const o = a.createOscillator()
+      o.type = 'sine'
+      o.frequency.value = f
+      o.detune.value = det
+      o.connect(g)
+      o.start()
+    }
+    hum = { g }
+  }
+  hum.g.gain.setTargetAtTime(0.22 * v, a.currentTime, 0.15)
+}

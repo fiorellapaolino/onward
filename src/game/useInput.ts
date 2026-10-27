@@ -37,6 +37,7 @@ export function useInput() {
       if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) document.activeElement.blur()
       // E (o Enter): escuchar a alguien / pasar a la siguiente frase
       if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat && game.started) input.interact = true
+      if (e.code === 'KeyQ') input.look = true // (mantener Q: mirar en el espejo)
       if (e.code === 'KeyE') input.hold = true // (mantener E: quedarse aunque dé miedo)
       // Al terminar, R vuelve a empezar
       if (e.code === 'KeyR' && game.phase === 'end' && game.phaseT > 28) location.reload()
@@ -46,6 +47,7 @@ export function useInput() {
     const onKeyUp = (e: KeyboardEvent) => {
       keys.delete(e.code)
       if (e.code === 'KeyE') input.hold = false
+      if (e.code === 'KeyQ') input.look = false
       sync()
     }
 
@@ -106,6 +108,7 @@ export function useInput() {
     }
     const onPointerUp = (e: PointerEvent) => {
       input.hold = false // (el dedo que mantenía el aviso)
+      input.look = false // (el dedo que mantenía el botón del espejo)
       if (e.pointerId === joyId) {
         joyId = -1
         input.joyX = input.joyY = 0
@@ -123,6 +126,7 @@ export function useInput() {
     }
     const onBlur = () => {
       keys.clear()
+      input.look = false
       input.hold = false
       joyId = camId = -1
       input.joyX = input.joyY = 0

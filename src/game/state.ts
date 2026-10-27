@@ -75,6 +75,8 @@ export const game = {
   relayFrom: { x: 0, z: 0 },
   relayTo: { x: 0, z: 0 },
   // la luz que vuelve: cuando ayuda a alguien, una parte de su alegría vuelve a ella y se queda a su lado
+  mirror: 0, // 0..1: cuánto está mirando en el espejo de obsidiana (mantener Q)
+  hasShard: true, // tiene un trozo de espejo (prototipo: desde el principio; luego se lo dará la niña)
   memory: 0, // 0..1: el recuerdo de cómo era la aldea antes (mientras la niña lo cuenta)
   returns: [] as { x: number; y: number; z: number; at: number }[],
   lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
@@ -127,6 +129,7 @@ export const input = {
   joyY: 0, // -1 adelante … 1 atrás (como en la pantalla: hacia arriba = adelante)
   jumpPressed: false, // Espacio (se consume en el siguiente frame)
   interact: false, // E (o clic en el diálogo): escuchar / pasar a la siguiente frase
+  look: false, // Q mantenida (o el botón): mirar en el espejo de obsidiana
   hold: false, // E mantenida (o el dedo sobre el aviso): quedarse aunque dé miedo
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
   camYaw: 0, // hacia dónde mira la cámara en el mundo (0 = hacia delante en el sendero)

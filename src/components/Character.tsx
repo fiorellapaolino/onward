@@ -245,7 +245,8 @@ export function Character({ echo = false }: { echo?: boolean }) {
     const g = echo ? shadow : game
     const a = anim.current
     if (echo) {
-      const born = game.shadowOn ? Math.min(1, (game.time - game.shadowAt) / 1.5) : 0
+      // (antes de nacer solo se la ve en el espejo: siempre está ahí, detrás de ella)
+      const born = Math.max(game.shadowOn ? Math.min(1, (game.time - game.shadowAt) / 1.5) : 0, game.mirror)
       root.current.visible = born > 0
       SHADOW_MAT.opacity = 0.72 * born
       // al final, después del abrazo, la sombra se vuelve luz cálida

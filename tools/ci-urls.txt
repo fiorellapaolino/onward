@@ -1,2 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-memory ?at=61&talk=4&yaw=0.5   14
+mirror ?at=58&mirror   14
+mirror_m ?at=30&mirror   14

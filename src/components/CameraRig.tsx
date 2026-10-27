@@ -119,7 +119,20 @@ export function CameraRig() {
     ahead.y = 1.3 + ee * 2
     look.copy(pos).setY(0.8).lerp(ahead, 1 - clamp01(Math.max(0, input.camPitch) * 0.6))
 
-    lookSmooth.current.lerp(look, damp(input.dragging ? 12 : 5, dt))
+    // ── En el espejo: la vemos desde delante, como se ve ella reflejada, y detrás… su sombra ──
+    const m = g.mirror
+    if (m > 0.001) {
+      const s = m * m * (3 - 2 * m)
+      const fx = Math.sin(g.yaw)
+      const fz = Math.cos(g.yaw)
+      tmpV.set(g.x + fx * 2.1, 1.15, g.z + fz * 2.1)
+      target.lerp(tmpV, s)
+      tmpV.set(g.x - fx * 0.7, 0.95, g.z - fz * 0.7) // (entre ella y su sombra)
+      look.lerp(tmpV, s)
+      camera.position.lerp(target, damp(10, dt) * s + (1 - s) * 0)
+    }
+
+    lookSmooth.current.lerp(look, damp(input.dragging ? 12 : m > 0.001 ? 10 : 5, dt))
     camera.lookAt(lookSmooth.current)
   })
 

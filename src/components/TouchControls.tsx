@@ -53,6 +53,17 @@ export function TouchControls({ show }: { show: boolean }) {
       </button>
       <button
         type="button"
+        className="touch-btn mirror"
+        onPointerDown={(e) => {
+          consumePointer(e)
+          input.look = true // (mantener: mirar en el espejo; al soltar el dedo se suelta)
+        }}
+      >
+        {/* "Espejo" */}
+        Mirror
+      </button>
+      <button
+        type="button"
         className="touch-btn jump"
         onPointerDown={(e) => {
           consumePointer(e)

@@ -13,6 +13,7 @@ import { game, input, setUi } from './state'
  *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
+ *   ?at=60&mirror   … mirando en el espejo de obsidiana
  *   ?at=105&ending  … con la aldea iluminada y su sombra: caminar hasta el claro del final
  * Sin parámetros, el juego es normal.
  */
@@ -94,6 +95,11 @@ export function applyDebug() {
         game.yaw = a
       }
     }
+  }
+  if (params.has('mirror')) {
+    // mirando en el espejo (para las capturas)
+    input.look = true
+    game.mirror = 1
   }
   if (params.has('plates')) {
     game.story = 'plates'

@@ -28,6 +28,23 @@ export function Hud() {
     setUi({ start: false })
   }
 
+  // El espejo: un velo oscuro como agua negra, y al cruzar la mitad el mundo se ve al revés (reflejado)
+  const mirrorFx = useRef<HTMLDivElement>(null)
+  const mirrorFlash = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let raf = 0
+    const tick = () => {
+      const m = game.mirror
+      if (mirrorFx.current) mirrorFx.current.style.opacity = String(m)
+      // un destello oscuro justo al entrar (tapa el momento en que la imagen se da vuelta)
+      if (mirrorFlash.current) mirrorFlash.current.style.opacity = String(Math.max(0, 1 - Math.abs(m - 0.5) * 3.2))
+      document.body.classList.toggle('mirrored', m > 0.5)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
   // también se puede empezar con Enter o Espacio
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -71,14 +88,17 @@ export function Hud() {
         ) : (
           <>
             <p>
-              {/* "W A S D para moverte · Tab para correr · Espacio para saltar" */}
-              <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move · <kbd>Tab</kbd> to run · <kbd>Space</kbd> to jump
+              {/* "W A S D para moverte · Tab para correr · Espacio para saltar · mantén Q para mirar en el espejo" */}
+              <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move · <kbd>Tab</kbd> to run · <kbd>Space</kbd> to jump · hold <kbd>Q</kbd> to look in the mirror
             </p>
             {/* "Arrastra para mirar alrededor · rueda para acercar" */}
             <p className="hint">Drag to look around · scroll to zoom</p>
           </>
         )}
       </div>
+
+      <div ref={mirrorFx} className="mirror-fx" />
+      <div ref={mirrorFlash} className="mirror-flash" />
 
       <div className={`msg ${ui.msg ? 'show' : ''}`}>{lastMsg.current}</div>
 

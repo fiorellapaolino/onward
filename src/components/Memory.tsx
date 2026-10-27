@@ -108,7 +108,7 @@ function Ghost({ spec }: { spec: GhostSpec }) {
   const Q = useMemo(() => new THREE.Quaternion(), [])
 
   useFrame(() => {
-    const m = game.memory
+    const m = Math.max(game.memory, game.mirror) // (en el espejo se ven los recuerdos)
     root.current.visible = m > 0.01
     if (!root.current.visible) return
     const t = game.time
@@ -173,7 +173,7 @@ function MemorySeeds() {
   const light = useRef<THREE.PointLight>(null!)
   const seeds = useMemo(() => Array.from({ length: 14 }, (_, i) => ({ a: i * 2.4, d: 0.5 + ((i * 37) % 10) / 4, p: 4 + (i % 5), o: i * 0.7 })), [])
   useFrame(() => {
-    const m = game.memory
+    const m = Math.max(game.memory, game.mirror)
     // el material de las figuras también sigue al recuerdo
     GHOST_MAT.opacity = 0.7 * m
     mat.opacity = 0.9 * m

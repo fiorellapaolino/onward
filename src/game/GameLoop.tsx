@@ -9,7 +9,7 @@ import { ECHO_DELAY, RETURN_TIME, game, input, setUi, shadow, trail, type Phase 
 import { MUSIC, musicTime, playThemeAgain } from './music'
 import { CLIPS, duration } from './anim'
 import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, SEED_SPOT, SPOT_R, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
-import { NOTES, bell, chord, flute } from './sfx'
+import { NOTES, bell, chord, flute, setMirrorHum } from './sfx'
 import {
   ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
@@ -138,7 +138,7 @@ export function GameLoop() {
         const sIn = THREE.MathUtils.clamp((input.right ? 1 : 0) - (input.left ? 1 : 0) + input.joyX, -1, 1)
         const cy = input.camYaw
         MOVE.set(Math.sin(cy) * fIn - Math.cos(cy) * sIn, 0, Math.cos(cy) * fIn + Math.sin(cy) * sIn)
-        const moving = MOVE.lengthSq() > 0.04 // (con la palanca, un toque mínimo no la mueve)
+        const moving = MOVE.lengthSq() > 0.04 && g.mirror < 0.05 // (mirando en el espejo no camina) // (con la palanca, un toque mínimo no la mueve)
         if (moving) MOVE.normalize()
         if (moving && g.phaseT > 4) setUi({ hint: false }) // los controles se van tras los primeros pasos
         if (moving) g.c += (cMax - g.c) * dt * 0.6
@@ -475,6 +475,12 @@ export function GameLoop() {
 
     input.interact = false
 
+    // ── El espejo de obsidiana: mantener Q la hace mirar en él (y no camina mientras mira) ──
+    const canLook = g.hasShard && g.phase === 'play' && !g.talk && !inGiftScene()
+    g.mirror += ((input.look && canLook ? 1 : 0) - g.mirror) * damp(input.look && canLook ? 3 : 4, dt)
+    if (g.mirror < 0.002) g.mirror = 0
+    setMirrorHum(g.mirror)
+
     // el recuerdo: mientras la niña cuenta cómo era antes, la aldea vuelve a verse como era
     const remembering = g.talk === 'girl' && (g.line === MEMORY_LINES[0] || g.line === MEMORY_LINES[1])
     g.memory += ((remembering ? 1 : 0) - g.memory) * damp(remembering ? 1.2 : 1.6, dt)
@@ -527,6 +533,16 @@ export function GameLoop() {
     shadow.fear = 0
     shadow.blocked = false
     shadow.phase = 'play'
+    // antes de nacer, su sombra está quieta detrás de ella (solo se ve en el espejo)
+    if (!g.shadowOn) {
+      shadow.x = g.x - Math.sin(g.yaw) * 1.3
+      shadow.z = g.z - Math.cos(g.yaw) * 1.3
+      shadow.yaw = g.yaw
+      shadow.speed = 0
+      shadow.jumpT = -1
+      shadow.jumpY = 0
+      shadow.idle = 3
+    }
     }
   }, -1)
 
