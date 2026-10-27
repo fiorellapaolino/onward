@@ -125,9 +125,10 @@ export function CameraRig() {
       const s = m * m * (3 - 2 * m)
       const fx = Math.sin(g.yaw)
       const fz = Math.cos(g.yaw)
-      tmpV.set(g.x + fx * 2.1, 1.15, g.z + fz * 2.1)
+      // (de frente y un poco de lado: su cara, y su sombra detrás, asomando por encima del hombro)
+      tmpV.set(g.x + fx * 2.7 + fz * 0.9, 1.45, g.z + fz * 2.7 - fx * 0.9)
       target.lerp(tmpV, s)
-      tmpV.set(g.x - fx * 0.7, 0.95, g.z - fz * 0.7) // (entre ella y su sombra)
+      tmpV.set(g.x - fx * 0.5, 0.85, g.z - fz * 0.5) // (entre ella y su sombra)
       look.lerp(tmpV, s)
       camera.position.lerp(target, damp(10, dt) * s + (1 - s) * 0)
     }
