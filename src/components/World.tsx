@@ -70,7 +70,9 @@ export function World() {
     const inside = game.z > VILLAGE_S ? 1 : 1 - smoothstep(VILLAGE_R - 3, VILLAGE_R + 22, distToVillage(game.x, game.z))
     const gloomTarget = game.shadowOpen ? 0 : inside * (1 - 0.6 * litFraction()) // los faroles la apartan
     gloomRef.current += (gloomTarget - gloomRef.current) * Math.min(1, dt * 1.2)
-    const gl = gloomRef.current * (1 - game.memory) // (en el recuerdo no hay sombra)
+    // el pasado (en el recuerdo, o mirando en el espejo) se ve cálido y con color; sin sombra
+    const past = Math.max(game.memory, game.mirror)
+    const gl = gloomRef.current * (1 - past) // (en el recuerdo no hay sombra)
 
     // amanece despacio (unos 3 s), nunca de golpe
     const wt = wakeTarget()
@@ -80,15 +82,14 @@ export function World() {
     const dk = darkStretch()
     dark.current += (dk - dark.current) * Math.min(1, dt * 1.5)
     if (debugMode) dark.current = dk // (en las pruebas, sin esperar)
-    // en el espejo todo se ve oscuro, como en agua negra
-    const night = Math.max(1 - w, dark.current * 0.85, game.mirror * 0.75)
+    const night = Math.max(1 - w, dark.current * 0.85)
 
-    const dull = (1 - Math.min(1, game.spark * 1.4)) * (1 - game.memory)
+    const dull = (1 - Math.min(1, game.spark * 1.4)) * (1 - past)
     gradient(SKY, f, tmp)
     tmp.lerp(DULL_SKY, dull * 0.45)
     tmp.lerp(GLOOM_SKY, gl * 0.8)
     tmp.lerp(NIGHT, night)
-    tmp.lerp(MEMORY_SKY, game.memory * 0.55) // el recuerdo: cálido, dorado
+    tmp.lerp(MEMORY_SKY, past * 0.55) // el pasado: cálido, dorado
     if (scene.background instanceof THREE.Color) scene.background.copy(tmp)
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.color.copy(tmp)
@@ -111,7 +112,7 @@ export function World() {
     if (ground.current) gradient(GROUND, f, ground.current.color).lerp(DULL_GROUND, dull * 0.35).lerp(GLOOM_GROUND, gl * 0.7).lerp(NIGHT_GROUND, night * 0.9)
     hemi.current.intensity = (1.6 + f * 0.4) * (1 - 0.45 * gl)
     sun.current.intensity = (2.6 + f * 0.8) * (1 - 0.6 * gl)
-    const lightW = Math.min(w, 1 - dark.current * 0.85, 1 - game.mirror * 0.6)
+    const lightW = Math.min(w, 1 - dark.current * 0.85)
     hemi.current.intensity *= 0.04 + 0.96 * lightW
     sun.current.intensity *= lightW * lightW
     ambient.current.intensity = 0.35 * (0.2 + 0.8 * lightW)

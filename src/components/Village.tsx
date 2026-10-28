@@ -221,7 +221,7 @@ function ShadowMist() {
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
     fade.current += ((game.shadowOpen ? 0 : 1) - fade.current) * damp(0.8, dt)
-    material.opacity = 0.8 * fade.current * (1 - 0.9 * game.memory) // (en el recuerdo todavía no había sombra)
+    material.opacity = 0.8 * fade.current * (1 - 0.9 * Math.max(game.memory, game.mirror)) // (en el recuerdo todavía no había sombra)
     const t = game.time
     blobs.forEach((b, i) => {
       const s = refs.current[i]
