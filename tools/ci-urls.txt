@@ -1,2 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-walk ?at=22   10   KeyW:6000,wait:6000
+fuego ?at=27&fearR=3   14
