@@ -12,6 +12,7 @@ import { Guide } from './components/Guide'
 import { Companions } from './components/Companions'
 import { Memory } from './components/Memory'
 import { Shards } from './components/Shards'
+import { DarkChase } from './components/DarkChase'
 import { Elder, Girl, Musician } from './components/Villager'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
@@ -44,6 +45,7 @@ export default function App() {
           <Companions />
           <Memory />
           <Shards />
+          <DarkChase />
           <Forest />
         </Suspense>
       </Canvas>

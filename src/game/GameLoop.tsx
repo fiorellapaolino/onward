@@ -138,19 +138,29 @@ export function GameLoop() {
         const sIn = THREE.MathUtils.clamp((input.right ? 1 : 0) - (input.left ? 1 : 0) + input.joyX, -1, 1)
         const cy = input.camYaw
         MOVE.set(Math.sin(cy) * fIn - Math.cos(cy) * sIn, 0, Math.cos(cy) * fIn + Math.sin(cy) * sIn)
-        const moving = MOVE.lengthSq() > 0.04 && g.mirror < 0.05 // (mirando en el espejo no camina) // (con la palanca, un toque mínimo no la mueve)
+        // ── Onward: nunca se da vuelta. Siempre mira hacia adelante (por el sendero);
+        //    puede retroceder despacio, de espaldas, y para ver lo que tiene detrás usa el espejo ──
+        const ahead = headingAt(g.z)
+        const backing = fIn < -0.25 // S / palanca hacia atrás: retrocede sin girarse
+        // (mirando en el espejo no avanza: solo puede retroceder, como con un retrovisor)
+        const moving = MOVE.lengthSq() > 0.04 && (backing || g.mirror < 0.05) // (con la palanca, un toque mínimo no la mueve)
+        g.backing = moving && backing
         if (moving) MOVE.normalize()
         if (moving && g.phaseT > 4) setUi({ hint: false }) // los controles se van tras los primeros pasos
         if (moving) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
 
         // caminar (algo más rápido con la confianza) o correr manteniendo Tab
-        const target = moving ? (input.run || input.runToggle ? RUN_SPEED + 0.4 * g.c : WALK_SPEED + 0.45 * g.c) : 0
+        const target = !moving ? 0 : g.backing ? 0.75 : input.run || input.runToggle ? RUN_SPEED + 0.4 * g.c : WALK_SPEED + 0.45 * g.c
         g.speed += (target - g.speed) * damp(5, dt)
 
         // gira suavemente hacia donde camina (por el camino más corto)
+        // (nunca más de unos 60° fuera del sendero: no puede darse vuelta)
         if (moving) {
-          const want = Math.atan2(MOVE.x, MOVE.z)
+          let want = g.backing ? ahead + sIn * 0.3 : Math.atan2(MOVE.x, MOVE.z)
+          let off = Math.atan2(Math.sin(want - ahead), Math.cos(want - ahead))
+          off = THREE.MathUtils.clamp(off, -1.05, 1.05)
+          want = ahead + off
           const diff = Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw))
           g.yaw += diff * damp(9, dt)
         }
@@ -159,8 +169,9 @@ export function GameLoop() {
         const airborne = g.jumpT >= JUMP_CROUCH && g.jumpT < JUMP_CROUCH + JUMP_AIR
         const air = airborne ? Math.sin(((g.jumpT - JUMP_CROUCH) / JUMP_AIR) * Math.PI) : 0
         const step = airborne ? g.speed + JUMP_BOOST * (0.6 + 0.4 * air) : g.speed
-        g.x += Math.sin(g.yaw) * step * dt
-        g.z += Math.cos(g.yaw) * step * dt
+        const dir = g.backing ? -1 : 1 // (retrocediendo va de espaldas)
+        g.x += Math.sin(g.yaw) * step * dt * dir
+        g.z += Math.cos(g.yaw) * step * dt * dir
 
         // ── Límites: no sale del bosque, no vuelve más atrás del inicio, y la sombra corta el paso ──
         const maxZ = g.shadowOpen ? PATH_LEN : SHADOW_S - 1.2
@@ -479,7 +490,22 @@ export function GameLoop() {
     const canLook = g.hasShard && g.phase === 'play' && !g.talk && !inGiftScene()
     g.mirror += ((input.look && canLook ? 1 : 0) - g.mirror) * damp(input.look && canLook ? 3 : 4, dt)
     if (g.mirror < 0.002) g.mirror = 0
-    setMirrorHum(g.mirror)
+    // ── La oscuridad la persigue por detrás (en el bosque oscuro, al salir de la aldea) ──
+    // como nunca se da vuelta, solo la ve en el espejo; si se queda quieta, la alcanza y su luz se apaga
+    let near = 0
+    if (g.phase === 'play' && g.shadowOpen && g.z > SHADOW_S - 2) {
+      if (g.chaseZ < 0) g.chaseZ = g.z - 14
+      g.chaseZ = Math.max(g.chaseZ + 0.95 * dt, g.z - 16) // (nunca se queda muy atrás)
+      const gap = g.z - g.chaseZ
+      near = THREE.MathUtils.clamp(1 - (gap - 1.5) / 6, 0, 1)
+      if (gap < 1.6) {
+        g.chaseZ = g.z - 1.6
+        g.speed = Math.min(g.speed, 0.6) // la alcanza: le cuesta avanzar
+      }
+    }
+    g.chaseNear = near
+    g.fear = Math.max(g.fear, near * 0.8)
+    setMirrorHum(Math.max(g.mirror, near * 0.9))
 
     // el recuerdo: mientras la niña cuenta cómo era antes, la aldea vuelve a verse como era
     const remembering = g.talk === 'girl' && (g.line === MEMORY_LINES[0] || g.line === MEMORY_LINES[1])

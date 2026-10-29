@@ -305,7 +305,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
     // ── Ritmo del paso: los pies avanzan lo mismo que ella (sin patinar) ──
     const cycle = cycleLength(CLIPS.walk) + (cycleLength(CLIPS.run) - cycleLength(CLIPS.walk)) * a.run
-    a.phase += (g.speed * dt) / cycle + (turning ? dt * 1.3 : 0) // (al girar: pasitos en el sitio)
+    a.phase += ((g.backing ? -1 : 1) * g.speed * dt) / cycle + (turning ? dt * 1.3 : 0) // (al girar: pasitos en el sitio)
 
     // ── Mezcla ─────────────────────────────────────────────────
     const base = S.base

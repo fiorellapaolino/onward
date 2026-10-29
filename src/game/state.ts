@@ -75,6 +75,9 @@ export const game = {
   relayFrom: { x: 0, z: 0 },
   relayTo: { x: 0, z: 0 },
   // la luz que vuelve: cuando ayuda a alguien, una parte de su alegría vuelve a ella y se queda a su lado
+  chaseNear: 0, // 0..1 lo cerca que la tiene
+  chaseZ: -1, // la oscuridad que la persigue por detrás en el bosque oscuro (dónde está; -1 = todavía no)
+  backing: false, // retrocede de espaldas (sin darse vuelta)
   mirror: 0, // 0..1: cuánto está mirando en el espejo de obsidiana (mantener Q)
   hasShard: true, // tiene un trozo de espejo (prototipo: desde el principio; luego se lo dará la niña)
   memory: 0, // 0..1: el recuerdo de cómo era la aldea antes (mientras la niña lo cuenta)

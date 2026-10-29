@@ -102,6 +102,12 @@ export function CameraRig() {
     cineSide.current = 0
 
     pos.set(g.x, g.jumpY * 0.5, g.z)
+    // la cámara siempre mira hacia adelante: se puede girar un poco a los lados, nunca hacia atrás
+    if (g.phase === 'play') {
+      const ahead = headingAt(g.z)
+      const off = Math.atan2(Math.sin(input.camYaw - ahead), Math.cos(input.camYaw - ahead))
+      input.camYaw = ahead + THREE.MathUtils.clamp(off, -0.7, 0.7)
+    }
     const cy = input.camYaw
     fwd.set(Math.sin(cy), 0, Math.cos(cy))
 
