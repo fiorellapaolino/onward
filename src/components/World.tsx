@@ -7,7 +7,7 @@ import { game, helpedLights, litFraction } from '../game/state'
 import { MUSIC } from '../game/music'
 import { debugMode } from '../game/debug'
 import { Ground } from './Ground'
-import { fearDark } from '../game/fear'
+import { fearDark, fearM } from '../game/fear'
 
 // Versión iluminada (de día). La oscuridad del principio se añadirá más adelante.
 // El bosque cambia a medida que avanza: mañana fresca → luz verde entre las hojas → luz dorada
@@ -107,6 +107,12 @@ export function World() {
       const sight = 6 + helpedLights() * 6
       scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, 1, dark.current)
       scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, sight, dark.current)
+      // el miedo: la oscuridad se cierra de verdad (solo se ve hasta donde llega)
+      if (fearM.on || fearM.done) {
+        const fd = fearM.on ? 1 : Math.max(0, 1 - (game.time - fearM.doneAt) / 2.5)
+        scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, 1, fd)
+        scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, fearM.R + 5.5, fd)
+      }
     }
 
     if (ground.current) gradient(GROUND, f, ground.current.color).lerp(DULL_GROUND, dull * 0.35).lerp(GLOOM_GROUND, gl * 0.7).lerp(NIGHT_GROUND, night * 0.9)

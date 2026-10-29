@@ -57,7 +57,8 @@ export function FearMoment() {
       s.visible = show.current > 0.01
       if (!s.visible) return
       const a = p.a + t * 0.12
-      const r = R.current + p.out + Math.sin(t * 0.9 + p.ph) * 0.3
+      // (por fuera de la cámara: si quedaran entre la cámara y ella, la taparían)
+      const r = R.current + 5 + p.out + Math.sin(t * 0.9 + p.ph) * 0.3
       s.position.set(g.x + Math.cos(a) * r, p.y + Math.sin(t * 0.7 + p.ph) * 0.2, g.z + Math.sin(a) * r)
       s.scale.setScalar(p.size * (1 + Math.sin(t * 1.3 + p.ph) * 0.1))
     })
