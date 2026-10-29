@@ -21,11 +21,11 @@ export function FearMoment() {
     [tex],
   )
   const flame = useMemo(
-    () => new THREE.SpriteMaterial({ map: tex, color: '#ffb347', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+    () => new THREE.SpriteMaterial({ map: tex, color: '#ffb347', transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false }),
     [tex],
   )
   const core = useMemo(
-    () => new THREE.SpriteMaterial({ map: tex, color: '#fff1c8', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+    () => new THREE.SpriteMaterial({ map: tex, color: '#fff1c8', transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false }),
     [tex],
   )
   const puffs = useMemo(() => {
