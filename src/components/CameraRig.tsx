@@ -135,7 +135,8 @@ export function CameraRig() {
       const side = 0.9 * Math.min(1, (camera as THREE.PerspectiveCamera).aspect) // (en el móvil en vertical, más de frente)
       tmpV.set(g.x + fx * 2.7 + fz * side, 1.45, g.z + fz * 2.7 - fx * side)
       target.lerp(tmpV, s)
-      tmpV.set(g.x - fx * 0.5, 0.85, g.z - fz * 0.5) // (entre ella y su sombra)
+      // (mira más lejos hacia atrás: su sombra y, si la persigue, la oscuridad)
+      tmpV.set(g.x - fx * 2.2, 1.0, g.z - fz * 2.2)
       look.lerp(tmpV, s)
       camera.position.lerp(target, damp(10, dt) * s + (1 - s) * 0)
     }
