@@ -4,6 +4,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
 import { game, shadow, helpedLights } from '../game/state'
+import { fearM } from '../game/fear'
 import { ELDER, GIRL } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene, girlStand, STAND_STEP } from '../game/gift'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -474,6 +475,12 @@ export function Character({ echo = false }: { echo?: boolean }) {
     const helped = helpedLights()
     light.current.intensity = (1.2 + g.c * 3 + g.spark * 3 + helped * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
     light.current.distance = 9 + helped * 5
+    // el ser de fuego entró en su pecho: su luz es más grande desde entonces
+    if (fearM.done) {
+      const k = Math.min(1, (game.time - fearM.doneAt) / 1.6)
+      light.current.intensity += 2.5 * k + 10 * Math.max(0, 1 - Math.abs(game.time - fearM.doneAt - 1.6) / 0.6)
+      light.current.distance += 4 * k
+    }
   })
 
   return (

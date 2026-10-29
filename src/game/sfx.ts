@@ -131,3 +131,23 @@ export function splash() {
   o.start(t)
   o.stop(t + 0.2)
 }
+
+/** Un latido del corazón (dos golpes graves y sordos: "pum-pum"). strength 0..1. */
+export function heartbeat(strength = 0.5) {
+  const a = audio()
+  if (!a || !master) return
+  const t = a.currentTime
+  for (const [off, amp] of [[0, 1], [0.16, 0.65]] as const) {
+    const o = a.createOscillator()
+    const g = a.createGain()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(70, t + off)
+    o.frequency.exponentialRampToValueAtTime(42, t + off + 0.14)
+    g.gain.setValueAtTime(0, t + off)
+    g.gain.linearRampToValueAtTime(0.55 * amp * strength, t + off + 0.012)
+    g.gain.exponentialRampToValueAtTime(0.0005, t + off + 0.2)
+    o.connect(g).connect(master)
+    o.start(t + off)
+    o.stop(t + off + 0.25)
+  }
+}

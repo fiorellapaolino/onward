@@ -16,6 +16,7 @@ import {
 import { applyDebug, debugMode } from './debug'
 import { MEMORY_LINES } from './story'
 import { SEED_FALL, STILL_NEEDED, updateMoments } from './moments'
+import { updateFear } from './fear'
 import { GIFT, inGiftScene } from './gift'
 
 const MOVE = new THREE.Vector3()
@@ -377,6 +378,8 @@ export function GameLoop() {
 
         // ── Momentos de estar viva (semilla, charcos, luciérnagas, flores…) ──
         updateMoments(dt)
+        // ── El miedo en el bosque: la oscuridad se cierra; respirar con el ser de fuego la abre ──
+        updateFear(dt)
 
         // el claro del final: se detiene… y se da vuelta
         if (g.shadowOpen && g.z >= PATH_LEN - 12) {

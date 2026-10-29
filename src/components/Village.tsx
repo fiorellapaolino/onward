@@ -264,7 +264,7 @@ function FearRing() {
     const g = game
     // al quedarse, la oscuridad se cierra sobre ella y toma su forma (nace su sombra)
     const gather = g.shadowOn ? Math.min(1, (g.time - g.shadowAt) / 1.2) : 0
-    const show = g.fear * (1 - gather * gather)
+    const show = (g.story === 'fear' ? g.fear : 0) * (1 - gather * gather) // (el miedo del bosque tiene su propia oscuridad)
     material.opacity = 0.85 * show
     const radius = (5.5 - 3.6 * g.fear) * (1 - g.courage * 0.35) * (1 - gather)
     seeds.forEach((sd, i) => {

@@ -1,2 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-memory ?at=61&talk=4&yaw=0.5   14
+fear_far ?at=27&fearR=6   12
+fear_spirit ?at=27&fearR=2   12
+fear_m ?at=27&fearR=2   12

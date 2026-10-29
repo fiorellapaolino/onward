@@ -2,6 +2,7 @@ import { headingAt, pathAt } from './config'
 import { GIRL_LINES } from './story'
 import { ELDER, GIRL } from './village'
 import { game, input, setUi } from './state'
+import { fearM } from './fear'
 
 /*
  * Atajos para probar (y para las capturas automáticas):
@@ -13,6 +14,7 @@ import { game, input, setUi } from './state'
  *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
+ *   ?at=27&fearR=2  … dentro del miedo del bosque (la oscuridad a 2 m, el ser de fuego delante)
  *   ?at=105&ending  … con la aldea iluminada y su sombra: caminar hasta el claro del final
  * Sin parámetros, el juego es normal.
  */
@@ -93,6 +95,15 @@ export function applyDebug() {
         game.z = back.z - Math.cos(a) * 0.85
         game.yaw = a
       }
+    }
+  }
+  if (params.has('fearR')) {
+    // dentro del miedo del bosque, con la oscuridad a este radio (y el ser de fuego si ya está cerca)
+    fearM.on = true
+    fearM.R = Number(params.get('fearR'))
+    if (fearM.R < 4.2) {
+      fearM.spiritAt = game.time - 1.3
+      fearM.lastCycle = 0
     }
   }
   if (params.has('plates')) {
