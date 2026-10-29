@@ -465,7 +465,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
     // ── Su luz: crece con la confianza y destella en momentos clave
     const birthFlash = g.phase === 'intro' ? (1 - birth) * 8 + (g.started ? musicLevel(g.musicT) * 3 : 0) : 0
     // con miedo su luz casi se apaga; al quedarse (mantener E) crece, y al despertar estalla
-    const dim = 1 - 0.85 * g.fear * (1 - g.courage)
+    const dim = 1 - 0.6 * g.fear * (1 - g.courage)
     const awake = Math.max(0, 1 - (g.time - g.awakeAt) / 2.5)
     if (echo) {
       light.current.intensity = 0 // la sombra no da luz
