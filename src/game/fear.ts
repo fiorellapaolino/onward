@@ -30,6 +30,7 @@ export const fearM = {
   heldIn: 0, // en esta respiración: segundos manteniendo mientras el ser inhala
   heldOut: 0, // … y soltando mientras exhala
   lastCycle: -1,
+  startAt: -1, // cuándo empezó
   beatT: 0,
 }
 
@@ -53,6 +54,7 @@ export function updateFear(dt: number) {
   if (!f.on && !f.done && g.phase === 'play' && g.z > FEAR_AT) {
     f.on = true
     f.R = R_START
+    f.startAt = g.time
   }
   if (!f.on) return
 
@@ -65,7 +67,8 @@ export function updateFear(dt: number) {
   if (f.R < 2.2) g.speed = Math.min(g.speed, 0.35 + (f.R - R_MIN) * 0.3)
 
   // cuando ya está muy cerca, aparece el ser de fuego
-  if (f.spiritAt < 0 && f.R < 4.2) {
+  // (enseguida: a los pocos segundos, o antes si la oscuridad ya está muy cerca)
+  if (f.spiritAt < 0 && (f.R < 5.5 || g.time - f.startAt > 3.5)) {
     f.spiritAt = g.time
     f.lastCycle = 0
   }

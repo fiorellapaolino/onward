@@ -73,13 +73,13 @@ export function FearMoment() {
       return
     }
     // delante de ella, a la altura del pecho; al final vuela hacia su pecho
-    const d = 1.25 * (1 - merge * merge)
+    const d = 1.6 * (1 - merge * merge)
     // (un poco a un lado y en alto, para que se vea por encima de su hombro)
     const side = 0.6 * (1 - merge)
     sp.set(g.x + Math.sin(g.yaw) * d + Math.cos(g.yaw) * side, 1.55 + Math.sin(t * 2) * 0.06 * (1 - merge) - merge * 0.8, g.z + Math.cos(g.yaw) * d - Math.sin(g.yaw) * side)
     spirit.current.position.copy(sp)
     const lung = f.done ? 1 : spiritLung() // crece al inhalar, se achica al exhalar
-    const size = 0.45 + lung * 0.7
+    const size = 0.6 + lung * 0.9
     flameS.current.scale.set(size, size * 1.35, 1)
     coreS.current.scale.setScalar(size * 0.45)
     flame.opacity = 0.9 * vis

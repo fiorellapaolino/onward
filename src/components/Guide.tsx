@@ -5,6 +5,7 @@ import { PATH_LEN, damp, pathAt } from '../game/config'
 import { game } from '../game/state'
 import { ELDER, GIRL, PLATES, SEED_SPOT } from '../game/village'
 import { inGiftScene } from '../game/gift'
+import { fearM } from '../game/fear'
 import { useGlowTexture } from './TheLight'
 
 /*
@@ -19,7 +20,7 @@ type Target = { key: string; x: number; z: number; y: number; near: number } | n
 
 function currentTarget(): Target {
   const g = game
-  if (g.phase !== 'play' || g.talk || inGiftScene()) return null
+  if (g.phase !== 'play' || g.talk || inGiftScene() || fearM.on) return null // (en el miedo, la guía es el ser de fuego)
   switch (g.story) {
     case 'seek':
       return { key: 'girl', x: GIRL.x, z: GIRL.z, y: 1.1, near: 2.2 }
