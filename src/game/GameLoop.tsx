@@ -494,8 +494,8 @@ export function GameLoop() {
     // como nunca se da vuelta, solo la ve en el espejo; si se queda quieta, la alcanza y su luz se apaga
     let near = 0
     if (g.phase === 'play' && g.shadowOpen && g.z > SHADOW_S - 2) {
-      if (g.chaseZ < 0) g.chaseZ = g.z - 14
-      g.chaseZ = Math.max(g.chaseZ + 0.95 * dt, g.z - 16) // (nunca se queda muy atrás)
+      if (g.chaseZ < 0) g.chaseZ = g.z - (debugMode ? 5 : 9)
+      g.chaseZ = Math.max(g.chaseZ + 0.95 * dt, g.z - 11) // (nunca se queda muy atrás)
       const gap = g.z - g.chaseZ
       near = THREE.MathUtils.clamp(1 - (gap - 1.5) / 6, 0, 1)
       if (gap < 1.6) {
