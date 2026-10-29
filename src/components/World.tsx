@@ -89,6 +89,7 @@ export function World() {
     tmp.lerp(DULL_SKY, dull * 0.45)
     tmp.lerp(GLOOM_SKY, gl * 0.8)
     tmp.lerp(NIGHT, night)
+    tmp.lerp(NIGHT, fearDark()) // (otra vez: la mezcla es lineal y si no queda gris)
     tmp.lerp(MEMORY_SKY, game.memory * 0.55) // el recuerdo: cálido, dorado
     if (scene.background instanceof THREE.Color) scene.background.copy(tmp)
     if (scene.fog instanceof THREE.Fog) {
