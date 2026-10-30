@@ -86,6 +86,7 @@ export function World() {
     const inForest = 1 - smoothstep(VILLAGE_S - VILLAGE_R - 12, VILLAGE_S - VILLAGE_R - 2, game.z)
     const asleepT = debugMode && !new URLSearchParams(location.search).has('fires') ? 0 : inForest * (1 - aliveAt(game.x, game.z)) * 0.72
     asleep.current += (asleepT - asleep.current) * Math.min(1, dt * 1.2)
+    if (debugMode) asleep.current = asleepT // (en las pruebas, sin esperar)
     const night = Math.max(1 - w, dark.current * 0.85, asleep.current)
 
     const dull = (1 - Math.min(1, game.spark * 1.4)) * (1 - game.memory)

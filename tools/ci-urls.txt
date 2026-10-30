@@ -1,3 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
 dark_forest ?at=12&fires&lit=1   12
-lit_memory ?at=17&fires&lit=2&now&yaw=0.4   14

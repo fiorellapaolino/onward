@@ -39,7 +39,7 @@ export function aliveAt(x: number, z: number) {
     if (at < 0) return
     const grow = Math.min(1, (game.time - at) / 3) // (crece despacio desde la hoguera)
     const d = Math.hypot(x - f.x, z - f.z)
-    a = Math.max(a, grow * Math.max(0, Math.min(1, (13 - d) / 7)))
+    a = Math.max(a, grow * Math.max(0, Math.min(1, (10 - d) / 5)))
   })
   return a
 }
