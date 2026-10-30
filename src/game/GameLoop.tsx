@@ -90,6 +90,7 @@ export function GameLoop() {
           g.girlNear = 1
           input.jumpPressed = false
           jumpBuf = 0
+          updateFires(dt) // (en la escena, la niña enciende el fuego de su hogar)
           break
         }
         // Escuchando a alguien: la elfa se queda quieta mirándole; E / Espacio / clic pasa a la siguiente frase
