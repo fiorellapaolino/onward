@@ -24,7 +24,7 @@ export const TOUCH = 1.6 // distancia para tomar o dar el fuego
 export const EMBER_LIFE = 32 // segundos que dura la brasa lejos del fuego
 
 export const fires = {
-  litAt: FIRES.map((_, i) => (i === 0 ? 0 : -1)), // cuándo se encendió cada una (-1 = apagada)
+  litAt: FIRES.map((_, i): number => (i === 0 ? 0 : -1)), // cuándo se encendió cada una (-1 = apagada)
   ember: 0, // 0..1 cuánto le queda a la brasa que lleva (0 = no lleva)
   emberDiedAt: -99,
   near: -1, // la hoguera encendida más cercana (índice) y a qué distancia
