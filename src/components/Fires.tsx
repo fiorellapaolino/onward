@@ -69,6 +69,7 @@ function Bonfire({ f, i }: { f: Fire; i: number }) {
     glowMat.opacity = (0.35 + burst * 0.6) * k
     glow.current.scale.setScalar(2.4 + burst * 4)
     light.current.intensity = (6 + Math.sin(t * 11) * 0.8 + burst * 18) * k
+    light.current.visible = k > 0 // (las luces apagadas no cuestan: así el juego va más ligero)
   })
 
   return (
@@ -126,6 +127,7 @@ function Ember() {
     mat.opacity = e > 0 ? 0.9 * low : 0
     core.opacity = e > 0 ? low : 0
     light.current.intensity = e > 0 ? (0.6 + 2.2 * e) * low : 0
+    light.current.visible = e > 0
   })
   return (
     <>
