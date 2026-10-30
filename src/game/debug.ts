@@ -2,6 +2,7 @@ import { headingAt, pathAt } from './config'
 import { GIRL_LINES } from './story'
 import { ELDER, GIRL } from './village'
 import { game, input, setUi } from './state'
+import { fires } from './fires'
 
 /*
  * Atajos para probar (y para las capturas automáticas):
@@ -13,6 +14,7 @@ import { game, input, setUi } from './state'
  *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
+ *   ?at=18&fires&lit=2&now  … el bosque apagado, con 2 hogueras encendidas (la última recién) y la brasa
  *   ?at=105&ending  … con la aldea iluminada y su sombra: caminar hasta el claro del final
  * Sin parámetros, el juego es normal.
  */
@@ -94,6 +96,12 @@ export function applyDebug() {
         game.yaw = a
       }
     }
+  }
+  if (params.has('lit')) {
+    // las primeras N hogueras ya encendidas (hace un rato, o justo ahora con &now), y la brasa en la mano
+    const n = Number(params.get('lit'))
+    for (let i = 0; i < n; i++) fires.litAt[i] = params.has('now') && i === n - 1 ? game.time - 2.5 : game.time - 20
+    fires.ember = 1
   }
   if (params.has('plates')) {
     game.story = 'plates'

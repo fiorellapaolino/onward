@@ -5,6 +5,7 @@ import { PATH_LEN, damp, pathAt } from '../game/config'
 import { game } from '../game/state'
 import { ELDER, GIRL, PLATES, SEED_SPOT } from '../game/village'
 import { inGiftScene } from '../game/gift'
+import { FIRES, fires, nextUnlit } from '../game/fires'
 import { useGlowTexture } from './TheLight'
 
 /*
@@ -21,8 +22,15 @@ function currentTarget(): Target {
   const g = game
   if (g.phase !== 'play' || g.talk || inGiftScene()) return null
   switch (g.story) {
-    case 'seek':
+    case 'seek': {
+      // primero, las hogueras del bosque: la luz va hacia la siguiente apagada (o, sin brasa, a la última encendida)
+      const n = nextUnlit()
+      if (n >= 0) {
+        const f = fires.ember > 0 ? FIRES[n] : FIRES[Math.max(0, n - 1)]
+        return { key: 'fire' + n + (fires.ember > 0 ? '' : 'b'), x: f.x, z: f.z, y: 1.0, near: 1.4 }
+      }
       return { key: 'girl', x: GIRL.x, z: GIRL.z, y: 1.1, near: 2.2 }
+    }
     case 'seed':
       if (g.giftAt >= 0) return null
       return g.carrying

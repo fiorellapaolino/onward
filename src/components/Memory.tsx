@@ -17,8 +17,8 @@ import { useGlowTexture } from './TheLight'
  * y todo vuelve a ser gris. (game.memory: 0 = ahora, 1 = el recuerdo)
  */
 const url = (p: string) => `${import.meta.env.BASE_URL}models/${p}.gltf`
-const PARTS = ['elf/body', 'girl/outfit', 'girl/hair']
-const WOMAN = ['elf/body', 'woman/outfit', 'woman/hair']
+export const PARTS = ['elf/body', 'girl/outfit', 'girl/hair']
+export const WOMAN = ['elf/body', 'woman/outfit', 'woman/hair']
 const BODY_H = 1.777 // altura del modelo original
 
 // material de las figuras del recuerdo: luz cálida, medio transparente
@@ -32,8 +32,9 @@ const GHOST_MAT = new THREE.MeshStandardMaterial({
   roughness: 1,
 })
 
-type Kind = 'spin' | 'run' | 'clap'
-type GhostSpec = { parts: string[]; height: number; kind: Kind; x: number; z: number; r?: number; off?: number; speed?: number; rot?: number }
+export type Kind = 'spin' | 'run' | 'clap' | 'sit' | 'warm'
+// show: cuánto se ve (0..1); si no se pasa, sigue al recuerdo de la niña (game.memory)
+export type GhostSpec = { parts: string[]; height: number; kind: Kind; x: number; z: number; r?: number; off?: number; speed?: number; rot?: number; show?: () => number }
 
 // dónde juega cada uno (alrededor del árbol de la niña, y una mujer junto a una casa)
 const RING = besidePath(GIRL_S + 5.5, GIRL_SIDE, GIRL_DIST + 1.6)
@@ -62,11 +63,12 @@ export function Memory() {
   )
 }
 
-function Ghost({ spec }: { spec: GhostSpec }) {
+export function Ghost({ spec }: { spec: GhostSpec }) {
   const gltfs = useGLTF(spec.parts.map(url))
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
-  const { model, bones, axes, sample } = useMemo(() => {
+  const { model, bones, axes, sample, mat } = useMemo(() => {
+    const mat = spec.show ? GHOST_MAT.clone() : GHOST_MAT // (con su propio "show", su propio material)
     const [b, ...rest] = gltfs.map((g) => cloneSkinned(g.scene))
     const extra: THREE.Object3D[] = []
     b.traverse((o) => {
@@ -90,7 +92,7 @@ function Ghost({ spec }: { spec: GhostSpec }) {
       const m = o as THREE.Mesh
       if (!m.isMesh) return
       m.frustumCulled = false
-      m.material = GHOST_MAT
+      m.material = mat
     })
     const axes: Record<string, Record<Axis, THREE.Vector3>> = {}
     for (const [name, bn] of Object.entries(bones)) {
@@ -102,13 +104,14 @@ function Ghost({ spec }: { spec: GhostSpec }) {
       }
     }
     if (spec.height < 1) bones.Head?.scale.setScalar(1.18)
-    return { model, bones, axes, sample: makeSample() }
+    return { model, bones, axes, sample: makeSample(), mat }
   }, [gltfs, spec])
   const s = spec.height / BODY_H
   const Q = useMemo(() => new THREE.Quaternion(), [])
 
   useFrame(() => {
-    const m = game.memory
+    const m = spec.show ? spec.show() : game.memory
+    if (spec.show) mat.opacity = 0.7 * m
     root.current.visible = m > 0.01
     if (!root.current.visible) return
     const t = game.time
@@ -149,7 +152,31 @@ function Ghost({ spec }: { spec: GhostSpec }) {
       rot('lowerarm_r', 'fwd', 1.4 + 0.3 * c)
       rot('spine_01', 'fwd', 0.05 * Math.sin(t * 3.5))
     }
-    root.current.position.set(x, 0, z)
+    let y = 0
+    if (spec.kind === 'sit' || spec.kind === 'warm') {
+      // sentados en el suelo alrededor del fuego, con las rodillas dobladas
+      rot('thigh_l', 'left', -1.5)
+      rot('thigh_r', 'left', -1.5)
+      rot('calf_l', 'left', 1.6)
+      rot('calf_r', 'left', 1.6)
+      rot('spine_01', 'left', 0.15)
+      y = -0.45 * spec.height
+      if (spec.kind === 'warm') {
+        // las manos hacia el fuego, calentándose
+        rot('upperarm_l', 'left', -0.9)
+        rot('upperarm_r', 'left', -0.9)
+        rot('lowerarm_l', 'fwd', -0.5)
+        rot('lowerarm_r', 'fwd', 0.5)
+      } else {
+        // las manos en las rodillas, se mece un poco
+        rot('upperarm_l', 'left', -0.5)
+        rot('upperarm_r', 'left', -0.5)
+        rot('lowerarm_l', 'fwd', -1.0)
+        rot('lowerarm_r', 'fwd', 1.0)
+        rot('spine_01', 'fwd', 0.05 * Math.sin(t * 1.2 + (spec.off ?? 0)))
+      }
+    }
+    root.current.position.set(x, y, z)
     root.current.rotation.y = yaw
   })
 

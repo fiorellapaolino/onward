@@ -11,6 +11,7 @@ import { Moments } from './components/Moments'
 import { Guide } from './components/Guide'
 import { Companions } from './components/Companions'
 import { Memory } from './components/Memory'
+import { Fires } from './components/Fires'
 import { Elder, Girl, Musician } from './components/Villager'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
@@ -42,6 +43,7 @@ export default function App() {
           <Guide />
           <Companions />
           <Memory />
+          <Fires />
           <Forest />
         </Suspense>
       </Canvas>

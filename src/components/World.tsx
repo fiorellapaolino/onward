@@ -7,6 +7,7 @@ import { game, helpedLights, litFraction } from '../game/state'
 import { MUSIC } from '../game/music'
 import { debugMode } from '../game/debug'
 import { Ground } from './Ground'
+import { aliveAt } from '../game/fires'
 
 // Versión iluminada (de día). La oscuridad del principio se añadirá más adelante.
 // El bosque cambia a medida que avanza: mañana fresca → luz verde entre las hojas → luz dorada
@@ -61,6 +62,7 @@ export function World() {
   const ambient = useRef<THREE.AmbientLight>(null!)
   const wake = useRef(debugMode ? 1 : 0)
   const dark = useRef(0)
+  const asleep = useRef(0)
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
@@ -80,7 +82,11 @@ export function World() {
     const dk = darkStretch()
     dark.current += (dk - dark.current) * Math.min(1, dt * 1.5)
     if (debugMode) dark.current = dk // (en las pruebas, sin esperar)
-    const night = Math.max(1 - w, dark.current * 0.85)
+    // el bosque está apagado: solo revive cerca de las hogueras encendidas (game/fires.ts)
+    const inForest = 1 - smoothstep(VILLAGE_S - VILLAGE_R - 12, VILLAGE_S - VILLAGE_R - 2, game.z)
+    const asleepT = debugMode && !new URLSearchParams(location.search).has('fires') ? 0 : inForest * (1 - aliveAt(game.x, game.z)) * 0.72
+    asleep.current += (asleepT - asleep.current) * Math.min(1, dt * 1.2)
+    const night = Math.max(1 - w, dark.current * 0.85, asleep.current)
 
     const dull = (1 - Math.min(1, game.spark * 1.4)) * (1 - game.memory)
     gradient(SKY, f, tmp)
@@ -110,7 +116,7 @@ export function World() {
     if (ground.current) gradient(GROUND, f, ground.current.color).lerp(DULL_GROUND, dull * 0.35).lerp(GLOOM_GROUND, gl * 0.7).lerp(NIGHT_GROUND, night * 0.9)
     hemi.current.intensity = (1.6 + f * 0.4) * (1 - 0.45 * gl)
     sun.current.intensity = (2.6 + f * 0.8) * (1 - 0.6 * gl)
-    const lightW = Math.min(w, 1 - dark.current * 0.85)
+    const lightW = Math.min(w, 1 - dark.current * 0.85, 1 - asleep.current * 0.9)
     hemi.current.intensity *= 0.04 + 0.96 * lightW
     sun.current.intensity *= lightW * lightW
     ambient.current.intensity = 0.35 * (0.2 + 0.8 * lightW)

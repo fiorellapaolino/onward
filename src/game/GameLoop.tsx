@@ -16,6 +16,7 @@ import {
 import { applyDebug, debugMode } from './debug'
 import { MEMORY_LINES } from './story'
 import { SEED_FALL, STILL_NEEDED, updateMoments } from './moments'
+import { updateFires } from './fires'
 import { GIFT, inGiftScene } from './gift'
 
 const MOVE = new THREE.Vector3()
@@ -377,6 +378,8 @@ export function GameLoop() {
 
         // ── Momentos de estar viva (semilla, charcos, luciérnagas, flores…) ──
         updateMoments(dt)
+        // ── Las hogueras: llevar la brasa de fuego en fuego ──
+        updateFires(dt)
 
         // el claro del final: se detiene… y se da vuelta
         if (g.shadowOpen && g.z >= PATH_LEN - 12) {
