@@ -84,7 +84,7 @@ export function World() {
     if (debugMode) dark.current = dk // (en las pruebas, sin esperar)
     // el bosque está apagado: solo revive cerca de las hogueras encendidas (game/fires.ts)
     const inForest = 1 - smoothstep(VILLAGE_S - VILLAGE_R - 12, VILLAGE_S - VILLAGE_R - 2, game.z)
-    const asleepT = debugMode && !new URLSearchParams(location.search).has('fires') ? 0 : inForest * (1 - aliveAt(game.x, game.z)) * 0.72
+    const asleepT = debugMode && !new URLSearchParams(location.search).has('fires') ? 0 : inForest * (1 - aliveAt(game.x, game.z)) * 0.85
     asleep.current += (asleepT - asleep.current) * Math.min(1, dt * 1.2)
     if (debugMode) asleep.current = asleepT // (en las pruebas, sin esperar)
     const night = Math.max(1 - w, dark.current * 0.85, asleep.current)
@@ -94,6 +94,7 @@ export function World() {
     tmp.lerp(DULL_SKY, dull * 0.45)
     tmp.lerp(GLOOM_SKY, gl * 0.8)
     tmp.lerp(NIGHT, night)
+    tmp.lerp(NIGHT, asleep.current * 0.6) // (el bosque apagado, más oscuro: la mezcla lineal queda gris si no)
     tmp.lerp(MEMORY_SKY, game.memory * 0.55) // el recuerdo: cálido, dorado
     if (scene.background instanceof THREE.Color) scene.background.copy(tmp)
     if (scene.fog instanceof THREE.Fog) {
