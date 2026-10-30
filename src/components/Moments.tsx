@@ -16,23 +16,8 @@ import { useGlowTexture } from './TheLight'
 export function Moments() {
   return (
     <>
-      <SeedTree />
-      <GirlSeeds />
-      {/* los círculos de luz donde quedarse quieta para que baje una semilla */}
-      <StillSpot
-        at={FOREST_SPOT}
-        state={() => {
-          const m = moments
-          return { show: m.done.seed === undefined, still: m.stillT, fall: m.seedT }
-        }}
-      />
-      <StillSpot
-        at={SEED_SPOT}
-        state={() => {
-          const g = game
-          return { show: g.story === 'seed' && !g.carrying && g.giftAt < 0, still: g.giftStill, fall: g.giftSeedT }
-        }}
-      />
+      {/* (las semillas se quitaron: ahora es el fuego) */}
+      <GiftEmber />
       <Relay />
       <Puddles />
       <GroveFireflies />
@@ -92,7 +77,7 @@ function Samara({ refFn }: { refFn: (g: THREE.Group | null) => void }) {
 }
 
 const AMBIENT = 4 // semillas que caen solas, una y otra vez
-function SeedTree() {
+export function SeedTree() {
   const { scene } = useGLTF(TREE_URL)
   const refs = useRef<(THREE.Group | null)[]>([])
   const guided = useRef<THREE.Group | null>(null)
@@ -176,7 +161,7 @@ function SeedTree() {
 }
 
 // ── Las semillas del árbol de la niña: la que baja a la mano de la elfa, la que lleva y la que le da ──
-function GirlSeeds() {
+export function GirlSeeds() {
   const refs = useRef<(THREE.Group | null)[]>([])
   const gift = useRef<THREE.Group | null>(null)
   const glow = useRef<THREE.Sprite>(null!)
@@ -491,7 +476,7 @@ useGLTF.preload(TREE_URL)
 const RING_GEO = new THREE.RingGeometry(SPOT_R * 0.78, SPOT_R, 48).rotateX(-Math.PI / 2)
 const FILL_GEO = new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2)
 type SpotState = { show: boolean; still: number; fall: number }
-function StillSpot({ at, state }: { at: { x: number; z: number }; state: () => SpotState }) {
+export function StillSpot({ at, state }: { at: { x: number; z: number }; state: () => SpotState }) {
   const ring = useRef<THREE.Mesh>(null!)
   const fill = useRef<THREE.Mesh>(null!)
   const glow = useRef<THREE.Sprite>(null!)
@@ -530,5 +515,48 @@ function StillSpot({ at, state }: { at: { x: number; z: number }; state: () => S
       <mesh ref={fill} geometry={FILL_GEO} material={mats.fill} position-y={0.005} renderOrder={2} />
       <sprite ref={glow} material={mats.glow} position-y={0.9} scale={[1.6, 2.4, 1]} />
     </group>
+  )
+}
+
+/*
+ * La brasa que la elfa le da a la niña (escena de game/gift.ts): pasa de su mano a las manos de la niña,
+ * la niña se pone de pie con ella y la suelta: sube girando como una chispa, y el fuego de su hogar se enciende.
+ */
+function GiftEmber() {
+  const tex = useGlowTexture()
+  const glowMat = useMemo(
+    () => new THREE.SpriteMaterial({ map: tex, color: '#ff9a3a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }),
+    [tex],
+  )
+  const coreMat = useMemo(
+    () => new THREE.SpriteMaterial({ map: tex, color: '#fff0c0', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+    [tex],
+  )
+  const a = useRef<THREE.Sprite>(null!)
+  const b = useRef<THREE.Sprite>(null!)
+  const p = useMemo(() => new THREE.Vector3(), [])
+  useFrame(() => {
+    const g = game
+    if (g.giftAt < 0) {
+      glowMat.opacity = coreMat.opacity = 0
+      return
+    }
+    const k = g.time - g.giftAt
+    const hand = { x: g.x + Math.sin(g.yaw) * 0.32, y: 0.78, z: g.z + Math.cos(g.yaw) * 0.32 }
+    giftSeedPos(k, hand, p)
+    a.current.position.copy(p)
+    b.current.position.copy(p)
+    const vis = k < 11 ? Math.min(1, Math.max(0, (11 - k) / 2.5)) : 0
+    const flick = 0.85 + 0.15 * Math.sin(g.time * 13)
+    a.current.scale.setScalar(0.7 * flick)
+    b.current.scale.setScalar(0.22)
+    glowMat.opacity = 0.95 * vis
+    coreMat.opacity = vis
+  })
+  return (
+    <>
+      <sprite ref={a} material={glowMat} />
+      <sprite ref={b} material={coreMat} />
+    </>
   )
 }

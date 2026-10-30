@@ -1,2 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-dark_forest ?at=12&fires&lit=1   12
+give ?at=60&give=-3.5&fires&lit=4   12
+lit ?at=60&give=-8&fires&lit=4   12

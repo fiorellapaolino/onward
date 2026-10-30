@@ -8,15 +8,15 @@ import * as THREE from 'three'
 import { ECHO_DELAY, RETURN_TIME, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime, playThemeAgain } from './music'
 import { CLIPS, duration } from './anim'
-import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, SEED_SPOT, SPOT_R, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
+import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
 import { NOTES, bell, chord, flute } from './sfx'
 import {
   ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
 import { applyDebug, debugMode } from './debug'
 import { MEMORY_LINES } from './story'
-import { SEED_FALL, STILL_NEEDED, updateMoments } from './moments'
-import { updateFires } from './fires'
+import { updateMoments } from './moments'
+import { fires, updateFires } from './fires'
 import { GIFT, inGiftScene } from './gift'
 
 const MOVE = new THREE.Vector3()
@@ -227,25 +227,13 @@ export function GameLoop() {
 
         // ── La semilla para la niña: quieta bajo su árbol → una semilla baja a su mano → se la lleva ──
         if (g.story === 'seed') {
-          // (dentro del círculo de luz bajo el árbol, quieta)
-          const dSpot = Math.hypot(g.x - SEED_SPOT.x, g.z - SEED_SPOT.z)
-          if (!g.carrying) {
-            if (dSpot < SPOT_R && g.speed < 0.15 && g.jumpT < 0) g.giftStill += dt
-            else g.giftStill = Math.max(0, g.giftStill - dt * 2)
-            if (g.giftSeedT < 0 && g.giftStill > STILL_NEEDED) g.giftSeedT = 0
-            if (g.giftSeedT >= 0) {
-              g.giftSeedT += dt
-              if (dSpot > SPOT_R + 0.6) g.giftSeedT = -1 // salió del círculo antes de que llegara
-              if (g.giftSeedT > SEED_FALL) {
-                g.carrying = true
-                g.pulse = 0.6
-                bell(NOTES[4] * 2, true)
-              }
-            }
-          } else if (gd < 1.7 && g.giftAt < 0) {
-            // se la da: ella la suelta, la mira girar y sonríe
+          // le lleva una brasa de las hogueras del bosque: al llegar con ella, se la da
+          // (ella la sostiene, se pone de pie y enciende el fuego de su hogar)
+          g.carrying = fires.ember > 0
+          if (g.carrying && gd < 1.9 && g.giftAt < 0) {
             g.giftAt = g.time
             g.carrying = false
+            fires.ember = 0
             g.pulse = 1
             g.spark = Math.min(1, g.spark + 1 / 7)
             setUi({ msg: null, goal: null, hint: false })

@@ -1,4 +1,6 @@
 import { besidePath } from './config'
+import { GIRL } from './village'
+import { GIFT } from './gift'
 import { game } from './state'
 import { chord } from './sfx'
 
@@ -18,7 +20,11 @@ export const FIRES: Fire[] = [
   { ...besidePath(19, 1, 2.3), s: 19 },
   { ...besidePath(34, -1, 2.4), s: 34 },
   { ...besidePath(49, -1, 2.6), s: 49 },
+  // el fuego del hogar de la niña (a su lado): lo enciende ella con la brasa que le da la elfa
+  { x: GIRL.x + Math.sin(GIRL.rot) * 0.45 - Math.cos(GIRL.rot) * 1.15, z: GIRL.z + Math.cos(GIRL.rot) * 0.45 + Math.sin(GIRL.rot) * 1.15, s: 64 },
 ].map((p) => ({ x: p.x, z: p.z, s: p.s }))
+/** El fuego del hogar de la niña (el último): no se enciende tocándolo, se lo da a ella. */
+export const HEARTH = 4
 
 export const TOUCH = 1.6 // distancia para tomar o dar el fuego
 export const EMBER_LIFE = 32 // segundos que dura la brasa lejos del fuego
@@ -45,7 +51,7 @@ export function aliveAt(x: number, z: number) {
 }
 
 /** La siguiente hoguera apagada (o -1 si ya están todas). */
-export const nextUnlit = () => fires.litAt.findIndex((t) => t < 0)
+export const nextUnlit = () => fires.litAt.findIndex((t, i) => t < 0 && i !== HEARTH)
 
 export function updateFires(dt: number) {
   const g = game
@@ -58,6 +64,13 @@ export function updateFires(dt: number) {
       if (d < nearD) {
         nearD = d
         near = i
+      }
+    } else if (i === HEARTH) {
+      // lo enciende la niña con la brasa, en la escena (al soltarla)
+      if (g.giftAt >= 0 && g.time - g.giftAt > GIFT.RELEASE + 0.6) {
+        fires.litAt[i] = g.time
+        g.pulse = 1
+        chord()
       }
     } else if (d < TOUCH && fires.ember > 0) {
       // ¡la enciende!
@@ -76,4 +89,19 @@ export function updateFires(dt: number) {
     fires.ember = Math.max(0, fires.ember - dt / EMBER_LIFE)
     if (fires.ember === 0) fires.emberDiedAt = g.time
   }
+}
+
+/** La hoguera encendida más cercana a la elfa (índice). */
+export function nearestLit() {
+  let best = 0
+  let bd = 1e9
+  FIRES.forEach((f, i) => {
+    if (fires.litAt[i] < 0) return
+    const d = Math.hypot(game.x - f.x, game.z - f.z)
+    if (d < bd) {
+      bd = d
+      best = i
+    }
+  })
+  return best
 }

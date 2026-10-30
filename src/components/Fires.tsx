@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { game } from '../game/state'
-import { FIRES, fires, type Fire } from '../game/fires'
+import { FIRES, HEARTH, fires, type Fire } from '../game/fires'
 import { useGlowTexture } from './TheLight'
 import { Ghost, PARTS, WOMAN, type GhostSpec } from './Memory'
 
@@ -161,4 +161,7 @@ const MEMORIES: GhostSpec[] = [
   { parts: WOMAN, height: 1.08, kind: 'sit', ...around(3, 0.3), off: 0.5, show: showAt(3) },
   { parts: PARTS, height: 1.0, kind: 'clap', ...around(3, 1.9, 1.3), off: 1.5, show: showAt(3) },
   { parts: PARTS, height: 0.85, kind: 'sit', ...around(3, 3.6), off: 2.5, show: showAt(3) },
+  // el hogar de la niña: su familia, como era antes, alrededor de ese mismo fuego
+  { parts: WOMAN, height: 1.08, kind: 'warm', ...around(HEARTH, 3.9, 1.1), off: 0.3, show: showAt(HEARTH) },
+  { parts: WOMAN, height: 1.12, kind: 'sit', ...around(HEARTH, 5.0, 1.15), off: 1.1, show: showAt(HEARTH) },
 ]

@@ -13,17 +13,17 @@ export const GIRL_LINES = [
   'A shadow came, and one by one we all went dim.',
   // "Ahora nadie juega, nadie canta. Solo nos sentamos a recordar cómo era antes."
   'Now nobody plays, nobody sings. We just sit and remember how it used to be.',
-  // "Antes atrapaba las semillas que giran de mi árbol… ahora solo caen."
-  'I used to catch the spinning seeds from my tree… now they just fall.',
-  // "¿Me ayudas a atrapar una? Quizás así volvamos a brillar."
-  'Will you catch one with me? Maybe we can shine again.',
+  // "Antes nos sentábamos todos alrededor del fuego de casa… ahora está frío."
+  'We used to sit around our fire at home… now it is cold.',
+  // "¿Me traes una llama? Quizás así volvamos a brillar."
+  'Will you bring me a flame? Maybe we can shine again.',
 ]
 
 /** Mientras dice estas dos frases se ve el recuerdo de cómo era la aldea (Memory.tsx). */
 export const MEMORY_LINES = [4, 5]
 
-/** Objetivo: "Atrapa una semilla que gira para ella." */
-export const GOAL_SEED = 'Catch a spinning seed for her.'
+/** Objetivo: "Llévale una llama." */
+export const GOAL_SEED = 'Bring her a flame.'
 
 /** Lo que dice el anciano, sentado a oscuras junto a su puerta. */
 export const ELDER_LINES = [

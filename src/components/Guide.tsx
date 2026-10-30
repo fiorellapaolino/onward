@@ -3,9 +3,9 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PATH_LEN, damp, pathAt } from '../game/config'
 import { game } from '../game/state'
-import { ELDER, GIRL, PLATES, SEED_SPOT } from '../game/village'
+import { ELDER, GIRL, PLATES } from '../game/village'
 import { inGiftScene } from '../game/gift'
-import { FIRES, fires, nextUnlit } from '../game/fires'
+import { FIRES, fires, nearestLit, nextUnlit } from '../game/fires'
 import { useGlowTexture } from './TheLight'
 
 /*
@@ -33,9 +33,12 @@ function currentTarget(): Target {
     }
     case 'seed':
       if (g.giftAt >= 0) return null
-      return g.carrying
-        ? { key: 'give', x: GIRL.x, z: GIRL.z, y: 1.1, near: 1.6 }
-        : { key: 'spot', x: SEED_SPOT.x, z: SEED_SPOT.z, y: 0.9, near: 0.9 }
+      // con una brasa, a la niña; sin brasa, a la hoguera encendida más cercana a por una
+      if (fires.ember > 0) return { key: 'give', x: GIRL.x, z: GIRL.z, y: 1.1, near: 1.6 }
+      {
+        const f = FIRES[nearestLit()]
+        return { key: 'ember', x: f.x, z: f.z, y: 1.0, near: 1.4 }
+      }
     case 'help':
       return { key: 'elder', x: ELDER.x, z: ELDER.z, y: 1.3, near: 2.2 }
     case 'plates': {
