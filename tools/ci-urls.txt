@@ -1,5 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-proto_dark ?at=28&solved 25
-proto_lit ?at=36&lit 25
+proto_dark ?at=28&solved&steps=10 25
 proto_end ?end 30
-proto_auto ?auto&wrong&steps=40 220
+proto_auto ?auto&wrong&steps=70 230

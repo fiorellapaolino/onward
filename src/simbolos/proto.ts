@@ -68,7 +68,7 @@ export const BOUNDS = { x: 22, zMin: -6, zMax: 63 }
 export type Fire = { x: number; z: number; delay: number } // delay: segundos después de dibujar el círculo
 export const FIRES: Fire[] = [
   ...Array.from({ length: 6 }, (_, i) => {
-    const a = -Math.PI / 2 + (i / 6) * Math.PI * 2
+    const a = -Math.PI / 3 + (i / 6) * Math.PI * 2 // (ninguna justo en el camino)
     return { x: FIRE.x + Math.cos(a) * 6.2, z: FIRE.z + Math.sin(a) * 6.2, delay: 0.8 + i * 0.35 }
   }),
   { x: -2.3, z: 43, delay: 3.4 },

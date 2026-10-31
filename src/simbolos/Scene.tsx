@@ -615,10 +615,12 @@ export function Waiting() {
 }
 
 // ── La cámara del final: sube despacio hasta ver todo el camino desde arriba ──
+// (lleva su propia posición: así la cámara normal, que sigue a la elfa, no la frena)
 const camTarget = new THREE.Vector3(0, 68, 26.3)
 const camLook = new THREE.Vector3(0, 0, 27)
 export function AerialCam() {
   const look = useRef<THREE.Vector3 | null>(null)
+  const pos = useRef(new THREE.Vector3())
   useFrame(({ camera }, rawDt) => {
     const P = proto
     if (P.endAt < 0) {
@@ -628,14 +630,15 @@ export function AerialCam() {
     const dt = Math.min(rawDt, 0.05)
     const k = game.time - P.endAt
     if (!look.current) {
-      // empieza mirando a la elfa (o, si ya pasó el tiempo, directamente desde arriba)
+      // empieza donde estaba, mirando a la elfa (o, si ya pasó el tiempo, directamente desde arriba)
       look.current = k > 8 ? camLook.clone() : new THREE.Vector3(game.x, 0.8, game.z)
-      if (k > 8) camera.position.copy(camTarget)
+      pos.current.copy(k > 8 ? camTarget : camera.position)
     }
     // arranca despacio y va subiendo cada vez más rápido
     const rate = 0.25 + Math.min(k, 8) * 0.12
-    camera.position.lerp(camTarget, damp(rate, dt))
+    pos.current.lerp(camTarget, damp(rate, dt))
     look.current.lerp(camLook, damp(rate * 1.4, dt))
+    camera.position.copy(pos.current)
     camera.lookAt(look.current)
   })
   return null
