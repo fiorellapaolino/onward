@@ -115,7 +115,7 @@ export function Ground() {
 }
 
 // ── Árboles secos alrededor del claro, y rocas en los bordes del barranco ──
-const TREES = ['DeadTree_1', 'DeadTree_2', 'DeadTree_3', 'TwistedTree_1', 'TwistedTree_2', 'TwistedTree_3']
+const TREES = ['DeadTree_1', 'DeadTree_2', 'DeadTree_3'] // (los retorcidos tienen hojas rojas: no encajan con un bosque dormido)
 const ROCKS = ['Rock_Medium_1', 'Rock_Medium_2', 'Rock_Medium_3']
 
 function forestLayout() {
@@ -130,13 +130,13 @@ function forestLayout() {
     const x = (r() - 0.5) * 110
     const z = -30 + r() * 95
     const open =
-      Math.abs(x) < 9 + Math.max(0, z - 30) * 0.2 || // el claro central
+      Math.abs(x) < 12 + Math.max(0, z - 30) * 0.2 || // el claro central
       Math.hypot(x - ZONE.x, z - ZONE.z) < ZONE.r + 5 ||
       (z > CHASM_Z0 - 2.5 && z < CHASM_Z1 + 2.5) || // el barranco
       Math.hypot(x - END.x, z - END.z) < 7
     if (open) continue
     if (Math.abs(x) < 16 && r() < 0.5) continue // menos árboles cerca del claro
-    const model = TREES[Math.floor(r() * (Math.abs(x) < 20 ? 3 : TREES.length))]
+    const model = TREES[Math.floor(r() * TREES.length)]
     add(model, placeMatrix(x, 0, z, r() * Math.PI * 2, 0.9 + r() * 0.8))
   }
   // rocas al borde del barranco
@@ -385,29 +385,27 @@ export function Waiting() {
 }
 
 // ── La cámara del final: sube despacio hasta ver todo el camino desde arriba ──
-const camTarget = new THREE.Vector3()
-const camLook = new THREE.Vector3()
+const camTarget = new THREE.Vector3(0, 44, 14.5)
+const camLook = new THREE.Vector3(0, 0, 15.2)
 export function AerialCam() {
-  const look = useRef(new THREE.Vector3())
-  const fromPos = useRef<THREE.Vector3 | null>(null)
-  const fromLook = useRef(new THREE.Vector3())
-  useFrame(({ camera }) => {
+  const look = useRef<THREE.Vector3 | null>(null)
+  useFrame(({ camera }, rawDt) => {
     const P = proto
     if (P.endAt < 0) {
-      fromPos.current = null
+      look.current = null
       return
     }
-    if (!fromPos.current) {
-      fromPos.current = camera.position.clone()
-      camera.getWorldDirection(fromLook.current).multiplyScalar(5).add(camera.position)
-      look.current.copy(fromLook.current)
+    const dt = Math.min(rawDt, 0.05)
+    const k = game.time - P.endAt
+    if (!look.current) {
+      // empieza mirando a la elfa (o, si ya pasó el tiempo, directamente desde arriba)
+      look.current = k > 8 ? camLook.clone() : new THREE.Vector3(game.x, 0.8, game.z)
+      if (k > 8) camera.position.copy(camTarget)
     }
-    const k = smoothstep(0, 9, game.time - P.endAt)
-    // centro del camino recorrido, visto casi en vertical
-    camTarget.set(0, 58, 13.5)
-    camLook.set(0, 0, 14)
-    camera.position.lerpVectors(fromPos.current, camTarget, k)
-    look.current.lerpVectors(fromLook.current, camLook, k)
+    // arranca despacio y va subiendo cada vez más rápido
+    const rate = 0.25 + Math.min(k, 8) * 0.12
+    camera.position.lerp(camTarget, damp(rate, dt))
+    look.current.lerp(camLook, damp(rate * 1.4, dt))
     camera.lookAt(look.current)
   })
   return null

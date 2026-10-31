@@ -244,5 +244,5 @@ function fakeEnd() {
   }
   g.x = END.x
   g.z = END.z
-  P.endAt = g.time - 6
+  P.endAt = g.time - 12 // (directamente la vista desde arriba)
 }

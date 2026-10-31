@@ -1,7 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-proto_start ?go 25
-proto_demo ?at=7&steps=12 45
+proto_bridge ?at=17&solved 25
 proto_auto ?auto&steps=40 90
 proto_end ?end 30
-proto_m ?go 25
-aldea ?aldea&at=60 25

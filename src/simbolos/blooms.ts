@@ -58,9 +58,9 @@ export function getLifeTexture() {
 const GREENS = ['#6f9a3f', '#7fab48', '#5f8a37', '#8db552']
 function paintLife(x: number, z: number) {
   if (!ctx || !lifeTexture) return
-  // (x, z) del mundo → píxel; la textura se ve desde arriba con +z hacia arriba
+  // (x, z) del mundo → píxel. El plano está tumbado: la fila de arriba del lienzo queda hacia -z
   const u = ((x - LIFE.cx) / LIFE.size + 0.5) * LIFE.px
-  const v = (0.5 - (z - LIFE.cz) / LIFE.size) * LIFE.px
+  const v = (0.5 + (z - LIFE.cz) / LIFE.size) * LIFE.px
   const rad = (0.9 + r() * 0.6) * (LIFE.px / LIFE.size)
   const g = ctx.createRadialGradient(u, v, 0, u, v, rad)
   const c = GREENS[Math.floor(r() * GREENS.length)]
