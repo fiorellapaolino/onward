@@ -1,2 +1,7 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-memory ?at=61&talk=4&yaw=0.5   14
+proto_start ?go 25
+proto_demo ?at=7&steps=12 45
+proto_auto ?auto&steps=40 90
+proto_end ?end 30
+proto_m ?go 25
+aldea ?aldea&at=60 25
