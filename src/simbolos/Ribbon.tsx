@@ -12,7 +12,7 @@ const MAX = 800
 
 type Props = {
   /** Cada frame: los puntos y la opacidad (0 = invisible). */
-  get: () => { pts: Pt[]; opacity: number }
+  get: () => { pts: Pt[]; opacity: number; color?: string }
   color: string
   width?: number
   y?: number
@@ -44,8 +44,9 @@ export function Ribbon({ get, color, width = 0.22, y = 0.04 }: Props) {
   }, [color])
 
   useFrame(() => {
-    const { pts, opacity } = get()
+    const { pts, opacity, color: c } = get()
     material.opacity = opacity
+    if (c) material.color.set(c)
     const n = Math.min(pts.length, MAX)
     mesh.current.visible = opacity > 0.005 && n > 1
     if (!mesh.current.visible) return

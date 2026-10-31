@@ -8,11 +8,11 @@ import { Character } from '../components/Character'
 import { CameraRig } from '../components/CameraRig'
 import { TouchControls } from '../components/TouchControls'
 import { Loop } from './Loop'
-import { AerialCam, Atmosphere, Blooms, Bridge, DeadForest, Drawings, EarthSpirit, Ground, Waiting, ZoneRing } from './Scene'
+import { AerialCam, Atmosphere, Blooms, Bridge, DeadForest, Drawings, Fires, Ground, ShadowWall, Spirits, Waiting, ZoneRings } from './Scene'
 import { proto } from './proto'
 
 /*
- * Prototipo de "El bosque que se dibuja" (zona 1).
+ * Prototipo de "El bosque que se dibuja" (zonas 1 y 4).
  * Reutiliza la elfa, la cámara y los controles del juego; el resto está en src/simbolos/.
  */
 export default function SymbolsApp() {
@@ -25,18 +25,20 @@ export default function SymbolsApp() {
         <CameraRig />
         <AerialCam />
         <Ground />
-        <ZoneRing />
+        <ZoneRings />
         <Drawings />
         <Waiting />
         <Suspense fallback={null}>
           <Character />
-          <EarthSpirit />
+          <Spirits />
         </Suspense>
         <Suspense fallback={null}>
           <DeadForest />
           <Blooms />
           <Bridge />
         </Suspense>
+        <Fires />
+        <ShadowWall />
         <EndWatcher />
       </Canvas>
       <Overlay />
@@ -47,7 +49,7 @@ export default function SymbolsApp() {
 /** Cuando la cámara ya subió del todo, aparece el texto final. */
 function EndWatcher() {
   useFrame(() => {
-    if (proto.endAt >= 0 && game.time - proto.endAt > 9.5) setUi({ final: true })
+    if (proto.endAt >= 0 && game.time - proto.endAt > 11) setUi({ final: true })
   })
   return null
 }
