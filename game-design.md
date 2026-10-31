@@ -29,7 +29,7 @@ Documento de diseño (31 oct 2026). Sigue los pasos de la skill *game-designer*.
 | 1. Barranco | Tierra | Triángulo | No se puede cruzar | Suben piedras y forman un puente |
 | 2. Árbol seco | Agua | Espiral | Un árbol muerto tapa el paso | Revive y sus raíces abren el camino |
 | 3. Niebla | Aire | Zigzag | No se ve hacia dónde ir | El viento disipa la niebla |
-| 4. Cueva oscura | Fuego | Círculo | No hay luz | Se encienden hogueras |
+| 4. Bosque oscuro | Fuego | Círculo | Un muro de sombra corta el camino | Se encienden hogueras y la sombra se retira |
 
 - **Dificultad:** cada símbolo es un poco más largo o difícil de caminar (triángulo → círculo grande); los símbolos no se combinan.
 - **Final:** llega donde la espera la elfa recién nacida, le enciende una hoguera, y la cámara sube: se ve el camino entero, florecido, único para cada jugadora.
@@ -53,5 +53,10 @@ No es un juego educativo. Lo que se cuenta va sin texto: los seres, los símbolo
 
 ## Estado del prototipo
 
-Hecho: zona 1 completa (rastro que florece, el ser de la tierra, dibujar el triángulo, el puente, la llegada y la vista desde arriba).
-Pendiente: zonas 2–4, la elfa recién nacida (ahora es una luz provisional), sonido propio para cada ser.
+Hecho:
+- Zona 1: rastro que florece, el ser de la tierra, dibujar el triángulo y el puente.
+- Zona 4: el bosque oscuro, el muro de sombra, el ser del fuego, dibujar el círculo y las hogueras.
+- El final: enciende la hoguera de la recién nacida y la cámara sube a ver todo el camino.
+- Las zonas son una lista en `proto.ts`: sumar las zonas 2 y 3 es agregar dos entradas y sus obstáculos.
+
+Pendiente: zonas 2 y 3, la elfa recién nacida (ahora es una luz provisional), sonido propio para cada ser.
