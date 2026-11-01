@@ -78,3 +78,31 @@ function chirp(ctx: AudioContext, out: AudioNode, t0: number, loud: number) {
     o.stop(t + 0.04)
   }
 }
+
+/** Las raíces que se cierran: un crujido grave (ruido filtrado que baja). */
+export function rumble(x: number, z: number) {
+  const A = getAudio()
+  if (!A) return
+  const { ctx, master } = A
+  const t = ctx.currentTime
+  const len = 0.9
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * len), ctx.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length)
+  const src = ctx.createBufferSource()
+  src.buffer = buf
+  const f = ctx.createBiquadFilter()
+  f.type = 'lowpass'
+  f.frequency.setValueAtTime(420, t)
+  f.frequency.exponentialRampToValueAtTime(70, t + len)
+  const g = ctx.createGain()
+  g.gain.setValueAtTime(0.5, t)
+  g.gain.exponentialRampToValueAtTime(0.001, t + len)
+  const p = ctx.createPanner()
+  p.positionX.value = x
+  p.positionY.value = 0.5
+  p.positionZ.value = z
+  p.refDistance = 4
+  src.connect(f).connect(g).connect(p).connect(master)
+  src.start(t)
+}

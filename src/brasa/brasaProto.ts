@@ -16,8 +16,9 @@ import type { Pt } from '../simbolos/recognizer'
 
 // ── Lugares (metros) ─────────────────────────────────────────────
 export const HEARTH = { x: 4, z: 12 }
-export const ROOTS_Z = 62 // las raíces cerradas: aún no se pasa
+export const ROOTS_Z = 62 // las raíces cerradas: se abren cuando el miedo se calma
 export const BOUNDS = { x: 16, zMin: -6, zMax: ROOTS_Z - 1.2 }
+export const BOUNDS_OPEN = 76 // hasta dónde se puede ir cuando las raíces se abren (la parte 3 empieza más allá)
 
 /** El camino del jugador anterior (por ahora uno de ejemplo): termina en la hoguera. */
 export const PREV_PATH: Pt[] = (() => {
@@ -37,7 +38,7 @@ export const RINGS: Ring[] = [
   { x: -1, z: 22, litAt: 0 }, // ya encendido (lo encendió el jugador anterior)
   { x: 5, z: 33, litAt: -1 },
   { x: -3, z: 44, litAt: -1 },
-  { x: 2, z: 55, litAt: -1 },
+  { x: 2, z: 51, litAt: -1 },
 ]
 
 // ── Flores dormidas (regalos de la naturaleza) ───────────────────
@@ -48,6 +49,27 @@ export const FLOWERS: Flower[] = [
   { x: 10, z: 31, giftAt: -1 }, // fuera del camino
   { x: -9, z: 47, giftAt: -1 }, // fuera del camino
 ]
+
+// ── Parte 2: Raíces dormidas — el ser del miedo ──────────────────
+// Se esconde entre las raíces. Si te acercas, las raíces se cierran más.
+// Hay que encender 3 luces de hongos que formen un camino desde su escondite hacia afuera
+// (no son refugios: son para él) y alejarse, para que salga solo, asomándose.
+export const HIDEOUT = { x: 0, z: ROOTS_Z + 0.4 }
+export type PathLight = { x: number; z: number; litAt: number }
+export const PATH_LIGHTS: PathLight[] = [
+  { x: 0.4, z: 58.4, litAt: -1 },
+  { x: -3.2, z: 55.6, litAt: -1 },
+  { x: -6.6, z: 52.8, litAt: -1 },
+]
+export const PATH_COST = 0.25
+export const SCARE_DIST = 5.5 // más cerca: se esconde y las raíces se cierran
+export const AWAY_DIST = 7 // hay que estar al menos así de lejos de él para que avance
+export const FEAR_SPEED = 0.7 // metros por segundo cuando se anima a avanzar
+export const COMPANION_DRAIN = 0.65 // con él al lado, la brasa dura más
+export const MIRROR_PICK = 1.5
+/** El camino que recorre al salir: de su escondite, pasando por las tres luces. */
+export const FEAR_PATH: Pt[] = [{ x: HIDEOUT.x, z: HIDEOUT.z - 0.6 }, ...PATH_LIGHTS.map((p) => ({ x: p.x, z: p.z }))]
+export const FEAR_LEN = FEAR_PATH.slice(1).reduce((acc, p, i) => acc + Math.hypot(p.x - FEAR_PATH[i].x, p.z - FEAR_PATH[i].z), 0)
 
 // ── Ritmo ────────────────────────────────────────────────────────
 export const WALK = 1.5
@@ -78,9 +100,23 @@ export const b = {
   outFrom: { x: 0, z: 0 } as Pt,
   giveAt: -99, // la última vez que dio luz (destello)
   failAt: -99, // intentó dar luz sin brasa suficiente
-  near: null as null | { kind: 'ring' | 'flower'; i: number }, // a qué le puede dar luz ahora
+  near: null as null | { kind: 'ring' | 'flower' | 'path'; i: number }, // a qué le puede dar luz ahora
   walked: 0,
   totalWalked: 0,
+  // el ser del miedo
+  fear: {
+    pos: { x: HIDEOUT.x, z: HIDEOUT.z } as Pt,
+    progress: 0, // metros recorridos por el camino de luz (0 = escondido)
+    tight: 0, // 0..1: cuánto se cerraron las raíces (se acercó demasiado)
+    scaredAt: -99,
+    calmAt: -1, // llegó al final del camino de luz: ya no tiene miedo
+    homeAt: -1, // volvió a su escondite a sacar el espejo
+    openAt: -1, // se abrieron las raíces
+    mirrorUpAt: -1, // el espejo sale de la tierra
+    following: false,
+  },
+  hasMirror: false,
+  mirrorAt: -1,
 }
 
 export const refuges = () => [{ x: HEARTH.x, z: HEARTH.z, lit: b.hasEmber }, ...RINGS.map((r) => ({ x: r.x, z: r.z, lit: r.litAt >= 0 }))]

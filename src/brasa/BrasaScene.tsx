@@ -10,7 +10,7 @@ import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { FLOWERS, HEARTH, MEMORY_FLIGHT, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, b, emberLevel } from './brasaProto'
+import { FLOWERS, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -211,27 +211,204 @@ export function BurntForest() {
   )
 }
 
-/** Las raíces cerradas: aquí empieza la parte 2 (el miedo). Provisional: arcos oscuros. */
+/**
+ * Las raíces: se cierran más si ella se acerca al escondite del miedo;
+ * cuando el miedo se calma, las del centro se hunden en la tierra y abren el paso. Provisional: arcos oscuros.
+ */
 export function RootWall() {
   const roots = useMemo(() => {
     const r = rng(77)
-    return Array.from({ length: 26 }, () => ({
-      x: (r() - 0.5) * 30,
-      z: ROOTS_Z + r() * 2.5,
-      rad: 1.2 + r() * 2.2,
-      tube: 0.12 + r() * 0.16,
-      rot: r() * Math.PI,
-      tilt: (r() - 0.5) * 0.6,
-    }))
+    return Array.from({ length: 30 }, (_, i) => {
+      const x = i < 6 ? (i - 2.5) * 1.1 : (r() - 0.5) * 34 // las primeras 6 tapan el paso del centro
+      return { x, z: ROOTS_Z + r() * 2.5, rad: 1.2 + r() * 2.2, tube: 0.12 + r() * 0.16, rot: r() * Math.PI, tilt: (r() - 0.5) * 0.6, center: Math.abs(x) < 3.6 }
+    })
   }, [])
+  const refs = useRef<(THREE.Mesh | null)[]>([])
+  useFrame(() => {
+    const F = b.fear
+    const t = game.time
+    const open = F.openAt >= 0 ? smoothstep(F.openAt, F.openAt + 2.5, t) : 0
+    roots.forEach((rt, i) => {
+      const m = refs.current[i]
+      if (!m) return
+      // se cierran: se juntan y se aprietan, con un temblor
+      const shake = F.tight > 0.05 ? Math.sin(t * 23 + i) * 0.03 * F.tight : 0
+      const squeeze = rt.center ? F.tight * 0.35 : F.tight * 0.12
+      m.position.set(rt.x * (1 - squeeze * 0.5) + shake, rt.center ? -open * (rt.rad + 0.6) : 0, rt.z)
+      m.scale.set(1 + squeeze, 1 + squeeze * 0.6, 1 + squeeze)
+    })
+  })
   return (
     <group>
       {roots.map((t, i) => (
-        <mesh key={i} position={[t.x, 0, t.z]} rotation={[t.tilt, t.rot, 0]}>
+        <mesh
+          key={i}
+          ref={(el) => {
+            refs.current[i] = el
+          }}
+          position={[t.x, 0, t.z]}
+          rotation={[t.tilt, t.rot, 0]}
+        >
           <torusGeometry args={[t.rad, t.tube, 6, 14, Math.PI]} />
           <meshStandardMaterial color="#2a2018" roughness={1} />
         </mesh>
       ))}
+    </group>
+  )
+}
+
+// ── Las luces del camino: hongos pequeños que se encienden para que el miedo se anime a salir ──
+const pathM = new THREE.Matrix4()
+export function PathLights() {
+  const tex = useGlowTexture()
+  const glows = useRef<(THREE.Sprite | null)[]>([])
+  const spots = useMemo(
+    () =>
+      PATH_LIGHTS.flatMap((p, pi) =>
+        Array.from({ length: 4 }, (_, k) => {
+          const a = (k / 4) * Math.PI * 2 + pi
+          return { pi, x: p.x + Math.cos(a) * 0.55, z: p.z + Math.sin(a) * 0.55, rot: k * 1.3 + pi, s: 0.45 + (k % 2) * 0.15 }
+        }),
+      ),
+    [],
+  )
+  const update = (set: SetInstance) => {
+    const t = game.time
+    spots.forEach((sp, i) => {
+      const at = PATH_LIGHTS[sp.pi].litAt
+      const on = at >= 0 ? clamp01((t - at) / 0.6) : 0
+      set(i, placeMatrix(sp.x, 0, sp.z, sp.rot, sp.s, pathM), 0.4 + on * 2.2)
+    })
+  }
+  useFrame(() => {
+    const t = game.time
+    PATH_LIGHTS.forEach((p, i) => {
+      const s = glows.current[i]
+      if (!s) return
+      const on = p.litAt >= 0 ? clamp01((t - p.litAt) / 0.6) : 0
+      s.material.opacity = 0.05 + on * 0.5
+      s.scale.setScalar(1.6 + on * 1.4 + Math.sin(t * 2 + i) * 0.1 * on)
+    })
+  })
+  return (
+    <>
+      <DynamicModel url={natureUrl('Mushroom_Common')} count={spots.length} onFrame={update} />
+      {PATH_LIGHTS.map((p, i) => (
+        <sprite
+          key={i}
+          ref={(el) => {
+            glows.current[i] = el
+          }}
+          position={[p.x, 0.25, p.z]}
+        >
+          <spriteMaterial map={tex} color="#ffd8a0" transparent opacity={0.05} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </sprite>
+      ))}
+    </>
+  )
+}
+
+/**
+ * El ser del miedo (tierra). Provisional: una piedra redonda y oscura con ojos de luz.
+ * Escondido, solo se le ven los ojos entre las raíces (y se esconden si ella se acerca).
+ * Al calmarse, se enciende por dentro con luz ámbar y le giran piedritas alrededor.
+ */
+const PEBBLES = 5
+export function FearBeing() {
+  const tex = useGlowTexture()
+  const group = useRef<THREE.Group>(null!)
+  const body = useRef<THREE.Mesh>(null!)
+  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3b342c', roughness: 1, flatShading: true, emissive: '#ff9a3c', emissiveIntensity: 0 }), [])
+  const eyes = useRef<THREE.Group>(null!)
+  const eyeMat = useMemo(() => new THREE.SpriteMaterial({ map: tex, color: '#ffe2a0', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }), [tex])
+  const orbit = useRef<THREE.Group>(null!)
+  const light = useRef<THREE.PointLight>(null!)
+  const lastX = useRef(HIDEOUT.x)
+  const lastZ = useRef(HIDEOUT.z)
+  const heading = useRef(Math.PI)
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05)
+    const F = b.fear
+    const t = game.time
+    const calm = F.calmAt >= 0 ? clamp01((t - F.calmAt) / 1.5) : 0
+    const out = F.progress > 0.05 || F.calmAt >= 0
+    group.current.position.set(F.pos.x, 0, F.pos.z)
+    // mira hacia donde va (o hacia ella, si está quieto)
+    const dx = F.pos.x - lastX.current
+    const dz = F.pos.z - lastZ.current
+    const want = Math.hypot(dx, dz) > 0.002 ? Math.atan2(dx, dz) : Math.atan2(game.x - F.pos.x, game.z - F.pos.z)
+    heading.current += Math.atan2(Math.sin(want - heading.current), Math.cos(want - heading.current)) * damp(5, dt)
+    group.current.rotation.y = heading.current
+    lastX.current = F.pos.x
+    lastZ.current = F.pos.z
+    // escondido: el cuerpo no se ve (está entre las raíces); asomándose: aparece, encogido
+    body.current.visible = out
+    const shrink = 1 - F.tight * 0.35
+    const hop = out && calm < 1 && Math.hypot(dx, dz) > 0.002 ? Math.abs(Math.sin(t * 9)) * 0.08 : 0
+    body.current.position.y = 0.32 * shrink + hop + calm * Math.sin(t * 2) * 0.05
+    body.current.scale.set(0.5 * shrink, 0.42 * shrink, 0.5 * shrink)
+    bodyMat.emissiveIntensity = calm * 0.6
+    // los ojos: parpadean; se apagan si se asusta
+    const blink = Math.sin(t * 0.9) > 0.97 ? 0 : 1
+    eyeMat.opacity = (1 - F.tight) * blink * (b.hasEmber ? 0.95 : 0.4)
+    eyes.current.position.y = body.current.position.y + 0.08
+    orbit.current.visible = calm > 0.01
+    orbit.current.rotation.y += dt * 1.5
+    orbit.current.scale.setScalar(Math.max(0.001, calm))
+    light.current.intensity = calm * 4
+  })
+  return (
+    <group ref={group}>
+      <mesh ref={body} material={bodyMat} visible={false}>
+        <icosahedronGeometry args={[1, 1]} />
+      </mesh>
+      <group ref={eyes} position={[0, 0.4, 0.38]}>
+        <sprite material={eyeMat} position={[-0.11, 0, 0]} scale={[0.14, 0.14, 1]} />
+        <sprite material={eyeMat} position={[0.11, 0, 0]} scale={[0.14, 0.14, 1]} />
+      </group>
+      <group ref={orbit} position={[0, 0.45, 0]} visible={false}>
+        {Array.from({ length: PEBBLES }, (_, i) => {
+          const a = (i / PEBBLES) * Math.PI * 2
+          return (
+            <mesh key={i} position={[Math.cos(a) * 0.55, Math.sin(a * 2) * 0.1, Math.sin(a) * 0.55]}>
+              <dodecahedronGeometry args={[0.06, 0]} />
+              <meshStandardMaterial color="#8a7a63" roughness={0.9} emissive="#3a2810" />
+            </mesh>
+          )
+        })}
+      </group>
+      <pointLight ref={light} position={[0, 0.8, 0]} color="#ffb85c" distance={6} intensity={0} />
+    </group>
+  )
+}
+
+/** El espejo de obsidiana: sale de la tierra, girando despacio, hasta que ella lo toma. Provisional: disco negro brillante con marco de piedra. */
+export function MirrorPickup() {
+  const tex = useGlowTexture()
+  const group = useRef<THREE.Group>(null!)
+  const glow = useRef<THREE.Sprite>(null!)
+  useFrame(() => {
+    const F = b.fear
+    const t = game.time
+    const up = F.mirrorUpAt >= 0 ? smoothstep(F.mirrorUpAt, F.mirrorUpAt + 1.6, t) : 0
+    group.current.visible = up > 0 && !b.hasMirror
+    group.current.position.set(HIDEOUT.x, -0.6 + up * 1.7 + Math.sin(t * 1.5) * 0.05, HIDEOUT.z - 1.2)
+    group.current.rotation.y = t * 0.6
+    glow.current.material.opacity = 0.25 + up * 0.35
+  })
+  return (
+    <group ref={group} visible={false}>
+      <mesh rotation-x={0}>
+        <circleGeometry args={[0.32, 24]} />
+        <meshStandardMaterial color="#07070b" metalness={0.7} roughness={0.08} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh>
+        <torusGeometry args={[0.34, 0.05, 6, 24]} />
+        <meshStandardMaterial color="#4a4038" roughness={0.9} />
+      </mesh>
+      <sprite ref={glow} scale={[1.6, 1.6, 1]}>
+        <spriteMaterial map={tex} color="#b9a4ff" transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
     </group>
   )
 }

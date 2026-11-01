@@ -9,7 +9,7 @@ import { CameraRig } from '../components/CameraRig'
 import { TouchControls } from '../components/TouchControls'
 import { Blooms } from '../simbolos/Scene'
 import { BrasaLoop } from './BrasaLoop'
-import { BurntForest, DormantFlowers, EmberAndSparks, Fireflies, Hearth, LavaGround, MushroomRings, Night, PrevTrail, RootWall, Stars, Vignette, Volcano } from './BrasaScene'
+import { BurntForest, DormantFlowers, EmberAndSparks, FearBeing, Fireflies, Hearth, LavaGround, MirrorPickup, MushroomRings, Night, PathLights, PrevTrail, RootWall, Stars, Vignette, Volcano } from './BrasaScene'
 
 /*
  * Onward — la luz que se pasa de mano en mano (ver game-design.md).
@@ -31,6 +31,8 @@ export default function BrasaApp() {
         <EmberAndSparks />
         <Vignette />
         <RootWall />
+        <FearBeing />
+        <MirrorPickup />
         <Suspense fallback={null}>
           <Character />
         </Suspense>
@@ -38,6 +40,7 @@ export default function BrasaApp() {
           <BurntForest />
           <Hearth />
           <MushroomRings />
+          <PathLights />
           <DormantFlowers />
           <Blooms />
         </Suspense>

@@ -5,10 +5,12 @@ import { game, input, setUi } from '../game/state'
 import { bell, chord, NOTES } from '../game/sfx'
 import { spawnBloom } from '../simbolos/blooms'
 import type { Pt } from '../simbolos/recognizer'
-import { addCricket, updateCrickets } from './crickets'
+import { addCricket, rumble, updateCrickets } from './crickets'
+import { pointAlong } from '../simbolos/proto'
 import {
-  BLOOM_STEP, BOUNDS, EMBER_TIME, FLOWER_COST, FLOWERS, GIFT_BONUS, GIVE_DIST, HEARTH, MEMORY_FLIGHT, PICK_DIST, RECHARGE, REFUGE_R,
-  RETURN_TIME, RING_COST, RINGS, RUN, RUN_DRAIN, WALK, b, refuges,
+  AWAY_DIST, BLOOM_STEP, BOUNDS, BOUNDS_OPEN, COMPANION_DRAIN, EMBER_TIME, FEAR_LEN, FEAR_PATH, FEAR_SPEED, FLOWER_COST, FLOWERS, GIFT_BONUS,
+  GIVE_DIST, HEARTH, HIDEOUT, MEMORY_FLIGHT, MIRROR_PICK, PATH_COST, PATH_LIGHTS, PICK_DIST, RECHARGE, REFUGE_R, RETURN_TIME, RING_COST,
+  RINGS, ROOTS_Z, RUN, RUN_DRAIN, SCARE_DIST, WALK, b, refuges,
 } from './brasaProto'
 
 /*
@@ -19,11 +21,13 @@ import {
  *   ?ember     empieza ya con la brasa, junto a la hoguera
  *   ?lit       todo encendido y florecido (para ver cómo queda)
  *   ?out       con la brasa casi apagada lejos del fuego (para ver la chispa que vuelve)
+ *   ?fear      frente a las raíces, con la brasa y el último refugio encendido (parte 2)
+ *   ?calm      el miedo ya se calmó: las raíces abiertas y el espejo saliendo de la tierra
  */
 const params = new URLSearchParams(location.search)
 const AUTO = params.has('auto')
 const STEPS = Number(params.get('steps') ?? 0)
-const QUICK = AUTO || ['go', 'ember', 'lit', 'out'].some((k) => params.has(k))
+const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm'].some((k) => params.has(k))
 ;(window as unknown as Record<string, unknown>).__game = game
 ;(window as unknown as Record<string, unknown>).__brasa = b
 
@@ -34,6 +38,8 @@ let started = false
 addCricket({ x: HEARTH.x, z: HEARTH.z, on: () => !b.hasEmber, loud: 1.3 }) // la brasa espera
 RINGS.forEach((r) => addCricket({ x: r.x, z: r.z, on: () => b.hasEmber && r.litAt < 0 }))
 FLOWERS.forEach((f) => addCricket({ x: f.x, z: f.z, on: () => b.hasEmber && f.giftAt < 0, loud: 0.6 }))
+// (junto al escondite del miedo los grillos se callan; cantan en las luces del camino que faltan)
+PATH_LIGHTS.forEach((p) => addCricket({ x: p.x, z: p.z, on: () => b.hasEmber && p.litAt < 0 && b.fear.calmAt < 0, loud: 0.8 }))
 
 export function BrasaLoop() {
   useFrame(({ camera }, rawDt) => {
@@ -56,7 +62,7 @@ function step(dt: number) {
     g.started = true
     g.time = Math.max(g.time, 30)
     setUi({ start: false })
-    if (params.has('ember') || params.has('lit') || params.has('out')) pick(g.time - 5, true)
+    if (['ember', 'lit', 'out', 'fear', 'calm'].some((k) => params.has(k))) pick(g.time - 5, true)
     if (params.has('ember')) {
       g.x = HEARTH.x - 1.5
       g.z = HEARTH.z + 1
@@ -69,6 +75,24 @@ function step(dt: number) {
       b.ember = b.max
       g.x = 0
       g.z = 30
+    }
+    if (params.has('fear') || params.has('calm')) {
+      RINGS.forEach((r) => (r.litAt = g.time - 8))
+      g.x = RINGS[3].x
+      g.z = RINGS[3].z
+    }
+    if (params.has('calm')) {
+      PATH_LIGHTS.forEach((p) => (p.litAt = g.time - 20))
+      const F = b.fear
+      F.progress = FEAR_LEN
+      F.calmAt = g.time - 6
+      F.homeAt = g.time - 1.5
+      F.openAt = g.time - 1.5
+      F.mirrorUpAt = g.time - 0.3
+      F.following = true
+      BOUNDS.zMax = BOUNDS_OPEN
+      g.x = 1.5
+      g.z = 57
     }
     if (params.has('out')) {
       b.lastRefuge = { x: RINGS[0].x, z: RINGS[0].z }
@@ -114,6 +138,8 @@ function step(dt: number) {
   const pz = g.z
   g.x = THREE.MathUtils.clamp(g.x + Math.sin(g.yaw) * g.speed * dt, -BOUNDS.x, BOUNDS.x)
   g.z = THREE.MathUtils.clamp(g.z + Math.cos(g.yaw) * g.speed * dt, BOUNDS.zMin, BOUNDS.zMax)
+  // (el paso entre las raíces abiertas es angosto)
+  if (g.z > ROOTS_Z - 1.5 && g.z < ROOTS_Z + 4) g.x = THREE.MathUtils.clamp(g.x, -2.6, 2.6)
   const stepLen = Math.hypot(g.x - px, g.z - pz)
 
   // ── Tomar la brasa de la hoguera ──
@@ -127,7 +153,8 @@ function step(dt: number) {
       b.ember = Math.min(b.max, b.ember + RECHARGE * dt)
       b.lastRefuge = { x: ref.x, z: ref.z }
     } else {
-      b.ember -= (dt / EMBER_TIME) * (running && g.speed > WALK + 0.2 ? RUN_DRAIN : 1)
+      const company = b.fear.following && Math.hypot(g.x - b.fear.pos.x, g.z - b.fear.pos.z) < 4 ? COMPANION_DRAIN : 1
+      b.ember -= (dt / EMBER_TIME) * (running && g.speed > WALK + 0.2 ? RUN_DRAIN : 1) * company
       if (b.ember <= 0) {
         b.ember = 0
         b.outAt = g.time
@@ -170,12 +197,21 @@ function step(dt: number) {
         b.near = { kind: 'flower', i }
       }
     })
+    PATH_LIGHTS.forEach((p, i) => {
+      const d = Math.hypot(g.x - p.x, g.z - p.z)
+      if (p.litAt < 0 && d < best) {
+        best = d
+        b.near = { kind: 'path', i }
+      }
+    })
   }
   const give = input.interact || input.jumpPressed
   input.interact = false
   input.jumpPressed = false
   if (give && b.near) giveLight(g.time)
   setUi({ prompt: b.near ? 'give' : null })
+
+  fearStep(dt)
 
   // ── Los recuerdos llegan a ella: la brasa dura un poco más ──
   b.memFlights = b.memFlights.filter((m) => {
@@ -200,7 +236,7 @@ function pick(time: number, quiet: boolean) {
 function giveLight(time: number) {
   const n = b.near
   if (!n) return
-  const cost = n.kind === 'ring' ? RING_COST : FLOWER_COST
+  const cost = n.kind === 'ring' ? RING_COST : n.kind === 'path' ? PATH_COST : FLOWER_COST
   if (b.ember < cost + 0.04) {
     b.failAt = time
     bell(NOTES[0] * 0.5, true)
@@ -211,11 +247,88 @@ function giveLight(time: number) {
   if (n.kind === 'ring') {
     RINGS[n.i].litAt = time
     bell(NOTES[4], false)
+  } else if (n.kind === 'path') {
+    PATH_LIGHTS[n.i].litAt = time
+    bell(NOTES[2 + (n.i % 3)], true)
   } else {
     const f = FLOWERS[n.i]
     f.giftAt = time
     b.memFlights.push({ from: { x: f.x, z: f.z }, at: time + 0.9 })
     bell(NOTES[3], true)
+  }
+}
+
+// ── Parte 2: el ser del miedo ────────────────────────────────────
+let moveClock = 0
+function fearStep(dt: number) {
+  const g = game
+  const F = b.fear
+  const t = g.time
+  const toHide = Math.hypot(g.x - HIDEOUT.x, g.z - HIDEOUT.z)
+  const toBeing = Math.hypot(g.x - F.pos.x, g.z - F.pos.z)
+
+  if (F.calmAt < 0) {
+    // si se acerca demasiado a su escondite: se esconde y las raíces se cierran más
+    const scared = toHide < SCARE_DIST || (F.progress > 0 && toBeing < 4.2)
+    F.tight = Math.min(1, Math.max(0, F.tight + (scared ? dt * 0.9 : -dt * 0.25)))
+    if (scared && t - F.scaredAt > 3.5 && toHide < SCARE_DIST) {
+      F.scaredAt = t
+      rumble(HIDEOUT.x, HIDEOUT.z)
+    }
+    // con las tres luces encendidas y ella lejos, se anima a salir: avanza un poco, duda, avanza…
+    const allLit = PATH_LIGHTS.every((p) => p.litAt >= 0)
+    // (solo avanza hasta la última luz encendida)
+    let reach = 0
+    for (let i = 0; i < PATH_LIGHTS.length && PATH_LIGHTS[i].litAt >= 0; i++) {
+      reach += Math.hypot(FEAR_PATH[i + 1].x - FEAR_PATH[i].x, FEAR_PATH[i + 1].z - FEAR_PATH[i].z)
+    }
+    if (scared) {
+      F.progress = Math.max(0, F.progress - dt * 1.4) // retrocede hacia su escondite
+      moveClock = 0
+    } else if (reach > 0 && toBeing > AWAY_DIST * 0.7 && toHide > AWAY_DIST) {
+      moveClock += dt
+      const going = moveClock % 2.4 < 1.3 // avanza 1,3 s y se queda quieto, mirando
+      if (going) F.progress = Math.min(reach, F.progress + FEAR_SPEED * dt)
+    }
+    // llegó al final del camino de luz: ya no tiene miedo
+    if (allLit && F.progress >= FEAR_LEN - 0.05) {
+      F.calmAt = t
+      F.tight = 0
+      g.pulse = 1
+      chord()
+    }
+    F.pos = pointAlong(FEAR_PATH, F.progress / FEAR_LEN)
+    return
+  }
+
+  // ya calmado: vuelve a su escondite, abre las raíces y saca el espejo de la tierra
+  if (F.homeAt < 0) {
+    if (t - F.calmAt < 1.8) return // se queda mirándola un momento
+    F.progress = Math.max(0, F.progress - dt * 1.6)
+    F.pos = pointAlong(FEAR_PATH, F.progress / FEAR_LEN)
+    if (F.progress <= 0) {
+      F.homeAt = t
+      F.openAt = t + 0.4
+      F.mirrorUpAt = t + 1.6
+      BOUNDS.zMax = BOUNDS_OPEN
+      rumble(HIDEOUT.x, HIDEOUT.z)
+    }
+    return
+  }
+  // el espejo: al acercarse, lo toma
+  if (!b.hasMirror && t > F.mirrorUpAt + 1 && Math.hypot(g.x - HIDEOUT.x, g.z - (HIDEOUT.z - 1.2)) < MIRROR_PICK) {
+    b.hasMirror = true
+    b.mirrorAt = t
+    g.pulse = 1
+    chord()
+  }
+  // después la acompaña, a un costado y un poco atrás
+  if (t > F.mirrorUpAt + 0.8) {
+    F.following = true
+    const tx = g.x - Math.sin(g.yaw) * 1.4 + Math.cos(g.yaw) * 1.1
+    const tz = g.z - Math.cos(g.yaw) * 1.4 - Math.sin(g.yaw) * 1.1
+    const k = damp(1.8, dt)
+    F.pos = { x: F.pos.x + (tx - F.pos.x) * k, z: F.pos.z + (tz - F.pos.z) * k }
   }
 }
 
@@ -231,7 +344,16 @@ const AUTO_WAY: Way[] = [
   { to: { x: RINGS[2].x + 1.2, z: RINGS[2].z - 1 }, give: true },
   { to: { x: RINGS[2].x, z: RINGS[2].z }, wait: () => b.ember < b.max * 0.95 },
   { to: { x: RINGS[3].x - 1.2, z: RINGS[3].z - 1 }, give: true },
-  { to: { x: 0, z: BOUNDS.zMax - 0.5 } },
+  { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
+  // parte 2: las tres luces del camino (sin acercarse demasiado al escondite)
+  { to: { x: PATH_LIGHTS[2].x + 1.3, z: PATH_LIGHTS[2].z - 1 }, give: true },
+  { to: { x: PATH_LIGHTS[1].x + 1.3, z: PATH_LIGHTS[1].z - 1.2 }, give: true },
+  { to: { x: PATH_LIGHTS[0].x + 1.6, z: PATH_LIGHTS[0].z - 1.6 }, give: true },
+  { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
+  // se aleja y espera a que salga solo
+  { to: { x: 7, z: 47 }, wait: () => b.fear.mirrorUpAt < 0 || game.time < b.fear.mirrorUpAt + 1.2 },
+  { to: { x: HIDEOUT.x, z: HIDEOUT.z - 1.3 } }, // toma el espejo
+  { to: { x: 0, z: 72 } },
 ]
 let autoI = 0
 let gaveAt = -1
