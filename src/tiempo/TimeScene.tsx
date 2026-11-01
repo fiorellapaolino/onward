@@ -151,21 +151,25 @@ function treeSpots(seed: number, models: string[], count: number) {
 const treeM = new THREE.Matrix4()
 function EraTrees({ models, seed, count, past }: { models: string[]; seed: number; count: number; past: boolean }) {
   const spots = useMemo(() => treeSpots(seed, models, count), [models, seed, count])
-  const update = (list: Spot[]) => (set: SetInstance) => {
+  const last = useMemo(() => models.map(() => -1), [models])
+  const update = (list: Spot[], k: number) => (set: SetInstance) => {
     const m = pastMix(game.time)
+    // (si no está cambiando de época, los árboles no se mueven: no hace falta recolocarlos)
+    if (m === last[k] && (m === 0 || m === 1)) return
+    last[k] = m
     list.forEach((sp, i) => {
       // el cambio empieza cerca de ella y se extiende como una onda
       const d = Math.hypot(sp.x - game.x, sp.z - game.z)
       const local = clamp01(((past ? m : 1 - m) * 120 - d) / 30)
-      const k = local * local * (3 - 2 * local)
-      const glow = past ? 1 + (1 - k) * k * 3 : 1
-      set(i, placeMatrix(sp.x, 0, sp.z, sp.rot, Math.max(0.0001, sp.s * k), treeM), glow)
+      const e = local * local * (3 - 2 * local)
+      const glow = past ? 1 + (1 - e) * e * 3 : 1
+      set(i, placeMatrix(sp.x, 0, sp.z, sp.rot, Math.max(0.0001, sp.s * e), treeM), glow)
     })
   }
   return (
     <>
       {models.map((model, i) => (
-        <DynamicModel key={model} url={natureUrl(model)} count={Math.max(1, spots[i].length)} onFrame={update(spots[i])} />
+        <DynamicModel key={model} url={natureUrl(model)} count={Math.max(1, spots[i].length)} onFrame={update(spots[i], i)} />
       ))}
     </>
   )
@@ -186,10 +190,10 @@ export function Banks() {
     const r = rng(3)
     let i = 0
     for (const edge of [RIVER_Z0, RIVER_Z1]) {
-      for (let x = -40; x < 40; x += 1.8 + r() * 2.2) {
-        if (Math.abs(x) < 2.2) continue
+      for (let x = -40; x < 40; x += 2.4 + r() * 2.6) {
+        if (Math.abs(x) < 2.6) continue
         const z = edge + (edge === RIVER_Z0 ? -0.6 : 0.6) + (r() - 0.5) * 0.6
-        set(i++, placeMatrix(x, -0.15, z, r() * Math.PI * 2, 0.45 + r() * 0.6, treeM))
+        set(i++, placeMatrix(x, -0.2, z, r() * Math.PI * 2, 0.3 + r() * 0.4, treeM))
       }
     }
   }

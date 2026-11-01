@@ -4,4 +4,3 @@ proto_end ?end 30
 proto_auto ?auto&wrong&steps=70 230
 tiempo_past ?tiempo&past&steps=10 25
 tiempo_end ?tiempo&end 30
-tiempo_auto ?tiempo&auto&steps=70 200

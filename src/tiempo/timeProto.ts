@@ -46,7 +46,7 @@ export const SPIRIT_RANGE = 9
 export const DEMO_TIME = 6 // la espiral es más larga que los otros símbolos
 export const MIN_STROKE = 12 // metros mínimos de trazo para intentar reconocerla
 export const CENTER_DIST = 1.1 // la espiral termina en el centro: ahí se prueba
-export const PASS_SCORE = 0.72
+export const PASS_SCORE = 0.66 // (la espiral caminada es difícil: más margen que los otros símbolos; igual tiene que ser lo más parecido)
 export const SHIFT_TIME = 1.8 // segundos que tarda el bosque en cambiar de época
 
 /** Colores del pasto donde caminó en el pasado (se ven desde arriba al final). */

@@ -60,3 +60,14 @@ Hecho:
 - Las zonas son una lista en `proto.ts`: sumar las zonas 2 y 3 es agregar dos entradas y sus obstáculos.
 
 Pendiente: zonas 2 y 3, la elfa recién nacida (ahora es una luz provisional), sonido propio para cada ser.
+
+## Prueba: el símbolo del tiempo (rama `dev/lineas-de-tiempo`)
+
+Se abre con `?tiempo` en la dirección; no cambia el juego principal. El código está en `src/tiempo/`.
+
+- **Ser del tiempo** (luz lila con agujas de reloj) dibuja una **espiral** hacia el centro del círculo.
+- Al repetirla, el bosque **vuelve a su pasado**: cielo dorado, árboles jóvenes y verdes, y el río todavía no existe.
+- La elfa cruza por donde antes había pradera y, al llegar al otro lado, **vuelve sola al presente**: mirar atrás sirve para entender, no para quedarse.
+- En la vista final, lo que caminó en el pasado queda en **lila**: su línea de tiempo se ve en el camino.
+- Atajos: `?tiempo&auto` (la elfa juega sola), `?tiempo&past` (ya en el pasado, frente al río), `?tiempo&end` (vista final).
+
