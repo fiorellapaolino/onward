@@ -349,7 +349,7 @@ function fearStep(dt: number) {
 }
 
 // ── Piloto automático (?auto) ────────────────────────────────────
-type Way = { to: Pt; give?: boolean; wait?: () => boolean; part2?: boolean }
+type Way = { to: Pt; give?: boolean; wait?: () => boolean; part2?: boolean; mirror?: boolean }
 const AUTO_WAY: Way[] = [
   { to: { x: 1.5, z: 5 } },
   { to: { x: HEARTH.x - 0.6, z: HEARTH.z - 0.6 } }, // toma la brasa
@@ -370,11 +370,11 @@ const AUTO_WAY: Way[] = [
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
   // se aleja y espera en el refugio, mirando, a que salga solo
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.fear.mirrorUpAt < 0 || game.time < b.fear.mirrorUpAt + 1.2 },
-  { to: { x: HIDEOUT.x, z: HIDEOUT.z - 1.3 } }, // toma el espejo
+  { to: { x: HIDEOUT.x, z: HIDEOUT.z - 1.3 }, mirror: true }, // toma el espejo
   { to: { x: 0, z: 72 } },
 ]
-// (con ?fear el piloto empieza directamente en la parte 2)
-let autoI = params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
+// (con ?fear el piloto empieza directamente en la parte 2; con ?calm, en el espejo)
+let autoI = params.has('calm') ? AUTO_WAY.findIndex((w) => w.mirror) : params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
 let gaveAt = -1
 
 function autopilot(dt: number) {
