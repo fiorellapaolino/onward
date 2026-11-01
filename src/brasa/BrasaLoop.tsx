@@ -344,7 +344,7 @@ function fearStep(dt: number) {
 }
 
 // ── Piloto automático (?auto) ────────────────────────────────────
-type Way = { to: Pt; give?: boolean; wait?: () => boolean }
+type Way = { to: Pt; give?: boolean; wait?: () => boolean; part2?: boolean }
 const AUTO_WAY: Way[] = [
   { to: { x: 1.5, z: 5 } },
   { to: { x: HEARTH.x - 0.6, z: HEARTH.z - 0.6 } }, // toma la brasa
@@ -356,9 +356,11 @@ const AUTO_WAY: Way[] = [
   { to: { x: RINGS[2].x, z: RINGS[2].z }, wait: () => b.ember < b.max * 0.95 },
   { to: { x: RINGS[3].x - 1.2, z: RINGS[3].z - 1 }, give: true },
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
-  // parte 2: las tres luces del camino (sin acercarse demasiado al escondite)
-  { to: { x: PATH_LIGHTS[2].x + 1.3, z: PATH_LIGHTS[2].z - 1 }, give: true },
+  // parte 2: las tres luces del camino (sin acercarse demasiado al escondite), recargando entre una y otra
+  { to: { x: PATH_LIGHTS[2].x + 1.3, z: PATH_LIGHTS[2].z - 1 }, give: true, part2: true },
+  { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
   { to: { x: PATH_LIGHTS[1].x + 1.3, z: PATH_LIGHTS[1].z - 1.2 }, give: true },
+  { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
   { to: { x: PATH_LIGHTS[0].x + 1.6, z: PATH_LIGHTS[0].z - 1.6 }, give: true },
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
   // se aleja y espera a que salga solo
@@ -366,7 +368,8 @@ const AUTO_WAY: Way[] = [
   { to: { x: HIDEOUT.x, z: HIDEOUT.z - 1.3 } }, // toma el espejo
   { to: { x: 0, z: 72 } },
 ]
-let autoI = 0
+// (con ?fear el piloto empieza directamente en la parte 2)
+let autoI = params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
 let gaveAt = -1
 
 function autopilot(dt: number) {
