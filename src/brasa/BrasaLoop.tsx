@@ -1,12 +1,15 @@
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { damp } from '../game/config'
-import { game, input, setUi } from '../game/state'
+import { game, input, isTouch, setUi } from '../game/state'
 import { bell, chord, NOTES } from '../game/sfx'
 import { spawnBloom } from '../simbolos/blooms'
 import type { Pt } from '../simbolos/recognizer'
 import { addCricket, rumble, updateCrickets } from './crickets'
 import { pointAlong } from '../simbolos/proto'
+import {
+  BRIDGE, BRIDGE_COST, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, LOOK_NEED, MIRROR_SLOW, mirrorKey,
+} from './brasaProto'
 import {
   AWAY_DIST, BOUNDS, BOUNDS_OPEN, COMPANION_DRAIN, EMBER_TIME, FEAR_LEN, FEAR_PATH, FEAR_SPEED, FLOWER_COST, FLOWERS, GIFT_BONUS,
   GIVE_DIST, HEARTH, HIDEOUT, MEMORY_FLIGHT, MIRROR_PICK, PATH_COST, PATH_LIGHTS, PICK_DIST, RECHARGE, REFUGE_R, RETURN_TIME, RING_COST,
@@ -23,11 +26,12 @@ import {
  *   ?out       con la brasa casi apagada lejos del fuego (para ver la chispa que vuelve)
  *   ?fear      frente a las raíces, con la brasa y el último refugio encendido (parte 2)
  *   ?calm      el miedo ya se calmó: las raíces abiertas y el espejo saliendo de la tierra
+ *   ?mirror    ya tiene el espejo, frente a la grieta de lava (parte 3); con &look, mirando por el espejo
  */
 const params = new URLSearchParams(location.search)
 const AUTO = params.has('auto')
 const STEPS = Number(params.get('steps') ?? 0)
-const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm'].some((k) => params.has(k))
+const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm', 'mirror'].some((k) => params.has(k))
 ;(window as unknown as Record<string, unknown>).__game = game
 ;(window as unknown as Record<string, unknown>).__brasa = b
 
@@ -39,6 +43,7 @@ addCricket({ x: HEARTH.x, z: HEARTH.z, on: () => !b.hasEmber, loud: 1.3 }) // la
 RINGS.forEach((r) => addCricket({ x: r.x, z: r.z, on: () => b.hasEmber && r.litAt < 0 }))
 FLOWERS.forEach((f) => addCricket({ x: f.x, z: f.z, on: () => b.hasEmber && f.giftAt < 0, loud: 0.6 }))
 // (junto al escondite del miedo los grillos se callan; cantan en las luces del camino que faltan)
+addCricket({ x: BRIDGE.x, z: BRIDGE.z + 1.6, on: () => b.hasMirror && BRIDGE.litAt < 0, loud: 1.1 }) // el puente oculto
 PATH_LIGHTS.forEach((p) => addCricket({ x: p.x, z: p.z, on: () => b.hasEmber && p.litAt < 0 && b.fear.calmAt < 0, loud: 0.8 }))
 
 export function BrasaLoop() {
@@ -62,7 +67,7 @@ function step(dt: number) {
     g.started = true
     g.time = Math.max(g.time, 30)
     setUi({ start: false })
-    if (['ember', 'lit', 'out', 'fear', 'calm'].some((k) => params.has(k))) pick(g.time - 5, true)
+    if (['ember', 'lit', 'out', 'fear', 'calm', 'mirror'].some((k) => params.has(k))) pick(g.time - 5, true)
     if (params.has('ember')) {
       g.x = HEARTH.x - 1.5
       g.z = HEARTH.z + 1
@@ -77,12 +82,12 @@ function step(dt: number) {
       g.x = 0
       g.z = 30
     }
-    if (params.has('fear') || params.has('calm')) {
+    if (params.has('fear') || params.has('calm') || params.has('mirror')) {
       RINGS.forEach((r) => (r.litAt = g.time - 8))
       g.x = RINGS[3].x
       g.z = RINGS[3].z
     }
-    if (params.has('calm')) {
+    if (params.has('calm') || params.has('mirror')) {
       PATH_LIGHTS.forEach((p) => (p.litAt = g.time - 20))
       ;[...RINGS, ...PATH_LIGHTS].forEach((p) => bloomAround(p.x, p.z, g.time - 20, 1.5))
       const F = b.fear
@@ -95,6 +100,13 @@ function step(dt: number) {
       BOUNDS.zMax = BOUNDS_OPEN
       g.x = 1.5
       g.z = 57
+    }
+    if (params.has('mirror')) {
+      b.hasMirror = true
+      b.mirrorAt = g.time - 20
+      b.lookedOnce = true
+      g.x = 0.5
+      g.z = 65
     }
     if (params.has('out')) {
       b.lastRefuge = { x: RINGS[0].x, z: RINGS[0].z }
@@ -127,8 +139,15 @@ function step(dt: number) {
   if (AUTO) autopilot(dt)
   const moving = MOVE.lengthSq() > 0.04
   if (moving) MOVE.normalize()
+  // ── El espejo: mantenerlo (o la primera vez, se mira sola un momento) ──
+  const firstLook = b.hasMirror && g.time - b.mirrorAt < 3.5
+  b.looking = b.hasMirror && (mirrorKey.held || autoLook || firstLook || params.has('look'))
+  if (b.looking && !firstLook) b.lookedOnce = true
+  b.look += ((b.looking ? 1 : 0) - b.look) * damp(6, dt)
+  setUi({ goal: b.hasMirror && !b.lookedOnce && !firstLook ? 'mirror' : null })
+
   const running = input.run || input.runToggle
-  const target = moving ? (running ? RUN : WALK) : 0
+  const target = (moving ? (running ? RUN : WALK) : 0) * (1 - b.look * (1 - MIRROR_SLOW))
   g.speed += (target - g.speed) * damp(5, dt)
   if (moving) {
     const want = Math.atan2(MOVE.x, MOVE.z)
@@ -142,6 +161,13 @@ function step(dt: number) {
   g.z = THREE.MathUtils.clamp(g.z + Math.cos(g.yaw) * g.speed * dt, BOUNDS.zMin, BOUNDS.zMax)
   // (el paso entre las raíces abiertas es angosto)
   if (g.z > ROOTS_Z - 1.5 && g.z < ROOTS_Z + 4) g.x = THREE.MathUtils.clamp(g.x, -2.6, 2.6)
+  // (la grieta de lava: solo se cruza por el puente, cuando ya es real)
+  if (BRIDGE.litAt >= 0 && g.time > BRIDGE.litAt + 1.2) {
+    if (g.z > CRACK_Z0 - 0.4 && g.z < CRACK_Z1 + 0.4) g.x = THREE.MathUtils.clamp(g.x, BRIDGE.x - BRIDGE_HALF + 0.3, BRIDGE.x + BRIDGE_HALF - 0.3)
+  } else {
+    if (pz <= CRACK_Z0 && g.z > CRACK_Z0 - 0.35) g.z = CRACK_Z0 - 0.35
+    if (pz >= CRACK_Z1 && g.z < CRACK_Z1 + 0.35) g.z = CRACK_Z1 + 0.35
+  }
   const stepLen = Math.hypot(g.x - px, g.z - pz)
 
   // ── Tomar la brasa de la hoguera ──
@@ -187,7 +213,7 @@ function step(dt: number) {
     })
     FLOWERS.forEach((f, i) => {
       const d = Math.hypot(g.x - f.x, g.z - f.z)
-      if (f.giftAt < 0 && d < best) {
+      if (f.giftAt < 0 && d < best && (!f.hidden || b.look > LOOK_NEED)) {
         best = d
         b.near = { kind: 'flower', i }
       }
@@ -199,8 +225,15 @@ function step(dt: number) {
         b.near = { kind: 'path', i }
       }
     })
+    // el puente: solo se le puede dar luz mientras se lo ve en el espejo
+    const dB = Math.hypot(g.x - BRIDGE.x, g.z - BRIDGE.z)
+    if (b.hasMirror && BRIDGE.litAt < 0 && b.look > LOOK_NEED && dB < best + 0.6) {
+      best = dB
+      b.near = { kind: 'bridge', i: 0 }
+    }
   }
-  const give = input.interact || input.jumpPressed
+  // (dar luz: E; en el móvil, el botón de abajo. Espacio es para el espejo)
+  const give = input.interact || (isTouch && input.jumpPressed)
   input.interact = false
   input.jumpPressed = false
   if (give && b.near) giveLight(g.time)
@@ -247,7 +280,7 @@ function pick(time: number, quiet: boolean) {
 function giveLight(time: number) {
   const n = b.near
   if (!n) return
-  const cost = n.kind === 'ring' ? RING_COST : n.kind === 'path' ? PATH_COST : FLOWER_COST
+  const cost = n.kind === 'ring' ? RING_COST : n.kind === 'path' ? PATH_COST : n.kind === 'bridge' ? BRIDGE_COST : FLOWER_COST
   if (b.ember < cost + 0.04) {
     b.failAt = time
     bell(NOTES[0] * 0.5, true)
@@ -255,17 +288,22 @@ function giveLight(time: number) {
   }
   b.ember -= cost
   b.giveAt = time
-  const at = n.kind === 'ring' ? RINGS[n.i] : n.kind === 'path' ? PATH_LIGHTS[n.i] : FLOWERS[n.i]
-  bloomAround(at.x, at.z, time, n.kind === 'path' ? 1 : 1.9)
+  const at = n.kind === 'ring' ? RINGS[n.i] : n.kind === 'path' ? PATH_LIGHTS[n.i] : n.kind === 'bridge' ? BRIDGE : FLOWERS[n.i]
+  if (n.kind !== 'bridge') bloomAround(at.x, at.z, time, n.kind === 'path' ? 1 : 1.9)
   if (n.kind === 'ring') {
     RINGS[n.i].litAt = time
     bell(NOTES[4], false)
+  } else if (n.kind === 'bridge') {
+    BRIDGE.litAt = time
+    chord()
+    console.log('[puente] se volvió real')
   } else if (n.kind === 'path') {
     PATH_LIGHTS[n.i].litAt = time
     bell(NOTES[2 + (n.i % 3)], true)
   } else {
     const f = FLOWERS[n.i]
     f.giftAt = time
+    if (f.hidden) console.log('[flor oculta] despertó')
     b.memFlights.push({ from: { x: f.x, z: f.z }, at: time + 0.9 })
     bell(NOTES[3], true)
   }
@@ -349,7 +387,7 @@ function fearStep(dt: number) {
 }
 
 // ── Piloto automático (?auto) ────────────────────────────────────
-type Way = { to: Pt; give?: boolean; wait?: () => boolean; part2?: boolean; mirror?: boolean }
+type Way = { to: Pt; give?: boolean; wait?: () => boolean; part2?: boolean; mirror?: boolean; look?: boolean; part3?: boolean }
 const AUTO_WAY: Way[] = [
   { to: { x: 1.5, z: 5 } },
   { to: { x: HEARTH.x - 0.6, z: HEARTH.z - 0.6 } }, // toma la brasa
@@ -371,23 +409,34 @@ const AUTO_WAY: Way[] = [
   // se aleja y espera en el refugio, mirando, a que salga solo
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.fear.mirrorUpAt < 0 || game.time < b.fear.mirrorUpAt + 1.2 },
   { to: { x: HIDEOUT.x, z: HIDEOUT.z - 1.3 }, mirror: true }, // toma el espejo
-  { to: { x: 0, z: 72 } },
+  // parte 3: mirar por el espejo y darle luz al puente oculto; despertar las flores ocultas
+  { to: { x: 0.3, z: 66.6 }, part3: true },
+  { to: { x: 0.3, z: 66.8 }, look: true, give: true },
+  { to: { x: -3.7, z: 66.4 }, look: true, give: true, wait: () => game.time < BRIDGE.litAt + 1.5 },
+  { to: { x: 0, z: 67.6 } },
+  { to: { x: 0, z: 73.5 } },
+  { to: { x: 5.1, z: 74.6 }, look: true, give: true },
+  { to: { x: 0, z: 82 } },
 ]
 // (con ?fear el piloto empieza directamente en la parte 2; con ?calm, en el espejo)
-let autoI = params.has('calm') ? AUTO_WAY.findIndex((w) => w.mirror) : params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
+let autoI = params.has('mirror') ? AUTO_WAY.findIndex((w) => w.part3) : params.has('calm') ? AUTO_WAY.findIndex((w) => w.mirror) : params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
 let gaveAt = -1
+let autoLook = false
 
 function autopilot(dt: number) {
   const g = game
   if (autoI >= AUTO_WAY.length) {
     MOVE.set(0, 0, 0)
+    autoLook = false
     return
   }
   const w = AUTO_WAY[autoI]
+  autoLook = !!w.look
   MOVE.set(w.to.x - g.x, 0, w.to.z - g.z)
   const near = MOVE.length() < 0.45
   if (near) {
     MOVE.set(0, 0, 0)
+    if (w.look && b.look < 0.85) return // (espera a estar mirando bien por el espejo)
     if (w.give && gaveAt !== autoI) {
       gaveAt = autoI
       input.interact = true

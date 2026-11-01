@@ -9,7 +9,12 @@ import { CameraRig } from '../components/CameraRig'
 import { TouchControls } from '../components/TouchControls'
 import { Blooms } from '../simbolos/Scene'
 import { BrasaLoop } from './BrasaLoop'
-import { BurntForest, DormantFlowers, EmberAndSparks, FearBeing, Fireflies, Hearth, LavaGround, MirrorPickup, MushroomRings, Night, PathLights, PrevTrail, RootWall, Stars, Vignette, Volcano } from './BrasaScene'
+import {
+  BurntForest, Crack, DormantFlowers, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
+  Night, PathLights, PrevTrail, RootWall, Stars, Vignette, Volcano,
+} from './BrasaScene'
+import { b, mirrorKey } from './brasaProto'
+import { Reflection } from './Reflection'
 
 /*
  * Onward — la luz que se pasa de mano en mano (ver game-design.md).
@@ -17,6 +22,7 @@ import { BurntForest, DormantFlowers, EmberAndSparks, FearBeing, Fireflies, Hear
  */
 export default function BrasaApp() {
   useInput()
+  useMirrorKeys()
   return (
     <>
       <Canvas camera={{ position: [0, 2, -4], fov: 55, near: 0.1, far: 600 }} dpr={[1, 2]}>
@@ -33,6 +39,10 @@ export default function BrasaApp() {
         <RootWall />
         <FearBeing />
         <MirrorPickup />
+        <Crack />
+        <MirrorBridge />
+        <GrottoGate />
+        <MirrorView />
         <Suspense fallback={null}>
           <Character />
         </Suspense>
@@ -46,9 +56,47 @@ export default function BrasaApp() {
         </Suspense>
       </Canvas>
       <div id="vignette" className="vignette" />
+      <div id="mirror-view" className="mirror-view">
+        <Reflection />
+      </div>
       <Overlay />
     </>
   )
+}
+
+/** Mantener Espacio o el clic derecho: mirar por el espejo. */
+function useMirrorKeys() {
+  useEffect(() => {
+    const isSpace = (e: KeyboardEvent) => e.code === 'Space' || e.key === ' '
+    const down = (e: KeyboardEvent) => {
+      if (isSpace(e) && game.started) mirrorKey.held = true
+    }
+    const up = (e: KeyboardEvent) => {
+      if (isSpace(e)) mirrorKey.held = false
+    }
+    const pdown = (e: PointerEvent) => {
+      if (e.button === 2 && game.started) mirrorKey.held = true
+    }
+    const pup = (e: PointerEvent) => {
+      if (e.button === 2) mirrorKey.held = false
+    }
+    const menu = (e: MouseEvent) => e.preventDefault()
+    const blur = () => (mirrorKey.held = false)
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('pointerdown', pdown)
+    window.addEventListener('pointerup', pup)
+    window.addEventListener('contextmenu', menu)
+    window.addEventListener('blur', blur)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('pointerdown', pdown)
+      window.removeEventListener('pointerup', pup)
+      window.removeEventListener('contextmenu', menu)
+      window.removeEventListener('blur', blur)
+    }
+  }, [])
 }
 
 function Overlay() {
@@ -106,7 +154,16 @@ function Overlay() {
         )}
       </div>
 
-      {/* "E / Espacio: dar luz" (solo aparece cerca de algo a lo que se le puede dar luz) */}
+      {/* "Mantén Espacio para mirar por el espejo" (hasta la primera vez que lo usa) */}
+      <div className={`give mirror-hint ${ui.goal === 'mirror' ? 'show' : ''}`}>
+        {isTouch ? 'Tap Mirror to look through it' : (
+          <>
+            Hold <kbd>Space</kbd> to look through the mirror
+          </>
+        )}
+      </div>
+
+      {/* "E: dar luz" (solo aparece cerca de algo a lo que se le puede dar luz) */}
       <div className={`give ${ui.prompt === 'give' ? 'show' : ''}`}>
         {isTouch ? 'Tap Jump to give light' : (
           <>
@@ -116,6 +173,26 @@ function Overlay() {
       </div>
 
       <TouchControls show={!ui.start} />
+      {isTouch && b.hasMirror ? <MirrorButton /> : null}
     </div>
+  )
+}
+
+/** En el móvil: un botón que activa y desactiva el espejo. */
+function MirrorButton() {
+  const [on, setOn] = useState(false)
+  return (
+    <button
+      type="button"
+      className={`touch-btn mirror ${on ? 'active' : ''}`}
+      onPointerDown={(e) => {
+        ;(e.nativeEvent as Event & { handled?: boolean }).handled = true
+        mirrorKey.held = !mirrorKey.held
+        setOn(mirrorKey.held)
+      }}
+    >
+      {/* "Espejo" */}
+      Mirror
+    </button>
   )
 }

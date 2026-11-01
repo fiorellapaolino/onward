@@ -355,3 +355,38 @@ body.grabbing canvas {
 .give.show {
   opacity: 0.9;
 }
+/* mirando por el espejo: bordes de obsidiana y su reflejo abajo */
+.mirror-view {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(40, 20, 70, 0.08) 40%, rgba(12, 6, 24, 0.88) 100%);
+}
+.mirror-view .reflection {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  width: min(22vw, 150px);
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 18px rgba(170, 140, 255, 0.35));
+}
+.mirror-view .rf {
+  opacity: 0;
+  transition: opacity 1.2s;
+}
+.mirror-view.m1 .rf.m1,
+.mirror-view.m2 .rf.m2,
+.mirror-view.m3 .rf.m3 {
+  opacity: 1;
+}
+.mirror-view.m4 .rf.m4 {
+  opacity: 0.18;
+}
+.give.mirror-hint {
+  bottom: 22%;
+}
+.touch-btn.mirror {
+  bottom: calc(max(28px, env(safe-area-inset-bottom, 0px)) + 184px);
+  right: calc(max(22px, env(safe-area-inset-right, 0px)) + 30px);
+}

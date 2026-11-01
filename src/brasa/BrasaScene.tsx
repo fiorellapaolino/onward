@@ -10,7 +10,7 @@ import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { FLOWERS, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, b, emberLevel } from './brasaProto'
+import { BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -21,6 +21,7 @@ import { FLOWERS, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN
 // ── Noche: cielo, niebla, luna ──
 const SKY_NIGHT = new THREE.Color('#0b1022')
 const SKY_WARM = new THREE.Color('#1a1830') // un poco más cálido a medida que despierta el bosque
+const SKY_MIRROR = new THREE.Color('#231238') // visto a través de la obsidiana
 const tmpC = new THREE.Color()
 
 export function Night() {
@@ -36,7 +37,7 @@ export function Night() {
     const lit = RINGS.filter((r) => r.litAt >= 0).length / RINGS.length
     const target = (b.hasEmber ? 0.3 : 0) + lit * 0.4 + Math.min(1, b.memories / FLOWERS.length) * 0.3
     life.current += (target - life.current) * damp(0.6, dt)
-    tmpC.copy(SKY_NIGHT).lerp(SKY_WARM, life.current)
+    tmpC.copy(SKY_NIGHT).lerp(SKY_WARM, life.current).lerp(SKY_MIRROR, b.look * 0.8)
     ;(scene.background as THREE.Color).copy(tmpC)
     const fog = scene.fog as THREE.Fog
     fog.color.copy(tmpC)
@@ -542,7 +543,9 @@ export function DormantFlowers() {
     FLOWERS.forEach((f, i) => {
       const k = f.giftAt >= 0 ? clamp01((t - f.giftAt) / 1.4) : 0
       const e = 1 - Math.pow(1 - k, 3)
-      set(i, placeMatrix(f.x, 0, f.z, i * 1.9, 0.35 + e * 0.85, flowerM), 0.3 + e * 1.5 + (k > 0 && k < 1 ? (1 - k) * 2 : 0))
+      // las ocultas solo existen en el espejo (hasta que se les da luz)
+      const seen = f.hidden && f.giftAt < 0 ? b.look : 1
+      set(i, placeMatrix(f.x, 0, f.z, i * 1.9, Math.max(0.0001, (0.35 + e * 0.85) * seen), flowerM), (0.3 + e * 1.5 + (k > 0 && k < 1 ? (1 - k) * 2 : 0)) * (f.hidden && f.giftAt < 0 ? 2.2 : 1))
     })
   }
   useFrame(() => {
@@ -552,8 +555,9 @@ export function DormantFlowers() {
       if (!s) return
       const done = f.giftAt >= 0 ? clamp01((t - f.giftAt) / 1.4) : 0
       // dormida: un brillo muy tenue que respira (para encontrarla); abierta: cálida
-      s.material.opacity = done > 0 ? 0.35 * done : b.hasEmber ? 0.12 + Math.sin(t * 1.5 + i) * 0.05 : 0.04
-      s.material.color.set(done > 0 ? '#ffd6a0' : '#b8c8ff')
+      const seen = f.hidden && f.giftAt < 0 ? b.look : 1
+      s.material.opacity = (done > 0 ? 0.35 * done : b.hasEmber ? 0.12 + Math.sin(t * 1.5 + i) * 0.05 : 0.04) * seen + (f.hidden && f.giftAt < 0 ? b.look * 0.25 : 0)
+      s.material.color.set(done > 0 ? '#ffd6a0' : f.hidden ? '#c9a6ff' : '#b8c8ff')
       s.scale.setScalar(1.4 + done * 1.2)
     })
   })
@@ -692,6 +696,98 @@ export function Vignette() {
     const lvl = emberLevel()
     const v = b.hasEmber ? Math.max(0, 1 - lvl * 1.6) : 0.55
     el.style.opacity = String(b.outAt >= 0 ? 1 : v)
+  })
+  return null
+}
+
+// ── Parte 3: la grieta de lava vieja y el puente que solo existe en el espejo ──
+export function Crack() {
+  const tex = useGlowTexture()
+  const lava = useRef<THREE.MeshStandardMaterial>(null!)
+  const glows = useMemo(() => Array.from({ length: 14 }, (_, i) => ({ x: (i - 6.5) * 2.6 + Math.sin(i * 7.3) * 0.8, z: CRACK_Z0 + 0.6 + ((i * 37) % 23) / 10 })), [])
+  useFrame(() => {
+    lava.current.emissiveIntensity = 0.55 + Math.sin(game.time * 0.9) * 0.15
+  })
+  const W = 140
+  const D = CRACK_Z1 - CRACK_Z0
+  return (
+    <group>
+      {/* el fondo de la grieta: oscuro, con un resplandor rojo muy apagado */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.015, (CRACK_Z0 + CRACK_Z1) / 2]} renderOrder={2}>
+        <planeGeometry args={[W, D]} />
+        <meshStandardMaterial ref={lava} color="#0a0606" emissive="#5a1606" emissiveIntensity={0.55} roughness={1} />
+      </mesh>
+      {glows.map((g, i) => (
+        <sprite key={i} position={[g.x, 0.2, g.z]} scale={[2.6, 1.2, 1]}>
+          <spriteMaterial map={tex} color="#ff5a1e" transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </sprite>
+      ))}
+    </group>
+  )
+}
+
+const STONES = 5
+export function MirrorBridge() {
+  const tex = useGlowTexture()
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#0b0a10', metalness: 0.6, roughness: 0.12, transparent: true, opacity: 0, emissive: '#7a5cff', emissiveIntensity: 0.6 }), [])
+  const glow = useRef<THREE.Sprite>(null!)
+  const stones = useMemo(
+    () => Array.from({ length: STONES }, (_, i) => ({ z: CRACK_Z0 - 0.1 + ((CRACK_Z1 - CRACK_Z0 + 0.2) * (i + 0.5)) / STONES, rot: i * 1.7, s: 0.62 + (i % 2) * 0.08 })),
+    [],
+  )
+  useFrame(() => {
+    const t = game.time
+    const real = BRIDGE.litAt >= 0 ? clamp01((t - BRIDGE.litAt) / 1.2) : 0
+    // en el espejo se ve como un fantasma lila; al darle luz, se vuelve obsidiana de verdad
+    mat.opacity = Math.max(real, b.look * 0.7)
+    mat.emissiveIntensity = (1 - real) * 0.7 + Math.max(0, 1 - (t - BRIDGE.litAt) / 2) * (BRIDGE.litAt >= 0 ? 1.2 : 0)
+    mat.depthWrite = real > 0.9
+    glow.current.material.opacity = (1 - real) * b.look * 0.5 + (BRIDGE.litAt >= 0 ? Math.max(0, 1 - (t - BRIDGE.litAt) / 2.5) * 0.8 : 0)
+  })
+  return (
+    <group position={[BRIDGE.x, 0, 0]}>
+      {stones.map((st, i) => (
+        <mesh key={i} material={mat} position={[0, 0.05, st.z]} rotation={[0, st.rot, 0]} scale={[BRIDGE_HALF * st.s * 1.6, 0.18, 0.7]}>
+          <dodecahedronGeometry args={[0.5, 0]} />
+        </mesh>
+      ))}
+      <sprite ref={glow} position={[0, 0.4, (CRACK_Z0 + CRACK_Z1) / 2]} scale={[3.5, 4.5, 1]}>
+        <spriteMaterial map={tex} color="#b9a4ff" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+    </group>
+  )
+}
+
+/** La entrada a la Gruta de obsidiana (parte 4). Provisional: un arco de bloques negros brillantes. */
+export function GrottoGate() {
+  const blocks = useMemo(() => {
+    const out: { x: number; y: number; s: number; r: number }[] = []
+    for (let i = 0; i <= 12; i++) {
+      const a = (i / 12) * Math.PI
+      out.push({ x: Math.cos(a) * 3.2, y: Math.sin(a) * 3.6, s: 0.7 + ((i * 13) % 5) / 10, r: i * 0.9 })
+    }
+    return out
+  }, [])
+  return (
+    <group position={[0, 0, GROTTO_Z]}>
+      {blocks.map((k, i) => (
+        <mesh key={i} position={[k.x, k.y, 0]} rotation={[k.r, k.r * 0.7, 0]} scale={k.s}>
+          <dodecahedronGeometry args={[0.8, 0]} />
+          <meshStandardMaterial color="#0d0c12" metalness={0.55} roughness={0.15} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+/** Mientras mira por el espejo: el borde de la pantalla se vuelve obsidiana y aparece su reflejo. */
+export function MirrorView() {
+  useFrame(() => {
+    const el = document.getElementById('mirror-view')
+    if (!el) return
+    el.style.opacity = String(b.look)
+    const n = b.memories
+    el.className = `mirror-view${n >= 1 ? ' m1' : ''}${n >= 2 ? ' m2' : ''}${n >= 3 ? ' m3' : ''}${n >= 5 ? ' m4' : ''}`
   })
   return null
 }

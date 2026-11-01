@@ -18,7 +18,7 @@ import type { Pt } from '../simbolos/recognizer'
 export const HEARTH = { x: 4, z: 12 }
 export const ROOTS_Z = 62 // las raíces cerradas: se abren cuando el miedo se calma
 export const BOUNDS = { x: 16, zMin: -6, zMax: ROOTS_Z - 1.2 }
-export const BOUNDS_OPEN = 76 // hasta dónde se puede ir cuando las raíces se abren (la parte 3 empieza más allá)
+export const BOUNDS_OPEN = 86 // hasta dónde se puede ir cuando las raíces se abren (la gruta empieza más allá)
 
 /** El camino del jugador anterior (por ahora uno de ejemplo): termina en la hoguera. */
 export const PREV_PATH: Pt[] = (() => {
@@ -42,12 +42,15 @@ export const RINGS: Ring[] = [
 ]
 
 // ── Flores dormidas (regalos de la naturaleza) ───────────────────
-export type Flower = { x: number; z: number; giftAt: number }
+export type Flower = { x: number; z: number; giftAt: number; hidden?: boolean } // hidden: solo se ve en el espejo
 export const FLOWERS: Flower[] = [
   { x: 6.6, z: 13.6, giftAt: -1 }, // junto a la hoguera: el recuerdo de su nacimiento
   { x: -7, z: 25, giftAt: -1 },
   { x: 10, z: 31, giftAt: -1 }, // fuera del camino
   { x: -9, z: 47, giftAt: -1 }, // fuera del camino
+  // detrás de las raíces: solo se ven en el espejo
+  { x: -5, z: 66, giftAt: -1, hidden: true },
+  { x: 6.5, z: 75, giftAt: -1, hidden: true },
 ]
 
 // ── Parte 2: Raíces dormidas — el ser del miedo ──────────────────
@@ -70,6 +73,23 @@ export const MIRROR_PICK = 1.5
 /** El camino que recorre al salir: de su escondite, pasando por las tres luces. */
 export const FEAR_PATH: Pt[] = [{ x: HIDEOUT.x, z: HIDEOUT.z - 0.6 }, ...PATH_LIGHTS.map((p) => ({ x: p.x, z: p.z }))]
 export const FEAR_LEN = FEAR_PATH.slice(1).reduce((acc, p, i) => acc + Math.hypot(p.x - FEAR_PATH[i].x, p.z - FEAR_PATH[i].z), 0)
+
+// ── Parte 3: el espejo ───────────────────────────────────────────
+// Mantener Espacio (o clic derecho): se mira el mundo a través de la obsidiana.
+// Muestra lo oculto; si se le da luz mientras se ve en el espejo, se vuelve real.
+// Detrás de las raíces hay una grieta de lava vieja que no se puede cruzar:
+// en el espejo se ve un puente de piedras de obsidiana. Al darle luz, aparece de verdad.
+export const CRACK_Z0 = 68.5
+export const CRACK_Z1 = 72
+export const BRIDGE = { x: 0, z: CRACK_Z0 - 0.3, litAt: -1 } // (donde se le da luz: la orilla de este lado)
+export const BRIDGE_HALF = 1.1
+export const BRIDGE_COST = 0.3
+export const MIRROR_SLOW = 0.45 // con el espejo se camina más despacio
+export const LOOK_NEED = 0.5 // cuánto tiene que estar mirando para poder dar luz a lo oculto
+export const GROTTO_Z = 85 // la entrada a la Gruta de obsidiana (parte 4)
+
+/** Mantener el espejo: Espacio o clic derecho (en el móvil, un botón que lo activa y desactiva). */
+export const mirrorKey = { held: false }
 
 // ── Ritmo ────────────────────────────────────────────────────────
 export const WALK = 1.5
@@ -99,7 +119,7 @@ export const b = {
   outFrom: { x: 0, z: 0 } as Pt,
   giveAt: -99, // la última vez que dio luz (destello)
   failAt: -99, // intentó dar luz sin brasa suficiente
-  near: null as null | { kind: 'ring' | 'flower' | 'path'; i: number }, // a qué le puede dar luz ahora
+  near: null as null | { kind: 'ring' | 'flower' | 'path' | 'bridge'; i: number }, // a qué le puede dar luz ahora
   totalWalked: 0,
   // el ser del miedo
   fear: {
@@ -115,6 +135,9 @@ export const b = {
   },
   hasMirror: false,
   mirrorAt: -1,
+  looking: false, // mantiene el espejo
+  look: 0, // 0..1 (suave): cuánto está mirando a través del espejo
+  lookedOnce: false,
 }
 
 export const refuges = () => [{ x: HEARTH.x, z: HEARTH.z, lit: b.hasEmber }, ...RINGS.map((r) => ({ x: r.x, z: r.z, lit: r.litAt >= 0 }))]
