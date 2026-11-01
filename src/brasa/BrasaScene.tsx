@@ -10,7 +10,7 @@ import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { AWAY_DIST, DAWN_TREE, INTRO, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, b, emberLevel } from './brasaProto'
+import { AWAY_DIST, DAWN_TREE, INTRO, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -532,7 +532,7 @@ function refugeHint(i: number) {
   // con las tres luces del camino encendidas, si sigue cerca del miedo: "aléjate y espera aquí"
   const F = b.fear
   const allLit = PATH_LIGHTS.every((p) => p.litAt >= 0)
-  return i === RINGS.length - 1 && allLit && F.calmAt < 0 && Math.hypot(game.x - HIDEOUT.x, game.z - HIDEOUT.z) < AWAY_DIST + 1
+  return i === WAIT_RING && allLit && F.calmAt < 0 && Math.hypot(game.x - HIDEOUT.x, game.z - HIDEOUT.z) < AWAY_DIST + 1
 }
 
 // ── Las flores dormidas: oscuras y cerradas; al darles luz, se abren ──

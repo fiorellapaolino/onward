@@ -57,7 +57,11 @@ export const RINGS: Ring[] = [
   { x: 5, z: 33, litAt: -1 },
   { x: -3, z: 44, litAt: -1 },
   { x: 2, z: 51, litAt: -1 },
+  // detrás de las raíces, junto a la grieta: lo enciende el miedo cuando se calma y abre el paso (su regalo)
+  { x: 3.2, z: 66.4, litAt: -1 },
 ]
+export const FEAR_RING = 4 // (el círculo que enciende el miedo)
+export const WAIT_RING = 3 // (el refugio donde esperar a que el miedo salga)
 
 // ── Flores dormidas (regalos de la naturaleza) ───────────────────
 export type Flower = { x: number; z: number; giftAt: number; hidden?: boolean } // hidden: solo se ve en el espejo
@@ -101,7 +105,7 @@ export const CRACK_Z0 = 68.5
 export const CRACK_Z1 = 72
 export const BRIDGE = { x: 0, z: CRACK_Z0 - 0.3, litAt: -1 } // (donde se le da luz: la orilla de este lado)
 export const BRIDGE_HALF = 1.1
-export const BRIDGE_COST = 0.3
+export const BRIDGE_COST = 0.2
 export const MIRROR_SLOW = 0.45 // con el espejo se camina más despacio
 export const LOOK_NEED = 0.5 // cuánto tiene que estar mirando para poder dar luz a lo oculto
 export const GROTTO_Z = 85 // la entrada a la Gruta de obsidiana (parte 4)

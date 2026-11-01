@@ -14,7 +14,7 @@ import {
 import {
   AWAY_DIST, BOUNDS, BOUNDS_OPEN, COMPANION_DRAIN, EMBER_TIME, FEAR_LEN, FEAR_PATH, FEAR_SPEED, FLOWER_COST, FLOWERS, GIFT_BONUS,
   GIVE_DIST, HEARTH, HIDEOUT, MEMORY_FLIGHT, MIRROR_PICK, PATH_COST, PATH_LIGHTS, PICK_DIST, RECHARGE, REFUGE_R, RETURN_TIME, RING_COST,
-  RINGS, ROOTS_Z, RUN, RUN_DRAIN, SCARE_DIST, WALK, b, refuges,
+  FEAR_RING, RINGS, ROOTS_Z, RUN, RUN_DRAIN, SCARE_DIST, WALK, b, refuges,
 } from './brasaProto'
 
 /*
@@ -43,7 +43,7 @@ let started = false
 
 // ── Los grillos cantan donde hay algo dormido ──
 addCricket({ x: HEARTH.x, z: HEARTH.z, on: () => b.emberLeft && !b.hasEmber, loud: 1.3 }) // la brasa espera
-RINGS.forEach((r) => addCricket({ x: r.x, z: r.z, on: () => b.hasEmber && r.litAt < 0 }))
+RINGS.forEach((r, i) => i !== FEAR_RING && addCricket({ x: r.x, z: r.z, on: () => b.hasEmber && r.litAt < 0 }))
 FLOWERS.forEach((f) => addCricket({ x: f.x, z: f.z, on: () => b.hasEmber && f.giftAt < 0, loud: 0.6 }))
 // (junto al escondite del miedo los grillos se callan; cantan en las luces del camino que faltan)
 addCricket({ x: BRIDGE.x, z: BRIDGE.z + 1.6, on: () => b.hasMirror && BRIDGE.litAt < 0, loud: 1.1 }) // el puente oculto
@@ -85,7 +85,7 @@ function step(dt: number) {
       g.z = 30
     }
     if (params.has('fear') || params.has('calm') || params.has('mirror')) {
-      RINGS.forEach((r) => (r.litAt = g.time - 8))
+      RINGS.forEach((r, i) => (r.litAt = i === FEAR_RING && params.has('fear') ? -1 : g.time - 8))
       g.x = RINGS[3].x
       g.z = RINGS[3].z
     }
@@ -443,6 +443,7 @@ function fearStep(dt: number) {
       F.homeAt = t
       F.openAt = t + 0.4
       F.mirrorUpAt = t + 1.6
+      RINGS[FEAR_RING].litAt = t + 1.2 // su regalo: un refugio del otro lado, junto a la grieta
       BOUNDS.zMax = BOUNDS_OPEN
       rumble(HIDEOUT.x, HIDEOUT.z)
     }
