@@ -346,8 +346,8 @@ export function FearBeing() {
     const shrink = 1 - F.tight * 0.35
     const hop = out && calm < 1 && Math.hypot(dx, dz) > 0.002 ? Math.abs(Math.sin(t * 9)) * 0.08 : 0
     body.current.position.y = 0.32 * shrink + hop + calm * Math.sin(t * 2) * 0.05
-    body.current.scale.set(0.5 * shrink, 0.42 * shrink, 0.5 * shrink)
-    bodyMat.emissiveIntensity = calm * 0.6
+    body.current.scale.set(0.42 * shrink, 0.36 * shrink, 0.42 * shrink)
+    bodyMat.emissiveIntensity = calm * 0.22
     // los ojos: parpadean; se apagan si se asusta
     const blink = Math.sin(t * 0.9) > 0.97 ? 0 : 1
     eyeMat.opacity = (1 - F.tight) * blink * (b.hasEmber ? 0.95 : 0.4)
@@ -355,7 +355,7 @@ export function FearBeing() {
     orbit.current.visible = calm > 0.01
     orbit.current.rotation.y += dt * 1.5
     orbit.current.scale.setScalar(Math.max(0.001, calm))
-    light.current.intensity = calm * 4
+    light.current.intensity = calm * 2.5
   })
   return (
     <group ref={group}>
