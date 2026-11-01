@@ -19,6 +19,15 @@ Documento de diseño (1 nov 2026). Reemplaza la versión anterior ("el bosque qu
 
 **Las herramientas se encuentran, no se tienen:** nace con las manos vacías. Primero encuentra la brasa (la esperanza) y después, gracias al miedo que calmó, el espejo (poder mirarse). Cada objeto es un paso de su historia.
 
+## El mundo: un bosque sobre un volcán dormido
+
+Hace mucho, una erupción quemó el bosque. Por eso está apagado y por eso hay obsidiana en la tierra. Todo lo que aparece en el juego sale de esa historia: **un lugar que se quemó y vuelve a vivir**, igual que la elfa.
+
+- **La obsidiana:** fuego que se volvió oscuro. El espejo es un resto de aquella erupción, guardado entre las raíces.
+- **Los hongos:** cuando la lava se enfría, la primera vida que aparece sobre la roca son los líquenes (en parte hongos); empiezan a convertir la piedra en suelo y el bosque vuelve a crecer. Por eso son **los refugios de la brasa**: la prueba de que después del fuego la vida regresa.
+- **El ser del enojo:** el espíritu del volcán, el fuego que una vez lo destruyó todo. Calmado, enciende las hogueras para dar calor.
+- **Se cuenta sin texto, con el paisaje:** rocas negras de lava vieja, grietas con brillo tenue, hongos y líquenes creciendo sobre la piedra, y el volcán dormido a lo lejos, siempre visible.
+
 ## 2. Controles
 
 - **Moverse** (W A S D / palanca en el móvil) y **correr** (Tab).
@@ -31,7 +40,7 @@ Documento de diseño (1 nov 2026). Reemplaza la versión anterior ("el bosque qu
 - Es tu luz y tu "tiempo": lejos del fuego se apaga en unos 25 s.
 - Al debilitarse: luz más chica, parpadeo, el sonido se apaga, bordes de pantalla oscuros. Sin números en pantalla.
 - **Correr** gasta más brasa pero llegas antes: riesgo que eliges tú.
-- Se recarga en **hogueras** y **círculos de hongos** (refugios).
+- Se recarga en **hogueras** y **círculos de hongos** (refugios: la primera vida que volvió después del fuego).
 - **Si se apaga no se muere:** queda una chispa que vuela al último refugio y la sigues (≈5 s perdidos, nada más).
 
 ### Dar luz — la decisión
@@ -74,7 +83,7 @@ Cada ser calmado suma un instrumento; al amanecer la canción suena completa.
 |---|---|---|---|---|
 | 0 | **Despertar** (2 min) | Nace en la oscuridad, sin nada, entre grillos. Un rastro dorado tenue (el camino del jugador anterior) y el canto de los grillos la llevan a una hoguera casi apagada: ahí la espera **la brasa** que dejó otra elfa, que aparece dorada un instante y se desvanece | Aprender sin texto: escuchar para orientarse, seguir el rastro, y que la brasa baja lejos del fuego | **La brasa** |
 | 1 | **El miedo** — ser de tierra (5 min) | Se esconde entre raíces; si te acercas, se cierran más. Todavía no hay espejo: solo se le puede leer por cómo se mueve | Encender 3 círculos de hongos que formen un camino desde su escondite, con la brasa justa; alejarse para que salga solo | Abre las raíces y saca de la tierra **el espejo de obsidiana**. Al mirarse por primera vez, su reflejo no tiene rostro. Con el ser al lado, la brasa dura más |
-| 2 | **El enojo** — ser de fuego (5 min, *extra*) | En el bosque oscuro lanza chispas. El espejo muestra que su hogar (círculo de piedras) está roto | Encontrar las piedras siguiendo grillos y brillos, esquivar chispas, rearmar su hogar y darle luz | Se encienden todas las hogueras; la brasa se vuelve llama y se puede reflejar con el espejo |
+| 2 | **El enojo** — el espíritu del volcán (5 min, *extra*) | En el bosque oscuro, al pie del volcán, lanza chispas. El espejo muestra que su hogar (círculo de piedras) está roto | Encontrar las piedras siguiendo grillos y brillos, esquivar chispas, rearmar su hogar y darle luz | Se encienden todas las hogueras; la brasa se vuelve llama y se puede reflejar con el espejo |
 | 3 | **La sombra** (3 min) | Su sombra solo aparece en el espejo y **copia sus movimientos al revés** | Mirarla en el espejo y caminar hacia atrás guiándose por el reflejo; al alcanzarla, darle luz | La sombra se vuelve luz |
 | 4 | **El final** (2 min) | Amanece, suena la canción completa. Llega a la recién nacida (el próximo jugador) y mantiene "dar luz" para entregarle la llama | — | Su reflejo tiene rostro, encendido. La cámara sube y se ve todo su camino florecido |
 
