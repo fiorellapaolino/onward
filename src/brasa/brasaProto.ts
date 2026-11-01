@@ -57,7 +57,7 @@ export const FLOWERS: Flower[] = [
 export const HIDEOUT = { x: 0, z: ROOTS_Z + 0.4 }
 export type PathLight = { x: number; z: number; litAt: number }
 export const PATH_LIGHTS: PathLight[] = [
-  { x: 0.4, z: 58.4, litAt: -1 },
+  { x: 0.4, z: 57.6, litAt: -1 },
   { x: -3.2, z: 55.6, litAt: -1 },
   { x: -6.6, z: 52.8, litAt: -1 },
 ]
@@ -80,7 +80,7 @@ export const RECHARGE = 0.6 // por segundo, dentro de un refugio
 export const RING_COST = 0.3 // encender un círculo de hongos
 export const FLOWER_COST = 0.15 // darle luz a una flor
 export const GIFT_BONUS = 0.15 // cada recuerdo: la brasa dura un poco más
-export const GIVE_DIST = 2.4 // distancia para dar luz
+export const GIVE_DIST = 2.6 // distancia para dar luz
 export const PICK_DIST = 1.6 // para tomar la brasa
 export const RETURN_TIME = 2.2 // la chispa vuelve al último refugio
 export const MEMORY_FLIGHT = 1.6 // el recuerdo vuela hasta ella

@@ -366,10 +366,10 @@ const AUTO_WAY: Way[] = [
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
   { to: { x: PATH_LIGHTS[1].x + 1.3, z: PATH_LIGHTS[1].z - 1.2 }, give: true },
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
-  { to: { x: PATH_LIGHTS[0].x + 1.6, z: PATH_LIGHTS[0].z - 1.6 }, give: true },
+  { to: { x: PATH_LIGHTS[0].x + 1.0, z: PATH_LIGHTS[0].z - 1.4 }, give: true },
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
-  // se aleja y espera a que salga solo
-  { to: { x: 3, z: 46 }, wait: () => b.fear.mirrorUpAt < 0 || game.time < b.fear.mirrorUpAt + 1.2 },
+  // se aleja y espera en el refugio, mirando, a que salga solo
+  { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.fear.mirrorUpAt < 0 || game.time < b.fear.mirrorUpAt + 1.2 },
   { to: { x: HIDEOUT.x, z: HIDEOUT.z - 1.3 } }, // toma el espejo
   { to: { x: 0, z: 72 } },
 ]
