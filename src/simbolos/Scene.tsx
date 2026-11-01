@@ -483,7 +483,7 @@ export function Fires() {
   )
 }
 
-function Bonfire({ x, z, litAt }: { x: number; z: number; litAt: () => number }) {
+export function Bonfire({ x, z, litAt }: { x: number; z: number; litAt: () => number }) {
   const tex = useGlowTexture()
   const flames = useMemo(
     () =>

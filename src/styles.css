@@ -327,3 +327,31 @@ body.grabbing canvas {
 .prompt.holding.show:not(.touch-ui) {
   padding: 14px 0;
 }
+
+/* ── Onward (brasa y espejo) ── */
+/* los bordes se oscurecen cuando la brasa se está apagando */
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s linear;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 45%, rgba(2, 2, 8, 0.92) 100%);
+}
+/* "E: dar luz" (cerca de algo dormido) */
+.give {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+  color: #ffe8c0;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transition: opacity 0.4s;
+  text-shadow: 0 0 10px rgba(255, 170, 80, 0.6);
+  pointer-events: none;
+}
+.give.show {
+  opacity: 0.9;
+}

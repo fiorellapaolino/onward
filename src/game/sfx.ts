@@ -20,6 +20,12 @@ function audio() {
   return ctx
 }
 
+/** El contexto de audio y la salida general (para sonidos con posición, como los grillos). */
+export function getAudio() {
+  const a = audio()
+  return a && master ? { ctx: a, master } : null
+}
+
 // los navegadores solo dejan sonar audio después de una tecla o un toque
 if (typeof window !== 'undefined') {
   const unlock = () => audio()

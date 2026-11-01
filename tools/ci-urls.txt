@@ -1,4 +1,7 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-proto_dark ?at=28&solved&steps=10 25
-proto_end ?end 30
-proto_auto ?auto&wrong&steps=70 230
+# (prototipo anterior, con ?simbolos: proto_dark ?simbolos&at=28&solved&steps=10 25)
+brasa_start ?go&steps=4 25
+brasa_ember ?ember&steps=4 25
+brasa_lit ?lit&steps=4 25
+brasa_out ?out&steps=4 22
+brasa_auto ?auto&steps=40 150

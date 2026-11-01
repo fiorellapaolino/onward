@@ -1,0 +1,89 @@
+import type { Pt } from '../simbolos/recognizer'
+
+/*
+ * Onward — la luz que se pasa de mano en mano.
+ * Parte 1: el Claro de los grillos (ver game-design.md).
+ *
+ *   inicio (0, 0): nace de noche, sin nada, sobre lava vieja con líquenes
+ *     ──► sigue el rastro dorado del jugador anterior y el canto de los grillos
+ *     ──► la hoguera casi apagada (4, 12): ahí está LA BRASA que dejó otra elfa
+ *     ──► círculos de hongos (refugios): uno ya encendido, los otros hay que encenderlos dando luz
+ *     ──► flores dormidas: darles luz cuesta brasa y devuelve un recuerdo (la brasa dura más)
+ *     ──► las raíces cerradas (z 62): la parte 2 (el miedo) empieza ahí
+ *
+ * Todo lo visual es provisional: se reemplaza después por modelos de otros artistas.
+ */
+
+// ── Lugares (metros) ─────────────────────────────────────────────
+export const HEARTH = { x: 4, z: 12 }
+export const ROOTS_Z = 62 // las raíces cerradas: aún no se pasa
+export const BOUNDS = { x: 16, zMin: -6, zMax: ROOTS_Z - 1.2 }
+
+/** El camino del jugador anterior (por ahora uno de ejemplo): termina en la hoguera. */
+export const PREV_PATH: Pt[] = (() => {
+  const pts: Pt[] = []
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60
+    pts.push({ x: Math.sin(t * 4.2) * 1.8 + t * HEARTH.x, z: 1.2 + t * (HEARTH.z - 2.2) })
+  }
+  return pts
+})()
+
+// ── Círculos de hongos (refugios) ────────────────────────────────
+export type Ring = { x: number; z: number; litAt: number }
+export const RING_R = 1.7 // radio del círculo de hongos
+export const REFUGE_R = 2.6 // dentro de esto la brasa se recarga
+export const RINGS: Ring[] = [
+  { x: -1, z: 22, litAt: 0 }, // ya encendido (lo encendió el jugador anterior)
+  { x: 5, z: 33, litAt: -1 },
+  { x: -3, z: 44, litAt: -1 },
+  { x: 2, z: 55, litAt: -1 },
+]
+
+// ── Flores dormidas (regalos de la naturaleza) ───────────────────
+export type Flower = { x: number; z: number; giftAt: number }
+export const FLOWERS: Flower[] = [
+  { x: 6.6, z: 13.6, giftAt: -1 }, // junto a la hoguera: el recuerdo de su nacimiento
+  { x: -7, z: 25, giftAt: -1 },
+  { x: 10, z: 31, giftAt: -1 }, // fuera del camino
+  { x: -9, z: 47, giftAt: -1 }, // fuera del camino
+]
+
+// ── Ritmo ────────────────────────────────────────────────────────
+export const WALK = 1.5
+export const RUN = 3.0
+export const EMBER_TIME = 18 // segundos que dura la brasa llena lejos del fuego (caminando)
+export const RUN_DRAIN = 1.7 // correr gasta más
+export const RECHARGE = 0.6 // por segundo, dentro de un refugio
+export const RING_COST = 0.3 // encender un círculo de hongos
+export const FLOWER_COST = 0.15 // darle luz a una flor
+export const GIFT_BONUS = 0.15 // cada recuerdo: la brasa dura un poco más
+export const GIVE_DIST = 2.4 // distancia para dar luz
+export const PICK_DIST = 1.6 // para tomar la brasa
+export const RETURN_TIME = 2.2 // la chispa vuelve al último refugio
+export const MEMORY_FLIGHT = 1.6 // el recuerdo vuela hasta ella
+export const BLOOM_STEP = 0.3
+
+// ── Estado (se modifica cada frame, no es estado de React) ───────
+export const b = {
+  hasEmber: false,
+  pickAt: -1, // cuándo tomó la brasa
+  ember: 0, // 0..max
+  max: 1, // crece con cada recuerdo
+  memories: 0, // recuerdos que le devolvió la naturaleza (completarán su reflejo)
+  memFlights: [] as { from: Pt; at: number }[], // recuerdos volando hacia ella
+  lastRefuge: { x: HEARTH.x, z: HEARTH.z } as Pt,
+  inRefuge: false,
+  outAt: -1, // se apagó: la chispa vuela al último refugio (-1 = no)
+  outFrom: { x: 0, z: 0 } as Pt,
+  giveAt: -99, // la última vez que dio luz (destello)
+  failAt: -99, // intentó dar luz sin brasa suficiente
+  near: null as null | { kind: 'ring' | 'flower'; i: number }, // a qué le puede dar luz ahora
+  walked: 0,
+  totalWalked: 0,
+}
+
+export const refuges = () => [{ x: HEARTH.x, z: HEARTH.z, lit: b.hasEmber }, ...RINGS.map((r) => ({ x: r.x, z: r.z, lit: r.litAt >= 0 }))]
+
+/** 0..1: cuánta luz tiene (para la pantalla y el sonido). */
+export const emberLevel = () => (b.hasEmber ? b.ember / b.max : 0)
