@@ -5,4 +5,4 @@ brasa_lit ?lit&steps=4 25
 brasa_out ?out&steps=4 22
 brasa_fear ?fear&steps=4 25
 brasa_calm ?calm&steps=4 25
-brasa_auto ?auto&steps=40 220
+brasa_auto ?auto&steps=60 300

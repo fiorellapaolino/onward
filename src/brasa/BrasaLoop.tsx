@@ -304,6 +304,7 @@ function fearStep(dt: number) {
       F.tight = 0
       g.pulse = 1
       chord()
+      console.log('[miedo] se calmó')
     }
     F.pos = pointAlong(FEAR_PATH, F.progress / FEAR_LEN)
     return
@@ -327,14 +328,16 @@ function fearStep(dt: number) {
   if (!b.hasMirror && t > F.mirrorUpAt + 1 && Math.hypot(g.x - HIDEOUT.x, g.z - (HIDEOUT.z - 1.2)) < MIRROR_PICK) {
     b.hasMirror = true
     b.mirrorAt = t
+    console.log('[espejo] lo tomó')
     g.pulse = 1
     chord()
   }
   // después la acompaña, a un costado y un poco atrás
   if (t > F.mirrorUpAt + 0.8) {
     F.following = true
-    const tx = g.x - Math.sin(g.yaw) * 1.4 + Math.cos(g.yaw) * 1.1
-    const tz = g.z - Math.cos(g.yaw) * 1.4 - Math.sin(g.yaw) * 1.1
+    // (a su lado y un poco adelante: así no tapa la cámara, que va detrás)
+    const tx = g.x + Math.sin(g.yaw) * 0.6 + Math.cos(g.yaw) * 1.3
+    const tz = g.z + Math.cos(g.yaw) * 0.6 - Math.sin(g.yaw) * 1.3
     const k = damp(1.8, dt)
     F.pos = { x: F.pos.x + (tx - F.pos.x) * k, z: F.pos.z + (tz - F.pos.z) * k }
   }
@@ -359,7 +362,7 @@ const AUTO_WAY: Way[] = [
   { to: { x: PATH_LIGHTS[0].x + 1.6, z: PATH_LIGHTS[0].z - 1.6 }, give: true },
   { to: { x: RINGS[3].x, z: RINGS[3].z }, wait: () => b.ember < b.max * 0.95 },
   // se aleja y espera a que salga solo
-  { to: { x: 7, z: 47 }, wait: () => b.fear.mirrorUpAt < 0 || game.time < b.fear.mirrorUpAt + 1.2 },
+  { to: { x: 3, z: 46 }, wait: () => b.fear.mirrorUpAt < 0 || game.time < b.fear.mirrorUpAt + 1.2 },
   { to: { x: HIDEOUT.x, z: HIDEOUT.z - 1.3 } }, // toma el espejo
   { to: { x: 0, z: 72 } },
 ]
