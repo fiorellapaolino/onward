@@ -79,16 +79,18 @@ Cada ser calmado suma un instrumento; al amanecer la canción suena completa.
 
 ## 4. El recorrido (15–20 min)
 
-| # | Zona | Qué pasa | Desafío | Recompensa |
-|---|---|---|---|---|
-| 0 | **Despertar** (2 min) | Nace en la oscuridad, sin nada, entre grillos. Un rastro dorado tenue (el camino del jugador anterior) y el canto de los grillos la llevan a una hoguera casi apagada: ahí la espera **la brasa** que dejó otra elfa, que aparece dorada un instante y se desvanece | Aprender sin texto: escuchar para orientarse, seguir el rastro, y que la brasa baja lejos del fuego | **La brasa** |
-| 1 | **El miedo** — ser de tierra (5 min) | Se esconde entre raíces; si te acercas, se cierran más. Todavía no hay espejo: solo se le puede leer por cómo se mueve | Encender 3 círculos de hongos que formen un camino desde su escondite, con la brasa justa; alejarse para que salga solo | Abre las raíces y saca de la tierra **el espejo de obsidiana**. Al mirarse por primera vez, su reflejo no tiene rostro. Con el ser al lado, la brasa dura más |
-| 2 | **El enojo** — el espíritu del volcán (5 min, *extra*) | En el bosque oscuro, al pie del volcán, lanza chispas. El espejo muestra que su hogar (círculo de piedras) está roto | Encontrar las piedras siguiendo grillos y brillos, esquivar chispas, rearmar su hogar y darle luz | Se encienden todas las hogueras; la brasa se vuelve llama y se puede reflejar con el espejo |
-| 3 | **La sombra** (3 min) | Su sombra solo aparece en el espejo y **copia sus movimientos al revés** | Mirarla en el espejo y caminar hacia atrás guiándose por el reflejo; al alcanzarla, darle luz | La sombra se vuelve luz |
-| 4 | **El final** (2 min) | Amanece, suena la canción completa. Llega a la recién nacida (el próximo jugador) y mantiene "dar luz" para entregarle la llama | — | Su reflejo tiene rostro, encendido. La cámara sube y se ve todo su camino florecido |
+Sigue el mapa del reino (sección 7) en su versión corta: **Claro de los grillos → Raíces dormidas → (Bosque ardido) → Gruta de obsidiana → Copa del alba**. Se va de abajo hacia arriba: de la lava vieja y las raíces a la copa del árbol donde amanece. El volcán dormido se ve siempre a lo lejos.
 
+| # | Lugar | Qué pasa | Desafío | Recompensa |
+|---|---|---|---|---|
+| 0 | **Claro de los grillos** (2 min) | Nace de noche, sin nada, sobre roca negra de lava vieja cubierta de líquenes. Un rastro dorado tenue (el camino del jugador anterior) y el canto de los grillos la llevan a una hoguera casi apagada: ahí la espera **la brasa** que dejó otra elfa, que aparece dorada un instante y se desvanece | Aprender sin texto: escuchar para orientarse, seguir el rastro; la brasa baja lejos del fuego y se recarga en los círculos de hongos | **La brasa**. Primer regalo de la naturaleza: una flor dormida junto a la hoguera devuelve el recuerdo de su nacimiento |
+| 1 | **Raíces dormidas** — el miedo, ser de tierra (5 min) | Un bosque bajo raíces enormes que crecieron sobre la lava. El ser se esconde; si te acercas, las raíces se cierran más. Todavía no hay espejo: solo se le puede leer por cómo se mueve | Encender 3 círculos de hongos que formen un camino desde su escondite, con la brasa justa; alejarse para que salga solo | Abre las raíces y saca de la tierra **el espejo de obsidiana**, un resto de la erupción. Al mirarse por primera vez, su reflejo no tiene rostro. Con el ser al lado, la brasa dura más |
+| 2 | **Bosque ardido** — el enojo, espíritu del volcán (5 min, *extra*) | Árboles quemados al pie del volcán. El espíritu lanza chispas. El espejo muestra que su hogar (un círculo de piedras) está roto | Encontrar las piedras siguiendo grillos y brillos, esquivar chispas, rearmar su hogar y darle luz | Se encienden todas las hogueras; la brasa se vuelve llama y se puede reflejar con el espejo |
+| 3 | **Gruta de obsidiana** — la sombra (3 min) | Una cueva de vidrio volcánico: las paredes son espejos. Su sombra solo aparece en el reflejo y **copia sus movimientos al revés** | Mirarla en el espejo y caminar hacia atrás guiándose por el reflejo; al alcanzarla, darle luz | La sombra se vuelve luz |
+| 4 | **Copa del alba** — el final (2 min) | Sube por el árbol gigante hasta la copa. Amanece y suena la canción completa. Llega a la recién nacida (el próximo jugador) y mantiene "dar luz" para entregarle la llama | — | Se mira por última vez: su reflejo tiene rostro, encendido, con los detalles que le devolvió la naturaleza. La cámara sube y se ve todo su camino florecido sobre el volcán dormido |
+
+**Regalos de la naturaleza por el camino:** en cada lugar hay flores, árboles y hongos dormidos (algunos fuera del camino o visibles solo en el espejo). Darles luz cuesta brasa y devuelve recuerdos que completan el rostro del reflejo final y hacen que la brasa dure más.
 **Ritmo:** se alterna tensión (cruzar la oscuridad) y calma (refugios, seres calmados). Algo nuevo cada 1–2 min. Cada acción responde con sonido y brillos.
-**Secretos opcionales:** flores y árboles dormidos fuera del camino (algunos solo se ven en el espejo); al darles luz devuelven recuerdos que completan el reflejo final.
 **Para todas las edades:** no se muere, sin textos, nunca atascada mucho tiempo.
 
 ## 5. La luz entre jugadores
