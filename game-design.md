@@ -1,62 +1,131 @@
-# Onward — el bosque que se dibuja
+# Onward — la luz que se pasa de mano en mano
 
-Documento de diseño (31 oct 2026). Sigue los pasos de la skill *game-designer*.
+Documento de diseño (1 nov 2026). Reemplaza la versión anterior ("el bosque que se dibuja"); lo que se reutiliza de ella está al final.
 
 ## 1. Idea
 
 | | |
 |---|---|
-| **Género** | Aventura contemplativa en 3D con acertijos de dibujo |
-| **Para quién** | Cualquier edad; jugadoras de Sky, Journey o *Everybody's Gone to the Rapture* |
-| **Emoción** | Esperanza y calma: siempre se puede avanzar |
-| **Referencias** | Sky (la luz y lo social, sin copiar la recolección de velas), Journey (viaje sin palabras), *El laberinto de Jung* (símbolos, introspección) |
-| **Lo nuevo** | Los pasos son un pincel: el camino que recorres florece y, si dibujas un símbolo, el mundo responde |
+| **Género** | Aventura contemplativa en 3D, sin combate |
+| **Para quién** | Cualquier edad; jugadoras de Sky, Journey o Gris |
+| **Emoción** | Esperanza: lo que se apagó todavía guarda la luz que fue |
+| **Tema de la jam** | *You Hear* ("Oyes"): la canción da esperanza, brillos, luz, naturaleza, grillos |
+| **Referencias** | Sky y Journey (sentir algo juntos sin palabras), Gris (el mundo cambia con la emoción), *Las crónicas de Spiderwick* (ver lo invisible, seres que cambian según cómo los tratas), *Hierophants* (dar lo tuyo a otra persona) |
+| **Lo nuevo** | La luz pasa de un jugador real al siguiente; escuchar es la forma de orientarse |
 
-**Historia en una frase:** una elfa recién nacida cruza un bosque dormido hasta donde la espera otra elfa recién nacida; los seres del bosque le enseñan a abrir camino dibujando con sus pasos.
+**Historia en una frase:** una elfa recién nacida cruza un bosque nocturno con una brasa frágil y un espejo de obsidiana; encuentra sus emociones convertidas en seres, aprende a cuidarlas y al final da su luz a la próxima persona que juegue.
 
-## 2. Mecánica principal
+**El sentido:** la obsidiana es fuego que se volvió oscuro (lava enfriada). Alguien te dio luz sin conocerte; tú la das sin saber a quién. Es el viaje del **Mago** (tiene las herramientas, no sabe quién es) a la **Emperatriz** (da vida y cuida a otra).
 
-- **Bucle:** caminar → el rastro florece → llegar a un obstáculo → aparece un ser del bosque y dibuja un símbolo de luz → repetirlo caminando dentro del círculo → el elemento abre el camino.
-- **Reconocimiento:** el trazo se compara con plantillas (algoritmo *$1 Unistroke*), más un control de "redondez" para no confundir triángulo y círculo. Solo cuenta lo que se camina dentro del círculo marcado en el suelo.
-- **Sin derrota:** si el símbolo no sale, el ser lo vuelve a dibujar, con paciencia. Nunca se pierde.
-- **Controles:** W A S D o flechas, Tab para correr, arrastrar para girar la cámara. En el móvil, palanca con el pulgar.
-- **Respuesta:** el trazo se ve como una cinta de luz; si sale bien, brilla en dorado, suenan campanas y el mundo cambia; si no, se desvanece en azul.
+## 2. Controles
 
-## 3. Progresión
+- **Moverse** (W A S D / palanca en el móvil) y **correr** (Tab).
+- **Mantener el espejo** (clic derecho / Espacio): ver el mundo a través de la obsidiana.
+- **Dar luz** (clic / E): pasar parte de la brasa a algo.
 
-| Zona | Ser | Símbolo | Obstáculo | Qué cambia |
+## 3. Los sistemas
+
+### La brasa — la tensión
+- Es tu luz y tu "tiempo": lejos del fuego se apaga en unos 25 s.
+- Al debilitarse: luz más chica, parpadeo, el sonido se apaga, bordes de pantalla oscuros. Sin números en pantalla.
+- **Correr** gasta más brasa pero llegas antes: riesgo que eliges tú.
+- Se recarga en **hogueras** y **círculos de hongos** (refugios).
+- **Si se apaga no se muere:** queda una chispa que vuela al último refugio y la sigues (≈5 s perdidos, nada más).
+
+### Dar luz — la decisión
+- Cuesta brasa. Encender un círculo de hongos crea un **refugio nuevo** donde quieras.
+- Cada tramo oscuro es un pequeño plan: ¿enciendo este círculo o guardo la brasa para llegar más lejos?
+
+### El espejo — el descubrimiento
+- Muestra lo invisible: caminos, puentes, recuerdos, lo que siente cada ser.
+- **Con la brasa:** lo que solo se ve en el espejo, si lo iluminas, **se vuelve real** (p. ej. un puente).
+- Mientras lo usas caminas más lento: no se puede usar siempre.
+
+### Escuchar — la orientación (tema *You Hear*)
+- Sin mapa ni flechas. Grillos, brillos y sonidos de la canción salen de donde hay algo dormido (sonido posicional).
+- El oído encuentra, el espejo muestra, la brasa despierta.
+
+### Los seres dan poderes
+Cada ser calmado te acompaña y da una habilidad que hace falta en la zona siguiente.
+
+### Cómo ayudar a un ser (regla de diseño)
+1. No dice qué le pasa: se deduce mirando cómo se mueve y qué hay alrededor.
+2. El primer impulso no funciona (acercarse directo lo empeora).
+3. La mejora se ve de a poco (color, postura, sonido).
+4. Cada uno necesita una ayuda distinta.
+
+### La música crece
+Cada ser calmado suma un instrumento; al amanecer la canción suena completa.
+
+## 4. El recorrido (15–20 min)
+
+| # | Zona | Qué pasa | Desafío | Recompensa |
 |---|---|---|---|---|
-| 1. Barranco | Tierra | Triángulo | No se puede cruzar | Suben piedras y forman un puente |
-| 2. Árbol seco | Agua | Espiral | Un árbol muerto tapa el paso | Revive y sus raíces abren el camino |
-| 3. Niebla | Aire | Zigzag | No se ve hacia dónde ir | El viento disipa la niebla |
-| 4. Bosque oscuro | Fuego | Círculo | Un muro de sombra corta el camino | Se encienden hogueras y la sombra se retira |
+| 0 | **Despertar** (2 min) | Nace en un círculo de hongos, de noche, con grillos. Una elfa dorada (el jugador anterior) le da la brasa y se desvanece. En el espejo, su reflejo no tiene rostro | Aprender sin texto: la brasa baja lejos del círculo; el espejo muestra un hueco entre raíces | — |
+| 1 | **El miedo** — ser de tierra (5 min) | Se esconde entre raíces; si te acercas, se cierran más. El espejo muestra su recuerdo: se quedó solo en la oscuridad | Encender 3 círculos de hongos que formen un camino desde su escondite, con la brasa justa; alejarse para que salga solo | Abre las raíces; con él al lado la brasa dura más |
+| 2 | **El enojo** — ser de fuego (5 min, *extra*) | En el bosque oscuro lanza chispas. El espejo muestra que su hogar (círculo de piedras) está roto | Encontrar las piedras siguiendo grillos y brillos, esquivar chispas, rearmar su hogar y darle luz | Se encienden todas las hogueras; la brasa se vuelve llama y se puede reflejar con el espejo |
+| 3 | **La sombra** (3 min) | Su sombra solo aparece en el espejo y **copia sus movimientos al revés** | Mirarla en el espejo y caminar hacia atrás guiándose por el reflejo; al alcanzarla, darle luz | La sombra se vuelve luz |
+| 4 | **El final** (2 min) | Amanece, suena la canción completa. Llega a la recién nacida (el próximo jugador) y mantiene "dar luz" para entregarle la llama | — | Su reflejo tiene rostro, encendido. La cámara sube y se ve todo su camino florecido |
 
-- **Dificultad:** cada símbolo es un poco más largo o difícil de caminar (triángulo → círculo grande); los símbolos no se combinan.
-- **Final:** llega donde la espera la elfa recién nacida, le enciende una hoguera, y la cámara sube: se ve el camino entero, florecido, único para cada jugadora.
-- **Duración:** 15–30 minutos (unos 5 minutos por zona).
-- **Para la jam (8 nov):** zona 1 + zona 4 + el final, si no da tiempo para las cuatro.
+**Ritmo:** se alterna tensión (cruzar la oscuridad) y calma (refugios, seres calmados). Algo nuevo cada 1–2 min. Cada acción responde con sonido y brillos.
+**Secretos opcionales:** recuerdos escondidos que solo se ven en el espejo; quien los encuentra ve más detalles en su reflejo final.
+**Para todas las edades:** no se muere, sin textos, nunca atascada mucho tiempo.
 
-## 4. Contenido
+## 5. La luz entre jugadores
 
-No es un juego educativo. Lo que se cuenta va sin texto: los seres, los símbolos y el paisaje que revive.
+- Al terminar, se guarda el camino de la jugadora (lista de puntos, sin datos personales).
+- Al empezar, se lee el camino de un jugador anterior al azar: es la elfa dorada que entrega la brasa y su rastro dorado tenue en el bosque.
+- Servicio pequeño en Cloudflare (Pages Functions + KV, gratis), el mismo sitio donde ya se publica el juego.
+- Sin internet (o en la versión de escritorio sin conexión): se usa un camino de ejemplo.
 
-## 5. Arquitectura
+## 6. Para la jam (cierre: 8 nov, 8:59 hora de España)
 
-- **3D con React Three Fiber** (lo que ya usa el proyecto): canvas 3D + una capa HTML encima para los textos.
-- **Modular:** el prototipo vive en `src/simbolos/` y reutiliza la elfa, la cámara y los controles del juego anterior.
-  - `recognizer.ts`: reconoce el símbolo
-  - `proto.ts`: lugares, tiempos y estado
-  - `Loop.tsx`: la lógica de cada frame (moverse, florecer, dibujar, el puente)
-  - `Scene.tsx`: el claro, el barranco, el puente, el ser de la tierra y la cámara del final
-  - `blooms.ts`: las plantas que brotan y el "mapa de vida" del suelo
+| Día | Qué se hace |
+|---|---|
+| Lun 2 | La brasa: se apaga lejos del fuego, refugios de hongos, la chispa que vuelve |
+| Mar 3 | El espejo: ver lo oculto y darle luz para que se vuelva real |
+| Mié 4 | El ser del miedo y los sonidos que guían |
+| Jue 5 | La sombra que se mueve al revés |
+| Vie 6 | El final y el traspaso entre jugadores |
+| Sáb 7 | Pulir, música por capas, que alguien lo pruebe, subir a itch.io |
+
+Lo esencial: despertar, miedo, sombra, final. El enojo, si sobra tiempo (las hogueras y el bosque oscuro ya existen).
+
+## 7. Propuesta de reino para Sky: el Bosque de Obsidiana
+
+El juego es todo original (elfa, bosque, seres propios). Esta propuesta va solo como texto en la página de itch.io. **Antes de entregar: preguntar en el Discord de la jam si les parece bien mencionar Sky.**
+
+```mermaid
+flowchart TD
+  A["Claro de los grillos<br/>Entrada: nacer"] --> B["Raíces dormidas<br/>Miedo, tierra"]
+  B --> C["Lago espejo<br/>Tristeza, agua"]
+  B --> D["Bosque ardido<br/>Enojo, fuego"]
+  C --> E["Gruta de obsidiana<br/>Tu sombra"]
+  D --> E
+  E --> F["Copa del alba<br/>Dar la luz"]
+```
+
+| Área | Lo que la distingue |
+|---|---|
+| **Claro de los grillos** | Círculo de hongos encendidos bajo un cielo nocturno; aquí nacen los recién llegados y se oye la canción por primera vez |
+| **Raíces dormidas** | Bosque bajo tierra entre raíces enormes que se abren cuando el miedo se calma |
+| **Lago espejo** | La superficie muestra un bosque reflejado que no existe arriba |
+| **Bosque ardido** | El bosque de las hogueras; el enojo que se calma y enciende todo |
+| **Gruta de obsidiana** | Paredes que son espejos; aparece tu sombra |
+| **Copa del alba** | La copa de un árbol gigante donde amanece; los veteranos dan su luz a los recién llegados |
+
+- **Lo nuevo para Sky:** un reino nocturno que se ilumina con lo que hacen los jugadores; se recorre de las raíces a la copa y termina volando hacia el amanecer.
+- **Tu luz se apaga en la oscuridad**, salvo de refugio en refugio o **con otros jugadores**: juntos dura más (motivo para ir de la mano).
+- **Espejos de obsidiana:** muestran recuerdos ocultos de los ancestros.
+- **Seres-emoción:** no se recolectan; se acompañan y se calman.
+- **Escuchar guía:** los sonidos llevan a lo dormido.
+- **Lo social:** al final, los veteranos pasan su luz a los recién llegados; acompañar a otros es el centro del reino.
+
+**El juego de la jam recorre una versión corta del mapa:** Claro → Raíces → Gruta → Copa. El lago y el bosque ardido quedan como parte de la propuesta (o extras).
+
+## 8. Arquitectura
+
+- **3D con React Three Fiber**: canvas 3D + una capa HTML encima para los textos.
 - **Estado:** objetos que cambian en cada frame (sin estado de React), como en el resto del juego.
-
-## Estado del prototipo
-
-Hecho:
-- Zona 1: rastro que florece, el ser de la tierra, dibujar el triángulo y el puente.
-- Zona 4: el bosque oscuro, el muro de sombra, el ser del fuego, dibujar el círculo y las hogueras.
-- El final: enciende la hoguera de la recién nacida y la cámara sube a ver todo el camino.
-- Las zonas son una lista en `proto.ts`: sumar las zonas 2 y 3 es agregar dos entradas y sus obstáculos.
-
-Pendiente: zonas 2 y 3, la elfa recién nacida (ahora es una luz provisional), sonido propio para cada ser.
+- **Se reutiliza del prototipo anterior** (`src/simbolos/`): la elfa, la cámara y los controles; el rastro que florece y el "mapa de vida" (`blooms.ts`); el bosque oscuro, las hogueras y el muro de sombra; la cámara final desde arriba (`Scene.tsx`); los seres de tierra y fuego como base visual.
+- **Se deja de usar:** el reconocedor de símbolos (`recognizer.ts`) y dibujar figuras con los pasos.
