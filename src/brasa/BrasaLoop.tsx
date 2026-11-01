@@ -207,6 +207,11 @@ function step(dt: number) {
   setUi({ prompt: b.near ? 'give' : null })
 
   fearStep(dt)
+  // (para las pruebas automáticas: cada 10 s, cómo va)
+  if (AUTO && Math.floor(g.time / 10) !== Math.floor((g.time - dt) / 10)) {
+    const F = b.fear
+    console.log(`[auto] t=${g.time.toFixed(0)} paso=${autoI} pos=${g.x.toFixed(1)},${g.z.toFixed(1)} brasa=${b.ember.toFixed(2)}/${b.max.toFixed(2)} luces=${PATH_LIGHTS.map((p) => (p.litAt >= 0 ? 1 : 0)).join('')} miedo=${F.progress.toFixed(1)}/${FEAR_LEN.toFixed(1)} tight=${F.tight.toFixed(2)} calm=${F.calmAt >= 0}`)
+  }
 
   // ── Los recuerdos llegan a ella: la brasa dura un poco más ──
   b.memFlights = b.memFlights.filter((m) => {
