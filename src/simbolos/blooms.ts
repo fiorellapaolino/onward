@@ -24,8 +24,8 @@ export const blooms: Bloom[][] = BLOOM_MODELS.map(() => [])
 
 const r = rng(77)
 
-/** Brota algo cerca de (x, z). */
-export function spawnBloom(x: number, z: number, time: number) {
+/** Brota algo cerca de (x, z). `tint`: otros colores para el pasto del suelo (p. ej. lo que caminó en el pasado). */
+export function spawnBloom(x: number, z: number, time: number, tint?: string[]) {
   let u = r()
   let m = 0
   while (m < WEIGHTS.length - 1 && u > WEIGHTS[m]) u -= WEIGHTS[m++]
@@ -35,7 +35,7 @@ export function spawnBloom(x: number, z: number, time: number) {
   const ang = r() * Math.PI * 2
   const d = Math.sqrt(r()) * 0.55
   list.push({ x: x + Math.cos(ang) * d, z: z + Math.sin(ang) * d, rot: r() * Math.PI * 2, scale: a + r() * (b - a), born: time })
-  paintLife(x, z)
+  paintLife(x, z, tint)
 }
 
 // ── Mapa de vida ─────────────────────────────────────────────────
@@ -56,14 +56,14 @@ export function getLifeTexture() {
 }
 
 const GREENS = ['#6f9a3f', '#7fab48', '#5f8a37', '#8db552']
-function paintLife(x: number, z: number) {
+function paintLife(x: number, z: number, tint = GREENS) {
   if (!ctx || !lifeTexture) return
   // (x, z) del mundo → píxel. El plano está tumbado: la fila de arriba del lienzo queda hacia -z
   const u = ((x - LIFE.cx) / LIFE.size + 0.5) * LIFE.px
   const v = (0.5 + (z - LIFE.cz) / LIFE.size) * LIFE.px
   const rad = (0.9 + r() * 0.6) * (LIFE.px / LIFE.size)
   const g = ctx.createRadialGradient(u, v, 0, u, v, rad)
-  const c = GREENS[Math.floor(r() * GREENS.length)]
+  const c = tint[Math.floor(r() * tint.length)]
   g.addColorStop(0, c)
   g.addColorStop(0.6, c + 'cc')
   g.addColorStop(1, c + '00')

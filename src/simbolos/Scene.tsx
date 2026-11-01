@@ -72,7 +72,7 @@ export function Atmosphere() {
 }
 
 // ── El suelo: tierra seca y gris (con el barranco en medio) y, encima, el "mapa de vida" ──
-function makeDryTexture() {
+export function makeDryTexture() {
   const S = 256
   const c = document.createElement('canvas')
   c.width = c.height = S
