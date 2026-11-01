@@ -43,6 +43,15 @@ Documento de diseño (1 nov 2026). Reemplaza la versión anterior ("el bosque qu
 - **Con la brasa:** lo que solo se ve en el espejo, si lo iluminas, **se vuelve real** (p. ej. un puente).
 - Mientras lo usas caminas más lento: no se puede usar siempre.
 
+### Dar a la naturaleza — la regla del juego
+**Cuando das luz, la naturaleza te devuelve un pedacito de ti misma.** Dar no te deja con menos: te ayuda a encontrarte.
+- **Dar cuesta:** encender una flor dormida, un árbol o un círculo de hongos gasta brasa; en el momento te quedas con menos luz.
+- **La naturaleza responde:** lo que despiertas florece y suelta un **recuerdo**, un brillo pequeño que vuela hacia ti. Al tocarlo se ve un instante de su propio viaje: su nacimiento, la elfa dorada, el miedo que calmó.
+- **El reflejo se completa:** cada recuerdo agrega un detalle a su rostro en el espejo (los ojos, la sonrisa, el pelo con flores). El rostro final no aparece de golpe: se arma con lo que dio.
+- **La brasa crece:** cada regalo hace que la brasa dure un poco más. Quien da más, llega más lejos.
+- **No es obligatorio:** quien solo avanza termina con un reflejo sencillo; quien se detiene a dar ve un rostro más completo y más recuerdos. Sin puntos ni números en pantalla.
+- La versión grande de esta regla son los seres: el miedo, al calmarse, le da el espejo.
+
 ### Escuchar — la orientación (tema *You Hear*)
 - Sin mapa ni flechas. Grillos, brillos y sonidos de la canción salen de donde hay algo dormido (sonido posicional).
 - El oído encuentra, el espejo muestra, la brasa despierta.
@@ -70,7 +79,7 @@ Cada ser calmado suma un instrumento; al amanecer la canción suena completa.
 | 4 | **El final** (2 min) | Amanece, suena la canción completa. Llega a la recién nacida (el próximo jugador) y mantiene "dar luz" para entregarle la llama | — | Su reflejo tiene rostro, encendido. La cámara sube y se ve todo su camino florecido |
 
 **Ritmo:** se alterna tensión (cruzar la oscuridad) y calma (refugios, seres calmados). Algo nuevo cada 1–2 min. Cada acción responde con sonido y brillos.
-**Secretos opcionales:** recuerdos escondidos que solo se ven en el espejo; quien los encuentra ve más detalles en su reflejo final.
+**Secretos opcionales:** flores y árboles dormidos fuera del camino (algunos solo se ven en el espejo); al darles luz devuelven recuerdos que completan el reflejo final.
 **Para todas las edades:** no se muere, sin textos, nunca atascada mucho tiempo.
 
 ## 5. La luz entre jugadores
