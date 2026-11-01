@@ -10,7 +10,7 @@ import { consumePointer, input, isTouch } from '../game/state'
  */
 type Joy = { on: boolean; x?: number; y?: number; dx?: number; dy?: number }
 
-export function TouchControls({ show }: { show: boolean }) {
+export function TouchControls({ show, jumpLabel = 'Jump' }: { show: boolean; jumpLabel?: string }) {
   const [run, setRun] = useState(false)
   const base = useRef<HTMLDivElement>(null)
   const knob = useRef<HTMLDivElement>(null)
@@ -59,8 +59,8 @@ export function TouchControls({ show }: { show: boolean }) {
           input.jumpPressed = true
         }}
       >
-        {/* "Saltar" */}
-        Jump
+        {/* "Saltar" (en Onward: "Luz", dar luz) */}
+        {jumpLabel}
       </button>
     </div>
   )

@@ -386,6 +386,7 @@ body.grabbing canvas {
   bottom: 22%;
 }
 .touch-btn.mirror {
+  pointer-events: auto; /* (está fuera del contenedor de los controles táctiles: hay que activarlo aquí) */
   bottom: calc(max(28px, env(safe-area-inset-bottom, 0px)) + 184px);
   right: calc(max(22px, env(safe-area-inset-right, 0px)) + 30px);
 }

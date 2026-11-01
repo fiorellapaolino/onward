@@ -184,14 +184,14 @@ function Overlay() {
 
       {/* "E: dar luz" (solo aparece cerca de algo a lo que se le puede dar luz) */}
       <div className={`give ${ui.prompt === 'give' ? 'show' : ''}`}>
-        {isTouch ? 'Tap Jump to give light' : (
+        {isTouch ? 'Tap Light to give light' : (
           <>
             <kbd>E</kbd> give light
           </>
         )}
       </div>
 
-      <TouchControls show={!ui.start} />
+      <TouchControls show={!ui.start} jumpLabel="Light" />
       {isTouch && b.hasMirror ? <MirrorButton /> : null}
     </div>
   )
