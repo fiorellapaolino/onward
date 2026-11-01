@@ -13,9 +13,11 @@ Documento de diseño (1 nov 2026). Reemplaza la versión anterior ("el bosque qu
 | **Referencias** | Sky y Journey (sentir algo juntos sin palabras), Gris (el mundo cambia con la emoción), *Las crónicas de Spiderwick* (ver lo invisible, seres que cambian según cómo los tratas), *Hierophants* (dar lo tuyo a otra persona) |
 | **Lo nuevo** | La luz pasa de un jugador real al siguiente; escuchar es la forma de orientarse |
 
-**Historia en una frase:** una elfa recién nacida cruza un bosque nocturno con una brasa frágil y un espejo de obsidiana; encuentra sus emociones convertidas en seres, aprende a cuidarlas y al final da su luz a la próxima persona que juegue.
+**Historia en una frase:** una elfa recién nacida cruza un bosque nocturno sin nada; por el camino encuentra una brasa frágil y un espejo de obsidiana, se encuentra con sus emociones convertidas en seres, aprende a cuidarlas y al final da su luz a la próxima persona que juegue.
 
-**El sentido:** la obsidiana es fuego que se volvió oscuro (lava enfriada). Alguien te dio luz sin conocerte; tú la das sin saber a quién. Es el viaje del **Mago** (tiene las herramientas, no sabe quién es) a la **Emperatriz** (da vida y cuida a otra).
+**El sentido:** la obsidiana es fuego que se volvió oscuro (lava enfriada). Alguien te dio luz sin conocerte; tú la das sin saber a quién. Es el viaje del **Mago** (va reuniendo sus herramientas y todavía no sabe quién es) a la **Emperatriz** (da vida y cuida a otra).
+
+**Las herramientas se encuentran, no se tienen:** nace con las manos vacías. Primero encuentra la brasa (la esperanza) y después, gracias al miedo que calmó, el espejo (poder mirarse). Cada objeto es un paso de su historia.
 
 ## 2. Controles
 
@@ -61,8 +63,8 @@ Cada ser calmado suma un instrumento; al amanecer la canción suena completa.
 
 | # | Zona | Qué pasa | Desafío | Recompensa |
 |---|---|---|---|---|
-| 0 | **Despertar** (2 min) | Nace en un círculo de hongos, de noche, con grillos. Una elfa dorada (el jugador anterior) le da la brasa y se desvanece. En el espejo, su reflejo no tiene rostro | Aprender sin texto: la brasa baja lejos del círculo; el espejo muestra un hueco entre raíces | — |
-| 1 | **El miedo** — ser de tierra (5 min) | Se esconde entre raíces; si te acercas, se cierran más. El espejo muestra su recuerdo: se quedó solo en la oscuridad | Encender 3 círculos de hongos que formen un camino desde su escondite, con la brasa justa; alejarse para que salga solo | Abre las raíces; con él al lado la brasa dura más |
+| 0 | **Despertar** (2 min) | Nace en la oscuridad, sin nada, entre grillos. Un rastro dorado tenue (el camino del jugador anterior) y el canto de los grillos la llevan a una hoguera casi apagada: ahí la espera **la brasa** que dejó otra elfa, que aparece dorada un instante y se desvanece | Aprender sin texto: escuchar para orientarse, seguir el rastro, y que la brasa baja lejos del fuego | **La brasa** |
+| 1 | **El miedo** — ser de tierra (5 min) | Se esconde entre raíces; si te acercas, se cierran más. Todavía no hay espejo: solo se le puede leer por cómo se mueve | Encender 3 círculos de hongos que formen un camino desde su escondite, con la brasa justa; alejarse para que salga solo | Abre las raíces y saca de la tierra **el espejo de obsidiana**. Al mirarse por primera vez, su reflejo no tiene rostro. Con el ser al lado, la brasa dura más |
 | 2 | **El enojo** — ser de fuego (5 min, *extra*) | En el bosque oscuro lanza chispas. El espejo muestra que su hogar (círculo de piedras) está roto | Encontrar las piedras siguiendo grillos y brillos, esquivar chispas, rearmar su hogar y darle luz | Se encienden todas las hogueras; la brasa se vuelve llama y se puede reflejar con el espejo |
 | 3 | **La sombra** (3 min) | Su sombra solo aparece en el espejo y **copia sus movimientos al revés** | Mirarla en el espejo y caminar hacia atrás guiándose por el reflejo; al alcanzarla, darle luz | La sombra se vuelve luz |
 | 4 | **El final** (2 min) | Amanece, suena la canción completa. Llega a la recién nacida (el próximo jugador) y mantiene "dar luz" para entregarle la llama | — | Su reflejo tiene rostro, encendido. La cámara sube y se ve todo su camino florecido |
@@ -74,7 +76,7 @@ Cada ser calmado suma un instrumento; al amanecer la canción suena completa.
 ## 5. La luz entre jugadores
 
 - Al terminar, se guarda el camino de la jugadora (lista de puntos, sin datos personales).
-- Al empezar, se lee el camino de un jugador anterior al azar: es la elfa dorada que entrega la brasa y su rastro dorado tenue en el bosque.
+- Al empezar, se lee el camino de un jugador anterior al azar: es el rastro dorado tenue que la lleva hasta la brasa, y la elfa dorada que aparece un instante junto a ella.
 - Servicio pequeño en Cloudflare (Pages Functions + KV, gratis), el mismo sitio donde ya se publica el juego.
 - Sin internet (o en la versión de escritorio sin conexión): se usa un camino de ejemplo.
 
@@ -82,9 +84,9 @@ Cada ser calmado suma un instrumento; al amanecer la canción suena completa.
 
 | Día | Qué se hace |
 |---|---|
-| Lun 2 | La brasa: se apaga lejos del fuego, refugios de hongos, la chispa que vuelve |
-| Mar 3 | El espejo: ver lo oculto y darle luz para que se vuelva real |
-| Mié 4 | El ser del miedo y los sonidos que guían |
+| Lun 2 | La brasa: encontrarla en la hoguera, se apaga lejos del fuego, refugios de hongos, la chispa que vuelve |
+| Mar 3 | El ser del miedo y los sonidos que guían |
+| Mié 4 | El espejo: sale de la tierra al calmar el miedo; ver lo oculto y darle luz para que se vuelva real |
 | Jue 5 | La sombra que se mueve al revés |
 | Vie 6 | El final y el traspaso entre jugadores |
 | Sáb 7 | Pulir, música por capas, que alguien lo pruebe, subir a itch.io |
