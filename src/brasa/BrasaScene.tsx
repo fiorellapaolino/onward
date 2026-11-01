@@ -42,11 +42,11 @@ export function Night() {
     const fog = scene.fog as THREE.Fog
     fog.color.copy(tmpC)
     fog.far = 42 + life.current * 18
-    hemi.current.intensity = 0.35 + life.current * 0.25
+    hemi.current.intensity = 0.45 + life.current * 0.25
   })
   return (
     <>
-      <hemisphereLight ref={hemi} args={['#3a4a78', '#0c0b10', 0.35]} />
+      <hemisphereLight ref={hemi} args={['#3a4a78', '#0c0b10', 0.45]} />
       {/* la luna */}
       <directionalLight position={[-14, 22, 30]} color="#9fb2e0" intensity={0.35} />
     </>
@@ -767,10 +767,12 @@ const treeTop = new THREE.Vector3(DAWN_TREE.x, DAWN_TREE.h + 6, DAWN_TREE.z)
 export function IntroCam() {
   const look = useRef(new THREE.Vector3())
   const init = useRef(false)
-  useFrame(({ camera }, rawDt) => {
+  const lastT = useRef(0)
+  useFrame(({ camera }) => {
     if (b.introDone || b.introT < 0) return
-    const dt = Math.min(rawDt, 0.05)
     const t = b.introT
+    const dt = Math.min(0.5, Math.max(0, t - lastT.current)) // (el tiempo de la escena, no el del navegador)
+    lastT.current = t
     if (t < 5) {
       // la luz lejana: es adonde hay que llegar
       camPos.set(1.5, 1.2, -3.5)

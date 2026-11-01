@@ -1,8 +1,7 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
 # (prototipo anterior, con ?simbolos: proto_dark ?simbolos&at=28&solved&steps=10 25)
 # (pruebas largas, a mano: ?auto · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10)
-brasa_intro_a ?intro&steps=10 22
-brasa_intro_b ?intro&steps=10 40
-brasa_go ?go&steps=4 20
-brasa_low ?out&steps=2 15
-brasa_look ?mirror&look&steps=4 25
+brasa_intro_a ?intro&steps=10 18
+brasa_intro_b ?intro&steps=10 30
+brasa_intro_c ?intro&steps=10 45
+brasa_ember ?ember&steps=4 20

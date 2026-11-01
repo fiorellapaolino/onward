@@ -30,7 +30,7 @@ export const INTRO = {
   line2: [15.2, 20.5] as [number, number], // "Carry it to the one who waits."
 }
 /** La Copa del alba: el árbol gigante donde espera alguien. Siempre visible: es la misión. */
-export const DAWN_TREE = { x: -16, z: 175, h: 78 }
+export const DAWN_TREE = { x: -60, z: 175, h: 78 }
 
 // ── Lugares (metros) ─────────────────────────────────────────────
 export const HEARTH = { x: 4, z: 12 }
