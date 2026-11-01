@@ -28,11 +28,18 @@ Hace mucho, una erupción quemó el bosque. Por eso está apagado y por eso hay 
 - **El ser del enojo:** el espíritu del volcán, el fuego que una vez lo destruyó todo. Calmado, enciende las hogueras para dar calor.
 - **Se cuenta sin texto, con el paisaje:** rocas negras de lava vieja, grietas con brillo tenue, hongos y líquenes creciendo sobre la piedra, y el volcán dormido a lo lejos, siempre visible.
 
+## Orientación: quién es, qué tiene que hacer, cuánta luz le queda
+
+- **La misión, siempre visible:** a lo lejos, la Copa del alba con la luz de quien espera. Destella al tomar la brasa y el espejo.
+- **La escena del principio (~19 s):** la cámara muestra esa luz; una elfa dorada (el jugador anterior) camina hasta la hoguera, deja la brasa, mira la luz y se desvanece; donde estuvo, nace la elfa. Dos frases: *"Someone left a light for you."* · *"Carry it to the one who waits."*
+- **Cuánta luz le queda, sin números:** una brasa abajo a la izquierda que se achica, se enfría y tiembla; los bordes de la pantalla se oscurecen; un sonido grave de aviso; el refugio encendido más cercano late.
+- **Pistas de luz:** lo que espera algo late (las luces del camino del miedo después de que se esconde; el refugio donde esperar a que salga); los grillos cantan donde hay algo dormido.
+
 ## 2. Controles
 
 - **Moverse** (W A S D / palanca en el móvil) y **correr** (Tab).
-- **Mantener el espejo** (clic derecho / Espacio): ver el mundo a través de la obsidiana.
-- **Dar luz** (clic / E): pasar parte de la brasa a algo.
+- **Mantener el espejo** (Espacio / clic derecho; botón *Mirror* en el móvil): ver el mundo a través de la obsidiana.
+- **Dar luz** (E; en el móvil, el botón de abajo): pasar parte de la brasa a algo.
 
 ## 3. Los sistemas
 
