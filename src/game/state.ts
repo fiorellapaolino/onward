@@ -88,6 +88,8 @@ export const game = {
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)
   jumpY: 0, // altura del salto en este momento (metros)
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
+  ghostGold: 0, // 0..1: la "sombra" se dibuja dorada (en Onward es la elfa del jugador anterior)
+  ghostAlpha: 1, // 0..1: para que se desvanezca
 }
 
 /** Cuánto tarda en volar hasta ella la luz de alguien a quien ayudó (segundos). */

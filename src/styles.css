@@ -336,7 +336,7 @@ body.grabbing canvas {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.25s linear;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 45%, rgba(2, 2, 8, 0.92) 100%);
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 32%, rgba(2, 2, 8, 0.97) 100%);
 }
 /* "E: dar luz" (cerca de algo dormido) */
 .give {
@@ -388,4 +388,69 @@ body.grabbing canvas {
 .touch-btn.mirror {
   bottom: calc(max(28px, env(safe-area-inset-bottom, 0px)) + 184px);
   right: calc(max(22px, env(safe-area-inset-right, 0px)) + 30px);
+}
+/* la escena del principio: título y frases */
+.story {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  width: min(90vw, 640px);
+  text-align: center;
+  color: #f4e6cc;
+  font-size: clamp(18px, 2.6vw, 26px);
+  font-style: italic;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 18px rgba(255, 190, 110, 0.45);
+  opacity: 0;
+  transition: opacity 1.6s;
+  pointer-events: none;
+}
+.story.show {
+  opacity: 1;
+}
+.story.title-card {
+  top: 30%;
+  font-style: normal;
+  font-size: clamp(34px, 6vw, 64px);
+  letter-spacing: 0.18em;
+}
+/* la brasa (cuánta luz le queda) */
+.ember-hud {
+  --lvl: 1;
+  --flick: 1;
+  position: fixed;
+  left: 28px;
+  bottom: 28px;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.ember-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(64px * var(--lvl));
+  height: calc(64px * var(--lvl));
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  opacity: var(--flick);
+  background: radial-gradient(circle, #fff3d0 0%, #ffb24a 35%, rgba(255, 120, 40, 0.45) 60%, rgba(255, 90, 30, 0) 75%);
+  transition: width 0.3s, height 0.3s;
+}
+.ember-hud.weak .ember-core {
+  background: radial-gradient(circle, #ffd2b0 0%, #e0602a 35%, rgba(170, 40, 20, 0.5) 60%, rgba(120, 20, 10, 0) 75%);
+}
+.ember-hud::after {
+  /* el contorno: cuánto cabe (crece con cada recuerdo) */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 210, 150, 0.25);
+}
+.ember-hud.full::after {
+  border-color: rgba(160, 230, 200, 0.6);
 }

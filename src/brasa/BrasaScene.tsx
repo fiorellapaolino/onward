@@ -10,7 +10,7 @@ import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, b, emberLevel } from './brasaProto'
+import { AWAY_DIST, DAWN_TREE, INTRO, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -287,7 +287,10 @@ export function PathLights() {
       const s = glows.current[i]
       if (!s) return
       const on = p.litAt >= 0 ? clamp01((t - p.litAt) / 0.6) : 0
-      s.material.opacity = 0.05 + on * 0.5
+      // después de que el miedo se esconde, las luces que faltan laten una tras otra: "enciéndeme"
+      const since = t - b.fear.scaredAt
+      const hint = p.litAt < 0 && b.hasEmber && b.fear.calmAt < 0 && since < 8 ? Math.max(0, Math.sin(since * 4 - i * 1.2)) : 0
+      s.material.opacity = 0.05 + on * 0.5 + hint * 0.45
       s.scale.setScalar(1.6 + on * 1.4 + Math.sin(t * 2 + i) * 0.1 * on)
     })
   })
@@ -430,25 +433,14 @@ export function PrevTrail() {
 export function Hearth() {
   const tex = useGlowTexture()
   const ember = useRef<THREE.Sprite>(null!)
-  const ghost = useRef<THREE.Group>(null!)
-  const ghostMats = useMemo(
-    () => [0, 1].map(() => new THREE.SpriteMaterial({ map: tex, color: '#ffd98a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })),
-    [tex],
-  )
   const light = useRef<THREE.PointLight>(null!)
   useFrame(() => {
     const t = game.time
-    // la brasa que espera: late despacio
-    const waiting = !b.hasEmber
+    // la brasa que dejó la elfa dorada: late despacio hasta que la toma
+    const waiting = b.emberLeft && !b.hasEmber
     ember.current.visible = waiting
     ember.current.scale.setScalar(0.7 + Math.sin(t * 2.2) * 0.12)
     light.current.intensity = waiting ? 2.5 + Math.sin(t * 2.2) * 0.6 : b.pickAt >= 0 ? 6 * clamp01((t - b.pickAt) / 1.5) : 0
-    // la elfa dorada (el jugador anterior): aparece un instante al tomar la brasa y se desvanece
-    const k = b.pickAt >= 0 ? (t - b.pickAt) / 3.5 : -1
-    const a = k >= 0 && k < 1 ? Math.sin(Math.PI * Math.min(1, k * 1.4)) * (1 - k) : 0
-    ghost.current.visible = a > 0.01
-    ghost.current.position.y = 0.2 + Math.max(0, k) * 1.2
-    ghostMats.forEach((m) => (m.opacity = a * 0.9))
   })
   return (
     <group>
@@ -457,11 +449,6 @@ export function Hearth() {
         <spriteMaterial map={tex} color="#ff9a3c" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </sprite>
       <pointLight ref={light} position={[HEARTH.x, 1, HEARTH.z]} color="#ff9a4a" distance={12} decay={1.3} intensity={0} />
-      {/* provisional: la figura dorada (se reemplazará por la elfa en dorado) */}
-      <group ref={ghost} position={[HEARTH.x + 1.3, 0, HEARTH.z + 0.6]} visible={false}>
-        <sprite material={ghostMats[0]} position={[0, 0.85, 0]} scale={[0.9, 2.1, 1]} />
-        <sprite material={ghostMats[1]} position={[0, 1.75, 0]} scale={[0.6, 0.6, 1]} />
-      </group>
     </group>
   )
 }
@@ -499,8 +486,9 @@ export function MushroomRings() {
       if (l) l.intensity = on * (4 + Math.sin(t * 1.7 + i) * 0.4)
       const s = glows.current[i]
       if (s) {
-        s.material.opacity = 0.06 + on * 0.45
-        s.scale.setScalar(4 + on * 2)
+        const hint = refugeHint(i) ? 0.5 + 0.5 * Math.sin(t * 5) : 0
+        s.material.opacity = 0.06 + on * 0.45 + hint * 0.4
+        s.scale.setScalar(4 + on * 2 + hint * 2.5)
       }
     })
   })
@@ -531,6 +519,20 @@ export function MushroomRings() {
       ))}
     </>
   )
+}
+
+/** ¿Este refugio tiene que latir para guiarla? (se queda sin luz: el más cercano; o el miedo espera que ella se aleje) */
+function refugeHint(i: number) {
+  const g = RINGS[i]
+  if (g.litAt < 0 || !b.hasEmber || b.inRefuge) return false
+  const lvl = emberLevel()
+  const lit = RINGS.map((r, k) => ({ k, d: r.litAt >= 0 ? Math.hypot(game.x - r.x, game.z - r.z) : Infinity }))
+  const nearest = lit.reduce((a, c) => (c.d < a.d ? c : a)).k
+  if (lvl < 0.35 && nearest === i) return true
+  // con las tres luces del camino encendidas, si sigue cerca del miedo: "aléjate y espera aquí"
+  const F = b.fear
+  const allLit = PATH_LIGHTS.every((p) => p.litAt >= 0)
+  return i === RINGS.length - 1 && allLit && F.calmAt < 0 && Math.hypot(game.x - HIDEOUT.x, game.z - HIDEOUT.z) < AWAY_DIST + 1
 }
 
 // ── Las flores dormidas: oscuras y cerradas; al darles luz, se abren ──
@@ -688,14 +690,112 @@ export function Fireflies() {
   )
 }
 
-/** Los bordes de la pantalla se oscurecen cuando la brasa se está apagando (sin números en pantalla). */
+/**
+ * Cuánta luz le queda, sin números: una brasa abajo a la izquierda que se achica, se enfría y tiembla,
+ * y los bordes de la pantalla que se oscurecen.
+ */
 export function Vignette() {
   useFrame(() => {
-    const el = document.getElementById('vignette')
-    if (!el) return
+    const t = game.time
     const lvl = emberLevel()
-    const v = b.hasEmber ? Math.max(0, 1 - lvl * 1.6) : 0.55
-    el.style.opacity = String(b.outAt >= 0 ? 1 : v)
+    const el = document.getElementById('vignette')
+    if (el) {
+      const v = b.hasEmber ? Math.max(0, 1 - lvl * 1.8) : b.introDone ? 0.5 : 0
+      el.style.opacity = String(b.outAt >= 0 ? 1 : v)
+    }
+    const hud = document.getElementById('ember-hud')
+    if (hud) {
+      const show = b.hasEmber && b.outAt < 0
+      const weak = lvl < 0.3
+      const flick = weak ? 0.6 + 0.4 * Math.abs(Math.sin(t * 9)) : 1
+      hud.style.opacity = String(show ? 0.95 : 0)
+      hud.style.setProperty('--lvl', String(Math.max(0.12, lvl)))
+      hud.style.setProperty('--flick', String(flick))
+      hud.classList.toggle('weak', weak)
+      hud.classList.toggle('full', b.inRefuge)
+    }
+  })
+  return null
+}
+
+// ── La Copa del alba: el árbol gigante donde espera alguien (la misión, siempre visible) ──
+export function DawnTree() {
+  const tex = useGlowTexture()
+  const glow = useRef<THREE.Sprite>(null!)
+  const core = useRef<THREE.Sprite>(null!)
+  const canopy = useMemo(() => {
+    const r = rng(61)
+    return Array.from({ length: 9 }, () => ({ x: (r() - 0.5) * 34, y: DAWN_TREE.h * (0.72 + r() * 0.25), z: (r() - 0.5) * 20, s: 10 + r() * 9 }))
+  }, [])
+  useFrame(() => {
+    const t = game.time
+    // destella al recordar la misión (al tomar la brasa, al tomar el espejo…)
+    const flare = Math.max(0, 1 - Math.abs(t - b.missionAt - 0.8) / 1.6)
+    const breathe = 1 + Math.sin(t * 0.9) * 0.08
+    glow.current.scale.setScalar((26 + flare * 40) * breathe)
+    glow.current.material.opacity = 0.55 + flare * 0.4
+    core.current.scale.setScalar((5 + flare * 6) * breathe)
+  })
+  return (
+    <group position={[DAWN_TREE.x, 0, DAWN_TREE.z]}>
+      <mesh position={[0, DAWN_TREE.h * 0.45, 0]}>
+        <cylinderGeometry args={[3.2, 7, DAWN_TREE.h * 0.9, 8]} />
+        <meshBasicMaterial color="#121628" fog={false} />
+      </mesh>
+      {canopy.map((c, i) => (
+        <mesh key={i} position={[c.x, c.y, c.z]} scale={c.s}>
+          <icosahedronGeometry args={[1, 0]} />
+          <meshBasicMaterial color="#141a2e" fog={false} />
+        </mesh>
+      ))}
+      {/* la luz de quien espera, en la copa */}
+      <sprite ref={glow} position={[0, DAWN_TREE.h + 6, 0]}>
+        <spriteMaterial map={tex} color="#ffcf8a" transparent depthWrite={false} blending={THREE.AdditiveBlending} fog={false} toneMapped={false} />
+      </sprite>
+      <sprite ref={core} position={[0, DAWN_TREE.h + 6, 0]}>
+        <spriteMaterial map={tex} color="#fff6e2" transparent depthWrite={false} blending={THREE.AdditiveBlending} fog={false} toneMapped={false} />
+      </sprite>
+    </group>
+  )
+}
+
+/** La cámara de la escena del principio: la luz lejana → la elfa dorada → el nacimiento → la misión. */
+const camPos = new THREE.Vector3()
+const camLook = new THREE.Vector3()
+const tmpLook = new THREE.Vector3()
+const treeTop = new THREE.Vector3(DAWN_TREE.x, DAWN_TREE.h + 6, DAWN_TREE.z)
+export function IntroCam() {
+  const look = useRef(new THREE.Vector3())
+  const init = useRef(false)
+  useFrame(({ camera }, rawDt) => {
+    if (b.introDone || b.introT < 0) return
+    const dt = Math.min(rawDt, 0.05)
+    const t = b.introT
+    if (t < 5) {
+      // la luz lejana: es adonde hay que llegar
+      camPos.set(1.5, 1.2, -3.5)
+      camLook.copy(treeTop)
+    } else if (t < INTRO.fade[1]) {
+      // la elfa dorada camina hasta la hoguera, deja la brasa y mira la luz
+      camPos.set(-3.5, 2.2, 4)
+      camLook.set(HEARTH.x * 0.7, 0.9, HEARTH.z * 0.8)
+    } else if (t < INTRO.gather) {
+      // nace la elfa, de costado
+      camPos.set(2.8, 1.3, 1.6)
+      camLook.set(0, 0.7, 0)
+    } else {
+      // de pie, mira hacia adelante: la hoguera y, a lo lejos, la luz
+      camPos.set(0, 1.9, -4.2)
+      camLook.copy(tmpLook.set(HEARTH.x, 1, HEARTH.z).lerp(treeTop, 0.15))
+    }
+    if (!init.current) {
+      init.current = true
+      camera.position.copy(camPos)
+      look.current.copy(camLook)
+    }
+    camera.position.lerp(camPos, damp(1.2, dt))
+    look.current.lerp(camLook, damp(1.4, dt))
+    camera.lookAt(look.current)
   })
   return null
 }

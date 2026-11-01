@@ -247,9 +247,9 @@ export function Character({ echo = false }: { echo?: boolean }) {
     if (echo) {
       const born = game.shadowOn ? Math.min(1, (game.time - game.shadowAt) / 1.5) : 0
       root.current.visible = born > 0
-      SHADOW_MAT.opacity = 0.72 * born
-      // al final, después del abrazo, la sombra se vuelve luz cálida
-      const warm = game.phase === 'end' ? clamp01((game.phaseT - 6) / 4) : 0
+      SHADOW_MAT.opacity = 0.72 * born * game.ghostAlpha
+      // al final, después del abrazo, la sombra se vuelve luz cálida (en Onward: la elfa dorada del jugador anterior)
+      const warm = Math.max(game.ghostGold, game.phase === 'end' ? clamp01((game.phaseT - 6) / 4) : 0)
       SHADOW_MAT.emissive.copy(SHADOW_EMISSIVE).lerp(WARM_EMISSIVE, warm)
       SHADOW_MAT.emissiveIntensity = 0.45 + warm * 0.6
       SHADOW_MAT.color.copy(SHADOW_COLOR).lerp(WARM_COLOR, warm * 0.6)

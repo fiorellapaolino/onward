@@ -1,12 +1,13 @@
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { damp } from '../game/config'
-import { game, input, isTouch, setUi } from '../game/state'
+import { game, input, isTouch, setUi, shadow } from '../game/state'
 import { bell, chord, NOTES } from '../game/sfx'
 import { spawnBloom } from '../simbolos/blooms'
 import type { Pt } from '../simbolos/recognizer'
 import { addCricket, rumble, updateCrickets } from './crickets'
 import { pointAlong } from '../simbolos/proto'
+import { DAWN_TREE, INTRO, PREV_PATH } from './brasaProto'
 import {
   BRIDGE, BRIDGE_COST, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, LOOK_NEED, MIRROR_SLOW, mirrorKey,
 } from './brasaProto'
@@ -18,7 +19,8 @@ import {
 
 /*
  * Atajos para probar (y para las capturas automáticas):
- *   ?go        empieza sin pantalla de inicio
+ *   ?go        empieza sin pantalla de inicio (y sin la escena del principio)
+ *   ?intro     empieza solo, con la escena del principio · ?nointro: la salta
  *   ?auto      la elfa juega sola: toma la brasa, da luz a una flor y a los círculos, llega a las raíces
  *   ?steps=40  cada frame avanza 40 pasitos de 1/30 s
  *   ?ember     empieza ya con la brasa, junto a la hoguera
@@ -31,6 +33,7 @@ import {
 const params = new URLSearchParams(location.search)
 const AUTO = params.has('auto')
 const STEPS = Number(params.get('steps') ?? 0)
+const INTRO_TEST = params.has('intro') // (para las capturas: empieza solo, con la escena del principio)
 const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm', 'mirror'].some((k) => params.has(k))
 ;(window as unknown as Record<string, unknown>).__game = game
 ;(window as unknown as Record<string, unknown>).__brasa = b
@@ -39,7 +42,7 @@ const MOVE = new THREE.Vector3()
 let started = false
 
 // ── Los grillos cantan donde hay algo dormido ──
-addCricket({ x: HEARTH.x, z: HEARTH.z, on: () => !b.hasEmber, loud: 1.3 }) // la brasa espera
+addCricket({ x: HEARTH.x, z: HEARTH.z, on: () => b.emberLeft && !b.hasEmber, loud: 1.3 }) // la brasa espera
 RINGS.forEach((r) => addCricket({ x: r.x, z: r.z, on: () => b.hasEmber && r.litAt < 0 }))
 FLOWERS.forEach((f) => addCricket({ x: f.x, z: f.z, on: () => b.hasEmber && f.giftAt < 0, loud: 0.6 }))
 // (junto al escondite del miedo los grillos se callan; cantan en las luces del camino que faltan)
@@ -58,11 +61,10 @@ export function BrasaLoop() {
 function step(dt: number) {
   const g = game
   g.time += dt
-  g.phase = 'play'
   g.phaseT += dt
   g.pulse = Math.max(0, g.pulse - dt * 1.2)
 
-  if (!started && g.loaded && QUICK) {
+  if (!started && g.loaded && (QUICK || INTRO_TEST)) {
     started = true
     g.started = true
     g.time = Math.max(g.time, 30)
@@ -116,6 +118,20 @@ function step(dt: number) {
     }
   }
   if (!g.started) return
+
+  // ── La escena del principio (con los atajos de prueba se salta) ──
+  if (!b.introDone) {
+    if (QUICK || params.has('nointro')) {
+      b.introDone = true
+      b.emberLeft = true
+      g.phase = 'play'
+      setUi({ hint: true })
+    } else {
+      introStep(dt)
+      return
+    }
+  }
+  g.phase = 'play'
 
   // ── La chispa vuelve al último refugio (se apagó la brasa): ella espera ──
   if (b.outAt >= 0) {
@@ -171,7 +187,7 @@ function step(dt: number) {
   const stepLen = Math.hypot(g.x - px, g.z - pz)
 
   // ── Tomar la brasa de la hoguera ──
-  if (!b.hasEmber && Math.hypot(g.x - HEARTH.x, g.z - HEARTH.z) < PICK_DIST) pick(g.time, false)
+  if (!b.hasEmber && b.emberLeft && Math.hypot(g.x - HEARTH.x, g.z - HEARTH.z) < PICK_DIST) pick(g.time, false)
 
   // ── La brasa: se recarga en los refugios, se gasta lejos del fuego ──
   if (b.hasEmber) {
@@ -193,6 +209,11 @@ function step(dt: number) {
   }
   // (para el personaje: con poca luz mira a su alrededor, inquieta; su luz crece con la brasa)
   const lvl = b.hasEmber ? b.ember / b.max : 0
+  // se está quedando sin luz: un aviso (sonido grave) y el refugio más cercano late
+  if (b.hasEmber && !b.inRefuge && lvl < 0.3 && g.time - b.lowAt > 6) {
+    b.lowAt = g.time
+    bell(NOTES[0] * 0.5, true)
+  }
   g.spark = lvl
   const fear = b.hasEmber ? Math.max(0, 1 - lvl * 2.2) : 0.75
   g.fear = g.speed > 0.4 ? Math.min(0.29, fear) : fear // (caminando no gira la cabeza a cada paso)
@@ -273,6 +294,7 @@ function pick(time: number, quiet: boolean) {
   b.pickAt = time
   b.ember = b.max
   game.pulse = 1
+  b.missionAt = time + 0.8
   bloomAround(HEARTH.x, HEARTH.z, time, 1.6)
   if (!quiet) chord()
 }
@@ -306,6 +328,65 @@ function giveLight(time: number) {
     if (f.hidden) console.log('[flor oculta] despertó')
     b.memFlights.push({ from: { x: f.x, z: f.z }, at: time + 0.9 })
     bell(NOTES[3], true)
+  }
+}
+
+// ── La escena del principio ──────────────────────────────────────
+function introStep(dt: number) {
+  const g = game
+  if (b.introT < 0) b.introT = 0
+  b.introT += dt
+  const t = b.introT
+  const sm = (a: number, z: number) => THREE.MathUtils.smoothstep(t, a, z)
+  // la elfa dorada (el jugador anterior): camina desde aquí hasta la hoguera
+  const [w0, w1] = INTRO.ghostWalk
+  if (t >= w0 && !g.shadowOn && t < INTRO.fade[1]) {
+    g.shadowOn = true
+    g.shadowAt = g.time - 1.5
+    g.ghostGold = 1
+  }
+  const k = Math.min(1, Math.max(0, (t - w0) / (w1 - w0)))
+  const p = pointAlong(PREV_PATH, k)
+  const ahead = pointAlong(PREV_PATH, Math.min(1, k + 0.02))
+  shadow.x = p.x
+  shadow.z = p.z
+  shadow.speed = k > 0 && k < 1 ? 1.35 : 0
+  const wantYaw = k < 1 ? Math.atan2(ahead.x - p.x, ahead.z - p.z) : Math.atan2(DAWN_TREE.x - p.x, DAWN_TREE.z - p.z)
+  shadow.yaw += Math.atan2(Math.sin(wantYaw - shadow.yaw), Math.cos(wantYaw - shadow.yaw)) * damp(5, dt)
+  shadow.phase = 'play'
+  shadow.phaseT += dt
+  shadow.time = g.time
+  // deja la brasa en la hoguera, mira la luz lejana y se desvanece
+  if (t >= INTRO.leave && !b.emberLeft) {
+    b.emberLeft = true
+    b.missionAt = g.time + 0.4
+    bell(NOTES[3], true)
+  }
+  g.ghostAlpha = 1 - sm(INTRO.fade[0], INTRO.fade[1])
+  if (t >= INTRO.fade[1]) g.shadowOn = false
+  // nace la elfa, donde empezó la otra
+  g.x = 0
+  g.z = 0
+  g.yaw = 0
+  g.speed = 0
+  input.camYaw = 0
+  const prevPhase = g.phase
+  g.phase = t < INTRO.birth ? 'intro' : t < INTRO.rise ? 'intro' : t < INTRO.gather ? 'rise' : 'gather'
+  if (g.phase !== prevPhase) g.phaseT = 0
+  if (t < INTRO.birth) g.phaseT = 0 // (todavía no nació: no se ve)
+  g.musicT = t - INTRO.birth
+  if (Math.abs(t - INTRO.birth) < dt) {
+    g.pulse = 1
+    bell(NOTES[4], false)
+  }
+  // las dos frases
+  const on = (r: [number, number]) => t >= r[0] && t < r[1]
+  setUi({ title: t < 6, msg: on(INTRO.line1) ? 'line1' : on(INTRO.line2) ? 'line2' : null })
+  if (t >= INTRO.play) {
+    b.introDone = true
+    g.phase = 'play'
+    g.phaseT = 0
+    setUi({ title: false, msg: null, hint: true })
   }
 }
 
@@ -371,6 +452,7 @@ function fearStep(dt: number) {
   if (!b.hasMirror && t > F.mirrorUpAt + 1 && Math.hypot(g.x - HIDEOUT.x, g.z - (HIDEOUT.z - 1.2)) < MIRROR_PICK) {
     b.hasMirror = true
     b.mirrorAt = t
+    b.missionAt = t + 3.6
     console.log('[espejo] lo tomó')
     g.pulse = 1
     chord()

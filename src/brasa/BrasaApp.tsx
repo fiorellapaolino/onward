@@ -4,13 +4,13 @@ import { useProgress } from '@react-three/drei'
 import { useInput } from '../game/useInput'
 import { game, isTouch, setUi, useUi } from '../game/state'
 import { startMusic } from '../game/music'
-import { Character } from '../components/Character'
+import { Character, ShadowSelf } from '../components/Character'
 import { CameraRig } from '../components/CameraRig'
 import { TouchControls } from '../components/TouchControls'
 import { Blooms } from '../simbolos/Scene'
 import { BrasaLoop } from './BrasaLoop'
 import {
-  BurntForest, Crack, DormantFlowers, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
+  BurntForest, Crack, DawnTree, DormantFlowers, IntroCam, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
   Night, PathLights, PrevTrail, RootWall, Stars, Vignette, Volcano,
 } from './BrasaScene'
 import { b, mirrorKey } from './brasaProto'
@@ -30,7 +30,9 @@ export default function BrasaApp() {
         <Night />
         <Stars />
         <Volcano />
+        <DawnTree />
         <CameraRig />
+        <IntroCam />
         <LavaGround />
         <PrevTrail />
         <Fireflies />
@@ -45,6 +47,8 @@ export default function BrasaApp() {
         <MirrorView />
         <Suspense fallback={null}>
           <Character />
+          {/* la elfa dorada del jugador anterior (en la escena del principio) */}
+          <ShadowSelf />
         </Suspense>
         <Suspense fallback={null}>
           <BurntForest />
@@ -56,6 +60,10 @@ export default function BrasaApp() {
         </Suspense>
       </Canvas>
       <div id="vignette" className="vignette" />
+      {/* cuánta luz le queda (sin números) */}
+      <div id="ember-hud" className="ember-hud" aria-hidden="true">
+        <div className="ember-core" />
+      </div>
       <div id="mirror-view" className="mirror-view">
         <Reflection />
       </div>
@@ -112,7 +120,7 @@ function Overlay() {
     if (!loaded || game.started) return
     startMusic()
     game.started = true
-    setUi({ start: false, hint: true })
+    setUi({ start: false }) // (los controles aparecen al terminar la escena del principio)
     setHintShown(true)
   }
 
@@ -139,6 +147,17 @@ function Overlay() {
         )}
         {/* "Usa auriculares: los grillos te guían" */}
         <p className="hint">Best with headphones · the crickets will guide you</p>
+      </div>
+
+      {/* la escena del principio: el título y las dos frases de la misión */}
+      <div className={`story title-card ${ui.title ? 'show' : ''}`}>Onward</div>
+      <div className={`story ${ui.msg === 'line1' ? 'show' : ''}`}>
+        {/* "Alguien te dejó una luz." */}
+        Someone left a light for you.
+      </div>
+      <div className={`story ${ui.msg === 'line2' ? 'show' : ''}`}>
+        {/* "Llévala hasta quien espera." */}
+        Carry it to the one who waits.
       </div>
 
       <div className={`controls ${ui.hint && hintShown ? 'show' : ''}`}>

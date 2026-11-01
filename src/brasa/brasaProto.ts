@@ -14,6 +14,24 @@ import type { Pt } from '../simbolos/recognizer'
  * Todo lo visual es provisional: se reemplaza después por modelos de otros artistas.
  */
 
+// ── La escena del principio: quién es y qué tiene que hacer (sin explicaciones) ──
+// Se ve a lo lejos la luz de quien espera (en la copa de un árbol gigante). Una elfa dorada
+// (el jugador anterior) camina hasta la hoguera, deja la brasa, mira esa luz y se desvanece.
+// Donde ella estuvo, nace la elfa. Dos frases cortas cuentan la misión.
+export const INTRO = {
+  ghostWalk: [0.6, 7.2], // la elfa dorada camina hasta la hoguera
+  leave: 7.6, // deja la brasa
+  fade: [9, 11.5], // mira la luz lejana y se desvanece
+  birth: 11.5, // nace la elfa (de la luz, de rodillas)
+  rise: 15.5, // se levanta
+  gather: 17.7, // ya de pie, gira hacia el camino
+  play: 19, // se puede jugar
+  line1: [8.6, 13.4] as [number, number], // "Someone left a light for you."
+  line2: [15.2, 20.5] as [number, number], // "Carry it to the one who waits."
+}
+/** La Copa del alba: el árbol gigante donde espera alguien. Siempre visible: es la misión. */
+export const DAWN_TREE = { x: -16, z: 175, h: 78 }
+
 // ── Lugares (metros) ─────────────────────────────────────────────
 export const HEARTH = { x: 4, z: 12 }
 export const ROOTS_Z = 62 // las raíces cerradas: se abren cuando el miedo se calma
@@ -107,6 +125,9 @@ export const MEMORY_FLIGHT = 1.6 // el recuerdo vuela hasta ella
 
 // ── Estado (se modifica cada frame, no es estado de React) ───────
 export const b = {
+  introT: -1, // segundos desde que empezó (la escena del principio); -1 = todavía no empezó
+  introDone: false,
+  emberLeft: false, // la elfa dorada ya dejó la brasa en la hoguera
   hasEmber: false,
   pickAt: -1, // cuándo tomó la brasa
   ember: 0, // 0..max
@@ -138,6 +159,8 @@ export const b = {
   looking: false, // mantiene el espejo
   look: 0, // 0..1 (suave): cuánto está mirando a través del espejo
   lookedOnce: false,
+  missionAt: -99, // la luz lejana destella para recordar la misión (al tomar la brasa, al tomar el espejo…)
+  lowAt: -99, // la última vez que avisó que se queda sin luz
 }
 
 export const refuges = () => [{ x: HEARTH.x, z: HEARTH.z, lit: b.hasEmber }, ...RINGS.map((r) => ({ x: r.x, z: r.z, lit: r.litAt >= 0 }))]
