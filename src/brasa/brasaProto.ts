@@ -84,7 +84,6 @@ export const GIVE_DIST = 2.4 // distancia para dar luz
 export const PICK_DIST = 1.6 // para tomar la brasa
 export const RETURN_TIME = 2.2 // la chispa vuelve al último refugio
 export const MEMORY_FLIGHT = 1.6 // el recuerdo vuela hasta ella
-export const BLOOM_STEP = 0.3
 
 // ── Estado (se modifica cada frame, no es estado de React) ───────
 export const b = {
@@ -101,7 +100,6 @@ export const b = {
   giveAt: -99, // la última vez que dio luz (destello)
   failAt: -99, // intentó dar luz sin brasa suficiente
   near: null as null | { kind: 'ring' | 'flower' | 'path'; i: number }, // a qué le puede dar luz ahora
-  walked: 0,
   totalWalked: 0,
   // el ser del miedo
   fear: {

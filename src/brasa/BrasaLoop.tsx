@@ -8,7 +8,7 @@ import type { Pt } from '../simbolos/recognizer'
 import { addCricket, rumble, updateCrickets } from './crickets'
 import { pointAlong } from '../simbolos/proto'
 import {
-  AWAY_DIST, BLOOM_STEP, BOUNDS, BOUNDS_OPEN, COMPANION_DRAIN, EMBER_TIME, FEAR_LEN, FEAR_PATH, FEAR_SPEED, FLOWER_COST, FLOWERS, GIFT_BONUS,
+  AWAY_DIST, BOUNDS, BOUNDS_OPEN, COMPANION_DRAIN, EMBER_TIME, FEAR_LEN, FEAR_PATH, FEAR_SPEED, FLOWER_COST, FLOWERS, GIFT_BONUS,
   GIVE_DIST, HEARTH, HIDEOUT, MEMORY_FLIGHT, MIRROR_PICK, PATH_COST, PATH_LIGHTS, PICK_DIST, RECHARGE, REFUGE_R, RETURN_TIME, RING_COST,
   RINGS, ROOTS_Z, RUN, RUN_DRAIN, SCARE_DIST, WALK, b, refuges,
 } from './brasaProto'
@@ -70,6 +70,7 @@ function step(dt: number) {
     if (params.has('lit')) {
       RINGS.forEach((r) => (r.litAt = g.time - 8))
       FLOWERS.forEach((f) => (f.giftAt = g.time - 8))
+      ;[...RINGS, ...FLOWERS].forEach((p) => bloomAround(p.x, p.z, g.time - 8, 1.9))
       b.memories = FLOWERS.length
       b.max = 1 + GIFT_BONUS * FLOWERS.length
       b.ember = b.max
@@ -83,6 +84,7 @@ function step(dt: number) {
     }
     if (params.has('calm')) {
       PATH_LIGHTS.forEach((p) => (p.litAt = g.time - 20))
+      ;[...RINGS, ...PATH_LIGHTS].forEach((p) => bloomAround(p.x, p.z, g.time - 20, 1.5))
       const F = b.fear
       F.progress = FEAR_LEN
       F.calmAt = g.time - 6
@@ -169,15 +171,8 @@ function step(dt: number) {
   const fear = b.hasEmber ? Math.max(0, 1 - lvl * 2.2) : 0.75
   g.fear = g.speed > 0.4 ? Math.min(0.29, fear) : fear // (caminando no gira la cabeza a cada paso)
 
-  // ── La vida vuelve donde pisa con luz ──
-  if (b.hasEmber) {
-    b.walked += stepLen
-    b.totalWalked += stepLen
-    while (b.walked >= BLOOM_STEP) {
-      b.walked -= BLOOM_STEP
-      spawnBloom(g.x, g.z, g.time)
-    }
-  }
+  // (caminar no hace florecer nada: la vida vuelve solo donde ella da luz; ver bloomAround)
+  b.totalWalked += stepLen
 
   // ── Dar luz: a un círculo de hongos apagado o a una flor dormida ──
   b.near = null
@@ -225,11 +220,22 @@ function step(dt: number) {
   })
 }
 
+/** Donde da luz, la vida vuelve: brotan plantas y el suelo se vuelve pasto (desde arriba, al final, se verá todo lo que dio). */
+function bloomAround(x: number, z: number, time: number, rad: number) {
+  const n = Math.round(rad * 14)
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 * 3.3
+    const r = Math.sqrt((i + 0.5) / n) * rad
+    spawnBloom(x + Math.cos(a) * r, z + Math.sin(a) * r, time + (r / rad) * 0.6)
+  }
+}
+
 function pick(time: number, quiet: boolean) {
   b.hasEmber = true
   b.pickAt = time
   b.ember = b.max
   game.pulse = 1
+  bloomAround(HEARTH.x, HEARTH.z, time, 1.6)
   if (!quiet) chord()
 }
 
@@ -244,6 +250,8 @@ function giveLight(time: number) {
   }
   b.ember -= cost
   b.giveAt = time
+  const at = n.kind === 'ring' ? RINGS[n.i] : n.kind === 'path' ? PATH_LIGHTS[n.i] : FLOWERS[n.i]
+  bloomAround(at.x, at.z, time, n.kind === 'path' ? 1 : 1.9)
   if (n.kind === 'ring') {
     RINGS[n.i].litAt = time
     bell(NOTES[4], false)
