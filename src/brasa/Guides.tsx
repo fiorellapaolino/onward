@@ -73,7 +73,7 @@ export function Beckons() {
       m.position.set(g.x, 0.05, g.z)
       m.scale.setScalar(g.r * (1 + pulse * 0.18))
       mats[i].color.copy(g.kind === 'gold' ? GOLD : LILAC)
-      mats[i].opacity = (0.25 + pulse * 0.45) * g.strong
+      mats[i].opacity = (0.4 + pulse * 0.5) * g.strong
     }
   })
   return (
@@ -132,7 +132,7 @@ export function Beacons() {
   })
   return (
     <points geometry={geo} frustumCulled={false}>
-      <pointsMaterial map={tex} vertexColors size={0.35} transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} fog={false} />
+      <pointsMaterial map={tex} vertexColors size={0.55} transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} fog={false} />
     </points>
   )
 }
