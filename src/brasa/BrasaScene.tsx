@@ -11,7 +11,7 @@ import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { AWAY_DIST, DAWN_TREE, GROTTO, INTRO, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
+import { AWAY_DIST, DAWN_PATH, DAWN_TREE, GROTTO, INTRO, WAIT_SPOT, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -23,6 +23,9 @@ import { AWAY_DIST, DAWN_TREE, GROTTO, INTRO, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRA
 const SKY_NIGHT = new THREE.Color('#0b1022')
 const SKY_WARM = new THREE.Color('#1a1830') // un poco más cálido a medida que despierta el bosque
 const SKY_MIRROR = new THREE.Color('#231238') // visto a través de la obsidiana
+const SKY_DAWN = new THREE.Color('#f0b98f') // el amanecer, al final
+/** 0..1: cuánto amaneció (después de darle su llama a la recién nacida). */
+export const dawn = () => (b.end.dawnAt >= 0 ? smoothstep(b.end.dawnAt, b.end.dawnAt + 8, game.time) : 0)
 const tmpC = new THREE.Color()
 
 export function Night() {
@@ -38,12 +41,15 @@ export function Night() {
     const lit = RINGS.filter((r) => r.litAt >= 0).length / RINGS.length
     const target = (b.hasEmber ? 0.3 : 0) + lit * 0.4 + Math.min(1, b.memories / FLOWERS.length) * 0.3
     life.current += (target - life.current) * damp(0.6, dt)
-    tmpC.copy(SKY_NIGHT).lerp(SKY_WARM, life.current).lerp(SKY_MIRROR, b.look * 0.8)
+    const D = dawn()
+    tmpC.copy(SKY_NIGHT).lerp(SKY_WARM, life.current).lerp(SKY_MIRROR, b.look * 0.8 * (1 - D)).lerp(SKY_DAWN, D)
     ;(scene.background as THREE.Color).copy(tmpC)
     const fog = scene.fog as THREE.Fog
     fog.color.copy(tmpC)
-    fog.far = 42 + life.current * 18
-    hemi.current.intensity = 0.45 + life.current * 0.25
+    const up = b.end.aerialAt >= 0 ? smoothstep(b.end.aerialAt, b.end.aerialAt + 5, game.time) : 0
+    fog.near = 10 + D * 20 + up * 120
+    fog.far = 42 + life.current * 18 + D * 60 + up * 220
+    hemi.current.intensity = 0.45 + life.current * 0.25 + D * 1.1
   })
   return (
     <>
@@ -69,9 +75,13 @@ export function Stars() {
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
     return g
   }, [])
+  const mat = useRef<THREE.PointsMaterial>(null!)
+  useFrame(() => {
+    mat.current.opacity = 0.85 * (1 - dawn())
+  })
   return (
     <points geometry={geo}>
-      <pointsMaterial color="#dfe6ff" size={1.6} sizeAttenuation={false} fog={false} transparent opacity={0.85} />
+      <pointsMaterial ref={mat} color="#dfe6ff" size={1.6} sizeAttenuation={false} fog={false} transparent opacity={0.85} />
     </points>
   )
 }
@@ -147,8 +157,8 @@ export function LavaGround() {
   const life = useMemo(getLifeTexture, [])
   return (
     <>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 25]}>
-        <planeGeometry args={[160, 160]} />
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 45]}>
+        <planeGeometry args={[200, 220]} />
         <meshStandardMaterial map={lava} roughness={0.95} />
       </mesh>
       {/* donde pisó con luz, pasto */}
@@ -603,6 +613,16 @@ export function EmberAndSparks() {
     halo.current.material.opacity = 0.5 + lvl * 0.4
     core.current.scale.setScalar(0.12 + lvl * 0.14)
     // la chispa que vuela al último refugio cuando se apaga
+    const E = b.end
+    if (E.giveAt >= 0 && t < E.giveAt + 1.6) {
+      // su llama vuela hasta la recién nacida
+      const e = smoothstep(0, 1, (t - E.giveAt) / 1.6)
+      spark.current.visible = true
+      spark.current.position.set(game.x + (WAIT_SPOT.x - game.x) * e, 1 + Math.sin(Math.PI * e) * 1.2, game.z + (WAIT_SPOT.z - game.z) * e)
+      spark.current.scale.setScalar(0.9)
+      return
+    }
+    spark.current.scale.setScalar(0.5)
     const k = b.outAt >= 0 ? clamp01((t - b.outAt) / RETURN_TIME) : -1
     spark.current.visible = k >= 0
     if (k >= 0) {
@@ -701,7 +721,7 @@ export function Vignette() {
     const lvl = emberLevel()
     const el = document.getElementById('vignette')
     if (el) {
-      const v = b.hasEmber ? Math.max(0, 1 - lvl * 1.8) : b.introDone ? 0.5 : 0
+      const v = b.end.giveAt >= 0 ? 0 : b.hasEmber ? Math.max(0, 1 - lvl * 1.8) : b.introDone ? 0.5 : 0
       el.style.opacity = String(b.outAt >= 0 ? 1 : v)
     }
     const hud = document.getElementById('ember-hud')
@@ -733,9 +753,18 @@ export function DawnTree() {
     // destella al recordar la misión (al tomar la brasa, al tomar el espejo…)
     const flare = Math.max(0, 1 - Math.abs(t - b.missionAt - 0.8) / 1.6)
     const breathe = 1 + Math.sin(t * 0.9) * 0.08
-    glow.current.scale.setScalar((26 + flare * 40) * breathe)
-    glow.current.material.opacity = 0.55 + flare * 0.4
-    core.current.scale.setScalar((5 + flare * 6) * breathe)
+    // al final baja de la copa hasta donde la espera (y ahí se vuelve la recién nacida)
+    const E = b.end
+    const down = E.landAt >= 0 ? smoothstep(E.landAt, E.landAt + 4, t) : 0
+    const after = E.landAt >= 0 ? smoothstep(E.landAt + 4, E.landAt + 6, t) : 0
+    const y = DAWN_TREE.h + 6 + (1.2 - DAWN_TREE.h - 6) * down
+    glow.current.position.set((WAIT_SPOT.x - DAWN_TREE.x) * down, y, (WAIT_SPOT.z - DAWN_TREE.z) * down)
+    core.current.position.copy(glow.current.position)
+    const shrink = 1 - down * 0.8
+    glow.current.scale.setScalar((26 + flare * 40) * breathe * shrink)
+    glow.current.material.opacity = (0.55 + flare * 0.4) * (1 - after * 0.6)
+    core.current.scale.setScalar((5 + flare * 6) * breathe * (1 - down * 0.7))
+    core.current.material.opacity = 1 - after * 0.85
   })
   return (
     <group position={[DAWN_TREE.x, 0, DAWN_TREE.z]}>
@@ -1029,6 +1058,90 @@ export function RearMirror() {
       </mesh>
     </>
   )
+}
+
+// ── Parte 5: el camino al alba ──
+/** Hongos a los costados del camino al árbol: se encienden a medida que ella pasa. */
+const dawnM = new THREE.Matrix4()
+export function DawnPathLights() {
+  const spots = useMemo(() => {
+    const out: { x: number; z: number; rot: number; s: number; seenAt: number }[] = []
+    for (let i = 1; i < DAWN_PATH.length; i++) {
+      const a = DAWN_PATH[i - 1]
+      const c = DAWN_PATH[i]
+      const dx = c.x - a.x
+      const dz = c.z - a.z
+      const len = Math.hypot(dx, dz)
+      for (let k = 0; k < 3; k++) {
+        const f = (k + 0.5) / 3
+        for (const side of [-1, 1]) {
+          out.push({ x: a.x + dx * f + (-dz / len) * 1.8 * side, z: a.z + dz * f + (dx / len) * 1.8 * side, rot: i * 2 + k + side, s: 0.55 + ((i + k) % 3) * 0.12, seenAt: -1 })
+        }
+      }
+    }
+    return out
+  }, [])
+  const update = (set: SetInstance) => {
+    const t = game.time
+    const open = b.shadow.lightAt >= 0
+    spots.forEach((sp, i) => {
+      if (open && sp.seenAt < 0 && Math.hypot(game.x - sp.x, game.z - sp.z) < 7) sp.seenAt = t
+      const on = sp.seenAt >= 0 ? clamp01((t - sp.seenAt) / 0.8) : 0
+      set(i, placeMatrix(sp.x, 0, sp.z, sp.rot, sp.s, dawnM), 0.35 + on * 2)
+    })
+  }
+  return <DynamicModel url={natureUrl('Mushroom_Common')} count={spots.length} onFrame={update} />
+}
+
+/** Al final: su propio camino, dorado (será el rastro de la próxima persona). */
+export function PlayerTrail() {
+  return (
+    <Ribbon
+      color="#ffd77a"
+      width={0.35}
+      y={0.06}
+      get={() => {
+        const E = b.end
+        const k = E.aerialAt >= 0 ? smoothstep(E.aerialAt, E.aerialAt + 4, game.time) : 0
+        return { pts: b.path.length > 1 ? b.path.filter((_, i) => i % 2 === 0) : [], opacity: k * 0.85 }
+      }}
+    />
+  )
+}
+
+/** La cámara del final: después de mirarse, sube despacio hasta ver todo su camino desde arriba. */
+const endPos = new THREE.Vector3(-6, 150, 58)
+const endLook = new THREE.Vector3(-4, 0, 64)
+const endTmp = new THREE.Vector3()
+export function FinalCam() {
+  const pos = useRef<THREE.Vector3 | null>(null)
+  const look = useRef(new THREE.Vector3())
+  useFrame(({ camera }, rawDt) => {
+    const E = b.end
+    if (E.giveAt < 0) {
+      pos.current = null
+      return
+    }
+    const dt = Math.min(rawDt, 0.05)
+    const t = game.time
+    if (!pos.current) {
+      pos.current = camera.position.clone()
+      look.current.set(WAIT_SPOT.x, 1, WAIT_SPOT.z)
+    }
+    if (t < E.aerialAt) {
+      // de costado: las dos elfas y el amanecer
+      endTmp.set((game.x + WAIT_SPOT.x) / 2 + 4, 2.2, (game.z + WAIT_SPOT.z) / 2 - 3)
+      pos.current.lerp(endTmp, damp(0.8, dt))
+      look.current.lerp(endTmp.set((game.x + WAIT_SPOT.x) / 2, 1, (game.z + WAIT_SPOT.z) / 2), damp(1, dt))
+    } else {
+      const k = Math.min(t - E.aerialAt, 10)
+      pos.current.lerp(endPos, damp(0.15 + k * 0.05, dt))
+      look.current.lerp(endLook, damp(0.3 + k * 0.05, dt))
+    }
+    camera.position.copy(pos.current)
+    camera.lookAt(look.current)
+  })
+  return null
 }
 
 /** (para el rastro dorado: un punto a lo largo del camino anterior) */

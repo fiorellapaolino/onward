@@ -512,3 +512,17 @@ body.grabbing canvas {
   0%, 100% { box-shadow: 0 0 0 rgba(255, 210, 130, 0); }
   50% { box-shadow: 0 0 22px rgba(255, 210, 130, 0.9); }
 }
+/* el final */
+.story.end-card {
+  top: 14%;
+  color: #4a2e1a;
+  text-shadow: 0 0 14px rgba(255, 240, 210, 0.8);
+}
+.story.end-card .again {
+  margin-top: 14px;
+  font-style: normal;
+  font-size: 18px;
+}
+.story.end-card.show {
+  pointer-events: auto;
+}

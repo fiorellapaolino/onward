@@ -7,7 +7,7 @@ import { spawnBloom } from '../simbolos/blooms'
 import type { Pt } from '../simbolos/recognizer'
 import { addCricket, rumble, updateCrickets } from './crickets'
 import { pointAlong } from '../simbolos/proto'
-import { CORRIDOR_HALF, DAWN_TREE, GROTTO, GROTTO_Z, INTRO, PREV_PATH, SHADOW_FLEE, SHADOW_REACH } from './brasaProto'
+import { CORRIDOR_HALF, DAWN_TREE, EXIT_OPEN, GROTTO, GROTTO_Z, INTRO, NEWBORN_REACH, PREV_PATH, SHADOW_FLEE, SHADOW_REACH, TRUNK_R, WAIT_SPOT } from './brasaProto'
 import {
   BRIDGE, BRIDGE_COST, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, LOOK_NEED, MIRROR_SLOW, mirrorKey,
 } from './brasaProto'
@@ -30,12 +30,13 @@ import {
  *   ?calm      el miedo ya se calmó: las raíces abiertas y el espejo saliendo de la tierra
  *   ?mirror    ya tiene el espejo, frente a la grieta de lava (parte 3); con &look, mirando por el espejo
  *   ?grotto    en la entrada de la gruta, con el espejo (parte 4)
+ *   ?dawn      la sombra ya es luz: se abre la salida hacia el árbol (parte 5)
  */
 const params = new URLSearchParams(location.search)
 const AUTO = params.has('auto')
 const STEPS = Number(params.get('steps') ?? 0)
 const INTRO_TEST = params.has('intro') // (para las capturas: empieza solo, con la escena del principio)
-const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm', 'mirror', 'grotto'].some((k) => params.has(k))
+const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm', 'mirror', 'grotto', 'dawn'].some((k) => params.has(k))
 ;(window as unknown as Record<string, unknown>).__game = game
 ;(window as unknown as Record<string, unknown>).__brasa = b
 
@@ -72,7 +73,7 @@ function step(dt: number) {
     g.started = true
     g.time = Math.max(g.time, 30)
     setUi({ start: false })
-    if (['ember', 'lit', 'out', 'fear', 'calm', 'mirror', 'grotto'].some((k) => params.has(k))) pick(g.time - 5, true)
+    if (['ember', 'lit', 'out', 'fear', 'calm', 'mirror', 'grotto', 'dawn'].some((k) => params.has(k))) pick(g.time - 5, true)
     if (params.has('ember')) {
       g.x = HEARTH.x - 1.5
       g.z = HEARTH.z + 1
@@ -87,12 +88,12 @@ function step(dt: number) {
       g.x = 0
       g.z = 30
     }
-    if (params.has('fear') || params.has('calm') || params.has('mirror') || params.has('grotto')) {
+    if (params.has('fear') || params.has('calm') || params.has('mirror') || params.has('grotto') || params.has('dawn')) {
       RINGS.forEach((r, i) => (r.litAt = (i === FEAR_RING && params.has('fear')) || i === BRIDGE_RING ? -1 : g.time - 8))
       g.x = RINGS[3].x
       g.z = RINGS[3].z
     }
-    if (params.has('calm') || params.has('mirror') || params.has('grotto')) {
+    if (params.has('calm') || params.has('mirror') || params.has('grotto') || params.has('dawn')) {
       PATH_LIGHTS.forEach((p) => (p.litAt = g.time - 20))
       ;[...RINGS, ...PATH_LIGHTS].forEach((p) => bloomAround(p.x, p.z, g.time - 20, 1.5))
       const F = b.fear
@@ -106,16 +107,25 @@ function step(dt: number) {
       g.x = 1.5
       g.z = 57
     }
-    if (params.has('grotto')) {
+    if (params.has('grotto') || params.has('dawn')) {
       BRIDGE.litAt = g.time - 10
       RINGS[BRIDGE_RING].litAt = g.time - 9
     }
-    if (params.has('mirror') || params.has('grotto')) {
+    if (params.has('mirror') || params.has('grotto') || params.has('dawn')) {
       b.hasMirror = true
       b.mirrorAt = g.time - 20
       b.lookedOnce = true
       g.x = 0.5
       g.z = params.has('grotto') ? GROTTO_Z + 1 : 65
+    }
+    if (params.has('dawn')) {
+      const S = b.shadow
+      S.appearAt = g.time - 30
+      S.lightAt = g.time - 20
+      S.pos = { x: 0, z: 103 }
+      b.memories = 5
+      g.x = 0
+      g.z = 99
     }
     if (params.has('out')) {
       b.lastRefuge = { x: RINGS[0].x, z: RINGS[0].z }
@@ -151,6 +161,12 @@ function step(dt: number) {
       g.pulse = 1
       bell(NOTES[0], true)
     }
+    return
+  }
+
+  // ── El final: ya dio su llama, se queda mirando el amanecer ──
+  if (b.end.giveAt >= 0) {
+    endStep(dt)
     return
   }
 
@@ -194,8 +210,24 @@ function step(dt: number) {
     if (pz <= CRACK_Z0 && g.z > CRACK_Z0 - 0.35) g.z = CRACK_Z0 - 0.35
     if (pz >= CRACK_Z1 && g.z < CRACK_Z1 + 0.35) g.z = CRACK_Z1 + 0.35
   }
-  // (la gruta: un pasillo angosto y una sala redonda)
-  if (g.z > GROTTO_Z - 1.5) {
+  // (la gruta: un pasillo angosto y una sala redonda; después de la sombra, la salida al norte y el camino al alba)
+  const exitOpen = b.shadow.lightAt >= 0 && g.time > b.shadow.lightAt + EXIT_OPEN
+  if (exitOpen && BOUNDS.zMax < 138) {
+    BOUNDS.zMax = 138
+    BOUNDS.x = 34
+  }
+  const northEdge = GROTTO.z + GROTTO.r - 0.6
+  if (exitOpen && g.z > northEdge) {
+    // el pasillo de salida y, después, el claro del alba (sin atravesar el tronco del árbol)
+    if (g.z < GROTTO.z + GROTTO.r + 2.5) g.x = THREE.MathUtils.clamp(g.x, -CORRIDOR_HALF, CORRIDOR_HALF)
+    const tx = g.x - DAWN_TREE.x
+    const tz = g.z - DAWN_TREE.z
+    const td = Math.hypot(tx, tz)
+    if (td < TRUNK_R) {
+      g.x = DAWN_TREE.x + (tx / td) * TRUNK_R
+      g.z = DAWN_TREE.z + (tz / td) * TRUNK_R
+    }
+  } else if (g.z > GROTTO_Z - 1.5) {
     const cz = GROTTO.z - GROTTO.r + 0.8
     if (g.z < cz) g.x = THREE.MathUtils.clamp(g.x, -CORRIDOR_HALF, CORRIDOR_HALF)
     else {
@@ -203,13 +235,16 @@ function step(dt: number) {
       const dz = g.z - GROTTO.z
       const d = Math.hypot(dx, dz)
       const R = GROTTO.r - 0.6
-      const inDoor = Math.abs(g.x) < CORRIDOR_HALF && dz < 0 // (por donde se entra)
+      const inDoor = Math.abs(g.x) < CORRIDOR_HALF && (dz < 0 || exitOpen) // (por donde se entra; y la salida, ya abierta)
       if (d > R && !inDoor) {
         g.x = GROTTO.x + (dx / d) * R
         g.z = GROTTO.z + (dz / d) * R
       }
     }
   }
+  // (por dónde camina: al final se guarda como el rastro dorado de la próxima persona)
+  const lastP = b.path[b.path.length - 1]
+  if ((!lastP || Math.hypot(g.x - lastP.x, g.z - lastP.z) > 0.6) && b.path.length < 1500) b.path.push({ x: g.x, z: g.z })
   const stepLen = Math.hypot(g.x - px, g.z - pz)
 
   // ── Tomar la brasa de la hoguera ──
@@ -223,7 +258,8 @@ function step(dt: number) {
       b.ember = Math.min(b.max, b.ember + RECHARGE * dt)
       b.lastRefuge = { x: ref.x, z: ref.z }
     } else {
-      const warm = g.z > GROTTO_Z + 1 // (en la gruta la obsidiana guarda el calor: la brasa no se gasta)
+      // (en la gruta la obsidiana guarda el calor; y después de la sombra ya no le teme a la oscuridad: la brasa no se gasta)
+      const warm = g.z > GROTTO_Z + 1 || b.shadow.lightAt >= 0
       const company = b.fear.following && Math.hypot(g.x - b.fear.pos.x, g.z - b.fear.pos.z) < 4 ? COMPANION_DRAIN : 1
       if (!warm) b.ember -= (dt / EMBER_TIME) * (running && g.speed > WALK + 0.2 ? RUN_DRAIN : 1) * company
       if (b.ember <= 0) {
@@ -279,6 +315,11 @@ function step(dt: number) {
       best = 0
       b.near = { kind: 'shadow', i: 0 }
     }
+    // la recién nacida
+    if (b.end.landAt >= 0 && g.time > b.end.landAt + 4 && Math.hypot(g.x - WAIT_SPOT.x, g.z - WAIT_SPOT.z) < NEWBORN_REACH) {
+      best = 0
+      b.near = { kind: 'newborn', i: 0 }
+    }
     // el puente: solo se le puede dar luz mientras se lo ve en el espejo
     const dB = Math.hypot(g.x - BRIDGE.x, g.z - BRIDGE.z)
     if (b.hasMirror && BRIDGE.litAt < 0 && b.look > LOOK_NEED && dB < best + 0.6) {
@@ -295,6 +336,29 @@ function step(dt: number) {
 
   fearStep(dt)
   shadowStep(dt, px, pz)
+  // la luz de quien espera baja de la copa cuando ella se acerca
+  if (b.end.landAt < 0 && b.shadow.lightAt >= 0 && Math.hypot(g.x - WAIT_SPOT.x, g.z - WAIT_SPOT.z) < 16) {
+    b.end.landAt = g.time
+    bell(NOTES[4], false)
+    console.log('[alba] baja la luz de quien espera')
+  }
+  if (b.end.landAt >= 0 && g.time > b.end.landAt + 4 && !g.shadowOn) {
+    // nace la recién nacida: de rodillas, en la luz
+    g.shadowOn = true
+    g.shadowAt = g.time - 1.5
+    g.ghostGold = 0.75
+    g.ghostAlpha = 1
+    shadow.x = WAIT_SPOT.x
+    shadow.z = WAIT_SPOT.z
+    shadow.speed = 0
+    shadow.phase = 'intro'
+    shadow.phaseT = 0
+  }
+  if (g.shadowOn && b.end.landAt >= 0) {
+    shadow.phaseT += dt
+    shadow.time = g.time
+    shadow.yaw = Math.atan2(g.x - shadow.x, g.z - shadow.z)
+  }
   // (para las pruebas automáticas: cada 10 s, cómo va)
   if (AUTO && Math.floor(g.time / 10) !== Math.floor((g.time - dt) / 10)) {
     const F = b.fear
@@ -337,6 +401,7 @@ function giveLight(time: number) {
   const n = b.near
   if (!n) return
   if (n.kind === 'shadow') return giveShadow(time)
+  if (n.kind === 'newborn') return giveNewborn(time)
   const cost = n.kind === 'ring' ? RING_COST : n.kind === 'path' ? PATH_COST : n.kind === 'bridge' ? BRIDGE_COST : FLOWER_COST
   if (b.ember < cost + 0.04) {
     b.failAt = time
@@ -364,6 +429,64 @@ function giveLight(time: number) {
     if (f.hidden) console.log('[flor oculta] despertó')
     b.memFlights.push({ from: { x: f.x, z: f.z }, at: time + 0.9 })
     bell(NOTES[3], true)
+  }
+}
+
+// ── Parte 5: el final ────────────────────────────────────────────
+function giveNewborn(time: number) {
+  const E = b.end
+  E.giveAt = time
+  E.dawnAt = time + 1.8
+  E.aerialAt = E.dawnAt + 8
+  b.giveAt = time
+  b.missionAt = time
+  game.pulse = 1
+  chord()
+  savePath()
+  console.log('[final] le dio su llama a la recién nacida')
+}
+
+let finalShown = false
+function endStep(dt: number) {
+  const g = game
+  const E = b.end
+  const t = g.time
+  g.speed = 0
+  g.phase = 'play'
+  // la mira a ella
+  const want = Math.atan2(WAIT_SPOT.x - g.x, WAIT_SPOT.z - g.z)
+  g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(4, dt)
+  // la llama vuela hasta la recién nacida; ya no necesita la brasa
+  if (b.hasEmber && t > E.giveAt + 1.6) b.hasEmber = false
+  // la recién nacida se levanta con el amanecer
+  if (t > E.dawnAt + 1 && shadow.phase === 'intro') {
+    shadow.phase = 'rise'
+    shadow.phaseT = 0
+  }
+  if (t > E.dawnAt + 3.5 && shadow.phase === 'rise') {
+    shadow.phase = 'play'
+    shadow.phaseT = 0
+  }
+  shadow.phaseT += dt
+  shadow.time = t
+  shadow.yaw = Math.atan2(g.x - shadow.x, g.z - shadow.z)
+  // se mira por última vez: su reflejo tiene rostro
+  b.looking = t > E.dawnAt + 2.5 && t < E.dawnAt + 7
+  b.look += ((b.looking ? 1 : 0) - b.look) * damp(4, dt)
+  if (!finalShown && t > E.aerialAt + 6) {
+    finalShown = true
+    setUi({ final: true })
+  }
+}
+
+/** Guarda su camino: será el rastro dorado (y la elfa dorada) de la próxima persona. */
+function savePath() {
+  const pts = b.path.filter((_, i) => i % 2 === 0).map((p) => ({ x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10 }))
+  if (pts.length < 10 || params.has('auto')) return
+  try {
+    void fetch('/api/path', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pts }) }).catch(() => {})
+  } catch {
+    /* sin internet: no pasa nada */
   }
 }
 
@@ -402,6 +525,7 @@ function shadowStep(dt: number, px: number, pz: number) {
   }
   if (S.lightAt >= 0) {
     shadowHint = false
+    if (b.end.landAt >= 0) return // (la "sombra" ahora es la recién nacida)
     // se vuelve luz: dorada, y se desvanece
     const k = t - S.lightAt
     g.ghostGold = Math.min(1, k / 1.5)
@@ -603,7 +727,7 @@ function fearStep(dt: number) {
 }
 
 // ── Piloto automático (?auto) ────────────────────────────────────
-type Way = { to: Pt; toFn?: () => Pt; give?: boolean; wait?: () => boolean; part2?: boolean; mirror?: boolean; look?: boolean; part3?: boolean; part4?: boolean }
+type Way = { to: Pt; toFn?: () => Pt; give?: boolean; wait?: () => boolean; part2?: boolean; mirror?: boolean; look?: boolean; part3?: boolean; part4?: boolean; part5?: boolean }
 const AUTO_WAY: Way[] = [
   { to: { x: 1.5, z: 5 } },
   { to: { x: HEARTH.x - 0.6, z: HEARTH.z - 0.6 } }, // toma la brasa
@@ -637,9 +761,16 @@ const AUTO_WAY: Way[] = [
   { to: { x: 0, z: 94 }, part4: true },
   { to: { x: 0, z: 92.6 } }, // (camina hacia la entrada: queda mirando al sur, de espaldas a la sombra)
   { to: { x: 0, z: 0 }, toFn: () => ({ x: b.shadow.pos.x, z: b.shadow.pos.z - 1 }), look: true, give: true, wait: () => b.shadow.lightAt < 0 },
+  // parte 5: sale por el norte y camina hasta el árbol
+  { to: { x: 0, z: 100 }, wait: () => game.time < b.shadow.lightAt + EXIT_OPEN + 0.5, part5: true },
+  { to: { x: 0, z: 109 } },
+  { to: { x: -8, z: 119 } },
+  { to: { x: -15, z: 127 } },
+  { to: { x: WAIT_SPOT.x + 0.4, z: WAIT_SPOT.z - 1.6 }, wait: () => b.end.landAt < 0 || game.time < b.end.landAt + 4.2 },
+  { to: { x: WAIT_SPOT.x + 0.4, z: WAIT_SPOT.z - 1.6 }, give: true },
 ]
 // (con ?fear el piloto empieza directamente en la parte 2; con ?calm, en el espejo)
-let autoI = params.has('grotto') ? AUTO_WAY.findIndex((w) => w.part4) : params.has('mirror') ? AUTO_WAY.findIndex((w) => w.part3) : params.has('calm') ? AUTO_WAY.findIndex((w) => w.mirror) : params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
+let autoI = params.has('dawn') ? AUTO_WAY.findIndex((w) => w.part5) : params.has('grotto') ? AUTO_WAY.findIndex((w) => w.part4) : params.has('mirror') ? AUTO_WAY.findIndex((w) => w.part3) : params.has('calm') ? AUTO_WAY.findIndex((w) => w.mirror) : params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
 let gaveAt = -1
 let autoLook = false
 

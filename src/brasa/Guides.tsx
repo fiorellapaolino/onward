@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { game, isTouch } from '../game/state'
 import { useGlowTexture } from '../components/TheLight'
 import type { Pt } from '../simbolos/recognizer'
-import { BRIDGE, BRIDGE_RING, FEAR_RING, FLOWERS, HEARTH, HIDEOUT, PATH_LIGHTS, RINGS, b } from './brasaProto'
+import { BRIDGE, BRIDGE_RING, FEAR_RING, FLOWERS, HEARTH, HIDEOUT, PATH_LIGHTS, RINGS, WAIT_SPOT, b } from './brasaProto'
 
 /*
  * El idioma visual común (para entender el juego sin leer):
@@ -24,7 +24,9 @@ const LILAC = new THREE.Color('#c8a8ff')
 export function targets(): Target[] {
   const out: Target[] = []
   const t = game.time
-  if (!game.started || !b.introDone) return out
+  if (!game.started || !b.introDone || b.end.giveAt >= 0) return out
+  // la recién nacida
+  if (b.end.landAt >= 0 && t > b.end.landAt + 4) out.push({ x: WAIT_SPOT.x, z: WAIT_SPOT.z, r: 1.3, kind: 'gold', strong: 1 })
   // antes de tener la brasa: solo la brasa que espera en la hoguera
   if (!b.hasEmber) {
     if (b.emberLeft) out.push({ x: HEARTH.x, z: HEARTH.z, r: 1.1, kind: 'gold', strong: 1 })
@@ -174,7 +176,7 @@ export function ActionIcons() {
     let p: Pt | null = null
     if (n) {
       const S = b.shadow
-      p = n.kind === 'ring' ? RINGS[n.i] : n.kind === 'path' ? PATH_LIGHTS[n.i] : n.kind === 'bridge' ? { x: BRIDGE.x, z: BRIDGE.z + 0.9 } : n.kind === 'shadow' ? S.pos : FLOWERS[n.i]
+      p = n.kind === 'ring' ? RINGS[n.i] : n.kind === 'path' ? PATH_LIGHTS[n.i] : n.kind === 'bridge' ? { x: BRIDGE.x, z: BRIDGE.z + 0.9 } : n.kind === 'shadow' ? S.pos : n.kind === 'newborn' ? WAIT_SPOT : FLOWERS[n.i]
     }
     place(document.getElementById('icon-give'), p, n?.kind === 'ring' ? 1.2 : 1.6, camera, size)
     place(document.getElementById('icon-mirror'), p ? null : mirrorTarget(), 2.3, camera, size)

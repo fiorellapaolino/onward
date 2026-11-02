@@ -10,7 +10,7 @@ import { TouchControls } from '../components/TouchControls'
 import { Blooms } from '../simbolos/Scene'
 import { BrasaLoop } from './BrasaLoop'
 import {
-  BurntForest, Crack, DawnTree, DormantFlowers, GrottoChamber, IntroCam, RearMirror, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
+  BurntForest, Crack, DawnPathLights, DawnTree, DormantFlowers, FinalCam, PlayerTrail, GrottoChamber, IntroCam, RearMirror, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
   Night, PathLights, PrevTrail, RootWall, Stars, Vignette, Volcano,
 } from './BrasaScene'
 import { b, mirrorKey } from './brasaProto'
@@ -34,6 +34,7 @@ export default function BrasaApp() {
         <DawnTree />
         <CameraRig />
         <IntroCam />
+        <FinalCam />
         <LavaGround />
         <PrevTrail />
         <Fireflies />
@@ -46,6 +47,7 @@ export default function BrasaApp() {
         <MirrorBridge />
         <GrottoGate />
         <GrottoChamber />
+        <PlayerTrail />
         <MirrorView />
         <Beckons />
         <Beacons />
@@ -62,6 +64,7 @@ export default function BrasaApp() {
           <Hearth />
           <MushroomRings />
           <PathLights />
+          <DawnPathLights />
           <DormantFlowers />
           <Blooms />
         </Suspense>
@@ -134,6 +137,7 @@ function Overlay() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (ui.start && (e.code === 'Enter' || e.code === 'Space')) begin()
+      if (ui.final && e.code === 'KeyR') location.reload()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -187,7 +191,13 @@ function Overlay() {
         </svg>
       </div>
 
-      <TouchControls show={!ui.start} jumpLabel="Light" />
+      <TouchControls show={!ui.start && !ui.final} jumpLabel="Light" />
+
+      {/* el final: "Tu luz esperará a alguien." · R (o tocar) para caminar de nuevo */}
+      <div className={`story end-card ${ui.final ? 'show' : ''}`} onPointerDown={() => ui.final && isTouch && location.reload()}>
+        Your light will wait for someone.
+        <div className="again">{isTouch ? '↻' : <kbd>R</kbd>}</div>
+      </div>
       {isTouch && b.hasMirror ? <MirrorButton /> : null}
     </div>
   )

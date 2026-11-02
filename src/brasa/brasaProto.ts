@@ -30,7 +30,7 @@ export const INTRO = {
   line2: [15.2, 20.5] as [number, number], // "Carry it to the one who waits."
 }
 /** La Copa del alba: el árbol gigante donde espera alguien. Siempre visible: es la misión. */
-export const DAWN_TREE = { x: -60, z: 175, h: 78 }
+export const DAWN_TREE = { x: -22, z: 142, h: 78 }
 
 // ── Lugares (metros) ─────────────────────────────────────────────
 export const HEARTH = { x: 4, z: 12 }
@@ -123,6 +123,22 @@ export const CORRIDOR_HALF = 1.8
 export const SHADOW_FLEE = 1.25 // se aleja un poco más rápido de lo que ella avanza
 export const SHADOW_REACH = 1.5
 
+// ── Parte 5: la Copa del alba — el final ─────────────────────────
+// Después de la sombra ya no le teme a la oscuridad: la brasa no se gasta más.
+// Sale de la gruta hacia el árbol gigante; la luz de quien espera baja de la copa a medida que se acerca.
+// Quien espera es una elfa recién nacida (la próxima persona que jugará). Ella le da su llama: amanece.
+export const EXIT_OPEN = 4 // segundos después de que la sombra se vuelve luz, se abre la salida
+export const WAIT_SPOT = { x: DAWN_TREE.x + 2, z: DAWN_TREE.z - 10 } // donde baja la recién nacida
+export const TRUNK_R = 7.5
+export const NEWBORN_REACH = 2.4
+export const DAWN_PATH: Pt[] = [
+  { x: 0, z: 108 },
+  { x: -3, z: 114 },
+  { x: -8, z: 119 },
+  { x: -13, z: 124 },
+  { x: -17, z: 128 },
+]
+
 /** Mantener el espejo: Espacio o clic derecho (en el móvil, un botón que lo activa y desactiva). */
 export const mirrorKey = { held: false }
 
@@ -157,7 +173,7 @@ export const b = {
   outFrom: { x: 0, z: 0 } as Pt,
   giveAt: -99, // la última vez que dio luz (destello)
   failAt: -99, // intentó dar luz sin brasa suficiente
-  near: null as null | { kind: 'ring' | 'flower' | 'path' | 'bridge' | 'shadow'; i: number }, // a qué le puede dar luz ahora
+  near: null as null | { kind: 'ring' | 'flower' | 'path' | 'bridge' | 'shadow' | 'newborn'; i: number }, // a qué le puede dar luz ahora
   totalWalked: 0,
   // el ser del miedo
   fear: {
@@ -178,6 +194,9 @@ export const b = {
   lookedOnce: false,
   // la sombra de la gruta
   shadow: { appearAt: -1, pos: { x: 0, z: 0 } as Pt, lightAt: -1 },
+  // el final
+  end: { landAt: -1, giveAt: -1, dawnAt: -1, aerialAt: -1 },
+  path: [] as Pt[], // por dónde caminó (se guarda al final: será el rastro dorado de la próxima persona)
   missionAt: -99, // la luz lejana destella para recordar la misión (al tomar la brasa, al tomar el espejo…)
   lowAt: -99, // la última vez que avisó que se queda sin luz
 }

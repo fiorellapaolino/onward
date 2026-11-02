@@ -1,7 +1,6 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
 # (prototipo anterior, con ?simbolos: proto_dark ?simbolos&at=28&solved&steps=10 25)
-# (pruebas largas, a mano: ?auto · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10 · ?grotto&auto&steps=60)
-guide_go ?go&steps=4 20
-guide_ember ?ember&steps=4 20
-guide_fear ?fear&steps=4 20
-guide_mirror ?mirror&steps=4 20
+# (pruebas largas, a mano: ?auto · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10 · ?grotto&auto&steps=60 · ?dawn&auto)
+dawn_start ?dawn&steps=4 20
+dawn_land ?dawn&auto&steps=20 45
+dawn_end ?dawn&auto&steps=20 100
