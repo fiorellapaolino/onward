@@ -90,6 +90,7 @@ export const game = {
   pulse: 0, // destello de luz (al nacer, al agarrar, al usar una herramienta)
   ghostGold: 0, // 0..1: la "sombra" se dibuja dorada (en Onward es la elfa del jugador anterior)
   ghostAlpha: 1, // 0..1: para que se desvanezca
+  ghostDark: 0, // 0..1: la sombra (oscura) en vez de luz pálida
 }
 
 /** Cuánto tarda en volar hasta ella la luz de alguien a quien ayudó (segundos). */

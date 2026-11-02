@@ -48,7 +48,7 @@ export function targets(): Target[] {
   if (b.fear.mirrorUpAt >= 0 && !b.hasMirror && t > b.fear.mirrorUpAt + 1) out.push({ x: HIDEOUT.x, z: HIDEOUT.z - 1.2, r: 1, kind: 'lilac', strong: 1 })
   if (b.hasMirror && BRIDGE.litAt < 0) out.push({ x: BRIDGE.x, z: BRIDGE.z + 0.9, r: 1.6, kind: 'lilac', strong: 0.35 + b.look * 0.65 })
   const S = b.shadow
-  if (S.appearAt >= 0 && S.lightAt < 0 && b.look > 0.3) out.push({ x: S.pos.x, z: S.pos.z, r: 0.9, kind: 'lilac', strong: b.look })
+  if (S.appearAt >= 0 && S.lightAt < 0) out.push({ x: S.pos.x, z: S.pos.z, r: 1, kind: 'lilac', strong: 0.45 + b.look * 0.55 })
   return out
 }
 
@@ -165,7 +165,7 @@ function mirrorTarget(): Pt | null {
   // la primera vez, sobre ella
   if (!b.lookedOnce && g.time - b.mirrorAt > 3.5) return { x: g.x, z: g.z }
   const S = b.shadow
-  if (S.appearAt >= 0 && S.lightAt < 0) return { x: g.x, z: g.z }
+  if (S.appearAt >= 0 && S.lightAt < 0) return { x: S.pos.x, z: S.pos.z }
   if (BRIDGE.litAt < 0 && near(BRIDGE, 7)) return { x: BRIDGE.x, z: BRIDGE.z + 0.9 }
   const f = FLOWERS.find((fl) => fl.hidden && fl.giftAt < 0 && near(fl, 6))
   return f ? { x: f.x, z: f.z } : null

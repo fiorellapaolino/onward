@@ -1,4 +1,4 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-# (pruebas largas, a mano: ?auto&steps=60 (todo) · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10 · ?grotto&auto&steps=60 · ?dawn&auto&steps=20)
-fear_start ?fear&steps=3 20
-fear_auto ?fear&auto&steps=30 90
+# (pruebas largas, a mano: ?auto&steps=60 (todo) · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10 · ?grotto&auto&steps=40 · ?dawn&auto&steps=20)
+grotto_in ?grotto&auto&steps=8 30
+grotto_auto ?grotto&auto&steps=40 80

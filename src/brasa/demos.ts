@@ -1,7 +1,7 @@
 import { damp } from '../game/config'
 import { game, shadow } from '../game/state'
 import type { Pt } from '../simbolos/recognizer'
-import { BRIDGE, FLOWERS, GROTTO, GROTTO_Z, HEARTH, PATH_LIGHTS, RINGS, WAIT_RING, b } from './brasaProto'
+import { BRIDGE, FLOWERS, HEARTH, PATH_LIGHTS, RINGS, WAIT_RING, b } from './brasaProto'
 
 /*
  * Las demostraciones de la elfa dorada (el eco del jugador anterior).
@@ -10,7 +10,6 @@ import { BRIDGE, FLOWERS, GROTTO, GROTTO_Z, HEARTH, PATH_LIGHTS, RINGS, WAIT_RIN
  *   2. ir a un refugio                 (la primera vez que la brasa baja)
  *   3. encender la luz del camino y esperar en el refugio   (después de que el miedo se esconde)
  *   4. mirar con el espejo y dar luz al puente              (al llegar a la grieta)
- *   5. caminar hacia atrás con el espejo levantado          (al entrar a la gruta)
  * Si después de un rato no lo hizo, la elfa dorada vuelve a mostrarlo.
  */
 
@@ -72,18 +71,6 @@ const DEMOS: Demo[] = [
     when: () => b.hasMirror && near(BRIDGE, 9),
     done: () => BRIDGE.litAt >= 0,
     again: 20,
-  },
-  {
-    id: 'espaldas',
-    start: () => ({ x: 0, z: GROTTO.z - 5.2 }),
-    steps: [
-      { dur: 1, face: { x: 0, z: GROTTO_Z } }, // la mira a ella, de espaldas a la sala
-      { dur: 3.6, to: { x: 0, z: GROTTO.z - 1.5 }, back: true, face: { x: 0, z: GROTTO_Z }, lilac: true },
-      { dur: 1.6, face: { x: 0, z: GROTTO_Z }, lilac: true },
-    ],
-    when: () => b.hasMirror && game.z > GROTTO_Z + 0.3 && game.z < GROTTO.z - 5.6 && b.shadow.appearAt < 0,
-    done: () => b.shadow.appearAt >= 0,
-    again: 15,
   },
 ]
 

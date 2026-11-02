@@ -10,7 +10,7 @@ import { TouchControls } from '../components/TouchControls'
 import { Blooms } from '../simbolos/Scene'
 import { BrasaLoop } from './BrasaLoop'
 import {
-  BurntForest, Crack, FearTrail, DawnPathLights, DawnTree, DormantFlowers, FinalCam, PlayerTrail, GrottoChamber, IntroCam, RearMirror, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
+  BurntForest, Crack, FearTrail, DawnPathLights, DawnTree, DormantFlowers, FinalCam, PlayerTrail, GrottoChamber, IntroCam, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
   Night, PathLights, PrevTrail, RootWall, Stars, Vignette, Volcano,
 } from './BrasaScene'
 import { b, mirrorKey } from './brasaProto'
@@ -58,8 +58,6 @@ export default function BrasaApp() {
           <Character />
           {/* la elfa dorada del jugador anterior (en la escena del principio) y su sombra (en la gruta) */}
           <ShadowSelf />
-          {/* (después de la sombra: decide si se ve solo en el espejo) */}
-          <RearMirror />
         </Suspense>
         <Suspense fallback={null}>
           <BurntForest />

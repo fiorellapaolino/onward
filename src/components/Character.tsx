@@ -104,6 +104,7 @@ export const SHADOW_MAT = new THREE.MeshStandardMaterial({
 const SHADOW_COLOR = new THREE.Color('#e4ebf7')
 const SHADOW_EMISSIVE = new THREE.Color('#a9bde6')
 const WARM_COLOR = new THREE.Color('#e9d6b8')
+const DARK_COLOR = new THREE.Color('#14111c') // (la sombra de la gruta, en Onward)
 const WARM_EMISSIVE = new THREE.Color('#ffcf8a')
 
 /** Su sombra (clara, de luz): el mismo personaje, que repite lo que ella hizo segundos antes (state.shadow). */
@@ -252,8 +253,8 @@ export function Character({ echo = false }: { echo?: boolean }) {
       // al final, después del abrazo, la sombra se vuelve luz cálida (en Onward: la elfa dorada del jugador anterior)
       const warm = Math.max(game.ghostGold, game.phase === 'end' ? clamp01((game.phaseT - 6) / 4) : 0)
       SHADOW_MAT.emissive.copy(SHADOW_EMISSIVE).lerp(WARM_EMISSIVE, warm)
-      SHADOW_MAT.emissiveIntensity = 0.45 + warm * 0.6
-      SHADOW_MAT.color.copy(SHADOW_COLOR).lerp(WARM_COLOR, warm * 0.6)
+      SHADOW_MAT.emissiveIntensity = (0.45 + warm * 0.6) * (1 - game.ghostDark * 0.9)
+      SHADOW_MAT.color.copy(SHADOW_COLOR).lerp(WARM_COLOR, warm * 0.6).lerp(DARK_COLOR, game.ghostDark)
       if (!born) return
     }
 

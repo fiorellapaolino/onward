@@ -197,10 +197,10 @@ function step(dt: number) {
     const want = Math.atan2(MOVE.x, MOVE.z)
     // con el espejo levantado no se da vuelta: camina hacia donde quiera sin dejar de mirar adelante
     // (así puede caminar hacia atrás, guiándose por el reflejo)
-    if (!b.looking) g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(9, dt)
-    moveYaw = b.looking ? want : g.yaw
+    g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(9, dt)
+    moveYaw = g.yaw
     if (g.phaseT > 3) setUi({ hint: false })
-  } else if (!b.looking) moveYaw = g.yaw
+  } else moveYaw = g.yaw
   g.idle = g.speed < 0.15 ? g.idle + dt : 0
   const px = g.x
   const pz = g.z
@@ -511,23 +511,26 @@ function giveShadow(time: number) {
   console.log('[sombra] se volvió luz')
 }
 
-function shadowStep(dt: number, px: number, pz: number) {
+function shadowStep(dt: number, _px: number, _pz: number) {
   const g = game
   const S = b.shadow
   const t = g.time
   const toC = Math.hypot(g.x - GROTTO.x, g.z - GROTTO.z)
-  // aparece cuando entra a la sala: del otro lado, frente a ella
+  // aparece cuando entra a la sala: quieta, en el centro del otro lado, mirándola
   if (S.appearAt < 0) {
     if (toC < GROTTO.r - 2.5 && b.hasMirror) {
       S.appearAt = t
-      S.pos = { x: GROTTO.x, z: GROTTO.z + GROTTO.r - 2 }
+      S.pos = { x: GROTTO.x, z: GROTTO.z + 2.5 }
       g.shadowOn = true
-      g.shadowAt = t
+      g.shadowAt = t - 1.5
       g.ghostGold = 0
-      g.ghostAlpha = 1
+      g.ghostDark = 1
+      g.ghostAlpha = 0
       shadow.x = S.pos.x
       shadow.z = S.pos.z
       shadow.yaw = Math.PI
+      shadow.speed = 0
+      bell(NOTES[0] * 0.5, true)
       console.log('[sombra] apareció')
     }
     return
@@ -538,63 +541,29 @@ function shadowStep(dt: number, px: number, pz: number) {
     // se vuelve luz: dorada, y se desvanece
     const k = t - S.lightAt
     g.ghostGold = Math.min(1, k / 1.5)
+    g.ghostDark = Math.max(0, 1 - k / 1.2)
     g.ghostAlpha = 1 - THREE.MathUtils.smoothstep(k, 3, 5)
     if (k > 5) g.shadowOn = false
     shadow.speed = 0
     return
   }
-  const vx = (g.x - px) / Math.max(dt, 1e-4)
-  const vz = (g.z - pz) / Math.max(dt, 1e-4)
-  let dx = S.pos.x - g.x
-  let dz = S.pos.z - g.z
-  const d = Math.max(0.001, Math.hypot(dx, dz))
-  const ux = dx / d
-  const uz = dz / d
-  const fx = Math.sin(g.yaw)
-  const fz = Math.cos(g.yaw)
-  const approach = vx * ux + vz * uz
-  const backTurned = fx * ux + fz * uz < -0.4
+  // no huye: se queda quieta. Sin el espejo es una figura tenue que se deshace en humo si ella la toca;
+  // con el espejo levantado se vuelve nítida y se la puede alcanzar
+  const d = Math.hypot(g.x - S.pos.x, g.z - S.pos.z)
   const mirrorOn = b.look > LOOK_NEED
-  let nx = S.pos.x
-  let nz = S.pos.z
-  // copia sus movimientos al revés: si ella va a un costado, la sombra va al otro
-  const lx = vx - approach * ux
-  const lz = vz - approach * uz
-  nx -= lx * 0.6 * dt
-  nz -= lz * 0.6 * dt
-  if (approach > 0.15 && !(backTurned && mirrorOn)) {
-    // ella va de frente hacia la sombra: se aleja
-    nx += ux * approach * SHADOW_FLEE * dt
-    nz += uz * approach * SHADOW_FLEE * dt
-  }
-  // dentro de la sala (si queda contra la pared y ella está cerca, se escabulle por el costado)
-  dx = nx - GROTTO.x
-  dz = nz - GROTTO.z
-  const R = GROTTO.r - 1.2
-  const r = Math.hypot(dx, dz)
-  if (r > R) {
-    nx = GROTTO.x + (dx / r) * R
-    nz = GROTTO.z + (dz / r) * R
-    if (d < 3 && !(backTurned && mirrorOn)) {
-      const ang = Math.atan2(dz, dx)
-      const side = Math.sign((g.x - GROTTO.x) * dz - (g.z - GROTTO.z) * dx) || 1
-      const a2 = ang + side * dt * 1.4
-      nx = GROTTO.x + Math.cos(a2) * R
-      nz = GROTTO.z + Math.sin(a2) * R
-    }
-  }
-  const moved = Math.hypot(nx - S.pos.x, nz - S.pos.z)
-  S.pos = { x: nx, z: nz }
-  shadow.x = nx
-  shadow.z = nz
-  shadow.speed = moved / Math.max(dt, 1e-4)
-  const want = Math.atan2(g.x - nx, g.z - nz) // la mira a ella
-  shadow.yaw += Math.atan2(Math.sin(want - shadow.yaw), Math.cos(want - shadow.yaw)) * damp(6, dt)
+  const dissolve = mirrorOn ? 0 : THREE.MathUtils.smoothstep(3.2 - d, 0, 1.6) // (cerca y sin espejo: humo)
+  const target = mirrorOn ? 1 : 0.4 * (1 - dissolve) + 0.04
+  g.ghostAlpha += (target - g.ghostAlpha) * damp(5, dt)
+  g.ghostDark = 1
+  const want = Math.atan2(g.x - S.pos.x, g.z - S.pos.z) // la mira a ella
+  shadow.yaw += Math.atan2(Math.sin(want - shadow.yaw), Math.cos(want - shadow.yaw)) * damp(3, dt)
+  shadow.x = S.pos.x
+  shadow.z = S.pos.z
+  shadow.speed = 0
   shadow.phase = 'play'
   shadow.phaseT += dt
   shadow.time = t
-  // mientras no la mira en el espejo, recordarle que existe
-  shadowHint = !mirrorOn && d < 9
+  shadowHint = !mirrorOn
 }
 
 // ── La escena del principio ──────────────────────────────────────
@@ -759,8 +728,7 @@ const AUTO_WAY: Way[] = [
   { to: { x: 0, z: 82 } },
   // parte 4: entra a la sala, se da vuelta (de espaldas a la sombra) y camina hacia atrás mirándola en el espejo
   { to: { x: 0, z: 94 }, part4: true },
-  { to: { x: 0, z: 92.6 } }, // (camina hacia la entrada: queda mirando al sur, de espaldas a la sombra)
-  { to: { x: 0, z: 0 }, toFn: () => ({ x: b.shadow.pos.x, z: b.shadow.pos.z - 1 }), look: true, give: true, wait: () => b.shadow.lightAt < 0 },
+  { to: { x: 0, z: 0 }, toFn: () => ({ x: b.shadow.pos.x, z: b.shadow.pos.z - 1.2 }), look: true, give: true, wait: () => b.shadow.lightAt < 0 },
   // parte 5: sale por el norte y camina hasta el árbol
   { to: { x: 0, z: 100 }, wait: () => game.time < b.shadow.lightAt + EXIT_OPEN + 0.5, part5: true },
   { to: { x: 0, z: 109 } },

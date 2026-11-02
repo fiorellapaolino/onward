@@ -947,7 +947,7 @@ export function MirrorView() {
 
 // ── Parte 4: la Gruta de obsidiana ──
 /** ¿El espejo muestra lo que hay detrás (en la gruta, mientras la sombra no se volvió luz)? */
-export const rearMirrorOn = () => b.shadow.appearAt >= 0 && b.shadow.lightAt < 0
+export const rearMirrorOn = () => false // (ya no: la sombra se ve en el mundo y se aclara con el espejo)
 
 export function GrottoChamber() {
   const pillars = useMemo(() => {
