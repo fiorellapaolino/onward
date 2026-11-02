@@ -321,7 +321,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
       const level = g.started ? musicLevel(g.musicT) : 0
       a.tryLevel += (level - a.tryLevel) * damp(3.5, dt)
       // 0–8 s de rodillas; de 8 s hasta que entran los graves se va levantando poco a poco, sin volver atrás
-      if (g.phase === 'intro') a.tryT = g.started ? smoothstep(3.5, MUSIC.RISE_AT, g.musicT) * STAND_BY_BASS : 0
+      if (g.phase === 'intro') a.tryT = g.started ? smoothstep(0.5, MUSIC.RISE_AT, g.musicT) * STAND_BY_BASS : 0
       const total = duration(CLIPS.standup)
       const t = g.phase === 'end' ? g.kneelT : g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)

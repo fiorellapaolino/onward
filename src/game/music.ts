@@ -13,7 +13,7 @@ import envJson from '../anims/theme_env.json'
  */
 export const MUSIC = {
   BASS_IN: 21.25, // entran los graves: la niebla se abre y el bosque se revela (ella ya camina)
-  RISE_AT: 9, // se levanta (la intro visual es más corta que la canción)
+  RISE_AT: 2.5, // se levanta enseguida (antes esperaba 9 s de rodillas: daba ansiedad)
   CUT: 53.25, // la música se corta: silencio y título
   END: 60,
 }

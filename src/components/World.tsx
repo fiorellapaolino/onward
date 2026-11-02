@@ -33,7 +33,7 @@ const NIGHT_GROUND = new THREE.Color('#1a1d24')
 function wakeTarget() {
   const g = game
   if (debugMode) return 1
-  if (g.phase === 'intro') return g.started ? 0.1 * smoothstep(3, MUSIC.RISE_AT, g.musicT) : 0
+  if (g.phase === 'intro') return g.started ? 0.1 * smoothstep(0.3, MUSIC.RISE_AT, g.musicT) : 0
   if (g.phase === 'rise') return 0.1 + 0.9 * smoothstep(RISE_TIME * 0.3, RISE_TIME, g.phaseT)
   return 1
 }
