@@ -19,11 +19,12 @@ export const PLATFORM_R = 11.8
 // ── La cámara de maqueta ────────────────────────────────────────
 export function DioramaCam() {
   const { camera, size } = useThree()
-  const look = useMemo(() => new THREE.Vector3(0, 0, 2.2), [])
+  const look = useMemo(() => new THREE.Vector3(0, 0, 2.6), [])
   useFrame(() => {
     const aspect = size.width / size.height
     // en vertical (móvil) se aleja para que quepa todo
-    const dist = (aspect < 1 ? 27 / Math.max(0.5, aspect) * 0.62 : 25) / j.cam.zoom
+    const half = Math.tan(((camera as THREE.PerspectiveCamera).fov * Math.PI) / 360)
+    const dist = Math.max(24, 8.4 / (half * aspect)) / j.cam.zoom
     const pitch = 0.95
     const yaw = j.cam.yaw
     camera.position.set(look.x + Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, look.z + Math.cos(yaw) * Math.cos(pitch) * dist)
@@ -73,7 +74,10 @@ export function Ground() {
     for (let i = 0; i < 60; i++) {
       const a = i * 2.39996
       const d = ISLAND_R + 0.8 + ((i * 37) % 30) / 10
-      if (Math.abs(Math.sin(a) * d - TRAY_Z) < 1 && Math.abs(Math.cos(a) * d) < 4) continue
+      const px = Math.cos(a) * d
+      const pz = Math.sin(a) * d
+      if (Math.abs(pz - TRAY_Z) < 1 && Math.abs(px) < 4) continue
+      if ([BIN, YELLOW, ...HEAP_SLOTS].some((o) => Math.hypot(o.x - px, o.z - pz) < 1.4)) continue
       m.push(placeMatrix(Math.cos(a) * d, 0, Math.sin(a) * d, a, 0.6 + (i % 5) * 0.15))
     }
     return m
@@ -128,8 +132,8 @@ function GrowModel({ name, index }: { name: string; index: number }) {
       })
       n++
     }
-    for (const p of j.plants) {
-      if (p.model !== index || j.t < p.born) continue
+    for (const p of j.byModel[index]) {
+      if (j.t < p.born) continue
       const sp = p.species
       const dur = sp === 'tree' ? 2.6 : sp === 'bush' ? 1.6 : 1.1
       const u = Math.min(1, (j.t - p.born) / dur)

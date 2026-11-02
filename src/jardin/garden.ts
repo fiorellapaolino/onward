@@ -27,6 +27,7 @@ export const j = {
   flying: [] as Flying[],
   heaps: [] as (Heap | null)[],
   plants: [] as Plant[],
+  byModel: PLANT_MODELS.map(() => [] as Plant[]), // las mismas plantas, separadas por modelo (para dibujarlas rápido)
   rich: 0, // 0..1: cuánto jardín hay (abre la canción)
   richSmooth: 0,
   found: new Set<SpeciesId>(),
@@ -181,7 +182,7 @@ export function sow(species: SpeciesId, x: number, z: number) {
   while (m < sp.models.length - 1 && u > sp.models[m].w) u -= sp.models[m++].w
   const model = sp.models[m]
   const [a, b] = model.scale
-  j.plants.push({
+  addPlant({
     model: PLANT_INDEX[model.name], species, x: px, z: pz, rot: r() * Math.PI * 2,
     scale: a + r() * (b - a), born: j.t + 0.15 + r() * 0.5,
   })
@@ -190,6 +191,11 @@ export function sow(species: SpeciesId, x: number, z: number) {
 }
 
 export const PLANT_INDEX: Record<string, number> = Object.fromEntries(PLANT_MODELS.map((n, i) => [n, i]))
+
+function addPlant(p: Plant) {
+  j.plants.push(p)
+  j.byModel[p.model].push(p)
+}
 
 function updateRich() {
   let w = 0
@@ -290,7 +296,7 @@ export function gardenStep(dt: number) {
     if (j.revived[i] >= 0 || j.rich < d.at) return
     j.revived[i] = j.t
     const m = speciesInfo('tree').models[i % 3]
-    j.plants.push({ model: PLANT_INDEX[m.name], species: 'tree', x: d.x, z: d.z, rot: i * 2.1, scale: m.scale[1] * 1.1, born: j.t + 0.6 })
+    addPlant({ model: PLANT_INDEX[m.name], species: 'tree', x: d.x, z: d.z, rot: i * 2.1, scale: m.scale[1] * 1.1, born: j.t + 0.6 })
     sfx.ready(5, false)
     console.log(`[jardin] revive el árbol ${i}`)
   })

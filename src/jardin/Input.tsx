@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { HEAP_SLOTS, ISLAND_R } from './data'
+import { BIN, HEAP_SLOTS, ISLAND_R, YELLOW } from './data'
 import { dropScrap, gardenStep, j, paintTo } from './garden'
 import { setOpenness } from './audio'
 import { updateVoices } from './voices'
@@ -146,13 +146,13 @@ function autopilot(a: Auto, dt: number) {
     const b = j.slots.findIndex((s) => s.id === 'bottle')
     if (a.step === 0) {
       if (j.slots[b].back > j.t) return
-      dropScrap(b, -6.4, 1.2, 5.6)
+      dropScrap(b, BIN.x, 1.2, BIN.z)
       a.step = 1
       a.wait = 1
       return
     }
     if (j.slots[b].back > j.t) return
-    dropScrap(b, 6.4, 1.2, 5.6)
+    dropScrap(b, YELLOW.x, 1.2, YELLOW.z)
     a.rejectDone = true
     a.step = 0
     a.wait = 1
@@ -186,7 +186,7 @@ function autopilot(a: Auto, dt: number) {
   const id = mix[j.bin.length]
   const slot = j.slots.findIndex((s) => s.id === id)
   if (slot < 0 || j.slots[slot].back > j.t) return
-  dropScrap(slot, -6.4, 1.2, 5.6)
+  dropScrap(slot, BIN.x, 1.2, BIN.z)
   a.wait = 0.5
   if (j.bin.length + 1 >= 3) a.mix++
 }

@@ -54,7 +54,7 @@ export const SPECIES: Species[] = [
     id: 'mushroom', icon: '🍄', tint: '#d9774f', spacing: 0.55, weight: 0.6, voice: 1,
     models: [
       { name: 'Mushroom_Common', w: 0.65, scale: [0.8, 1.25] },
-      { name: 'Mushroom_Laetiporus', w: 0.35, scale: [0.55, 0.8] },
+      { name: 'Mushroom_Laetiporus', w: 0.3, scale: [0.38, 0.55] },
     ],
   },
   {
@@ -111,18 +111,18 @@ export function recipe(mix: ScrapId[]): SpeciesId {
 
 // ── El escenario (metros) ───────────────────────────────────────
 export const ISLAND_R = 7 // el jardín: una isla redonda de tierra
-export const BIN = { x: -6.4, z: 5.6 } // la compostera
-export const YELLOW = { x: 6.4, z: 5.6 } // el contenedor amarillo (plástico y latas)
-export const TRAY_Z = 9.2 // la tabla con los restos, delante del jardín
+export const BIN = { x: -5.6, z: 8.0 } // la compostera
+export const YELLOW = { x: 5.6, z: 8.0 } // el contenedor amarillo (plástico y latas)
+export const TRAY_Z = 10.3 // la tabla con los restos, delante del jardín
 export const TRAY_STEP = 0.8 // separación entre restos en la tabla
 export const BIN_SIZE = 3 // restos por tanda
 export const HEAP_SLOTS = [
-  { x: -4.3, z: 8.5 },
-  { x: -5.7, z: 9.0 },
-  { x: -7.1, z: 8.3 },
+  { x: -3.4, z: 8.1 },
+  { x: -4.7, z: 6.5 },
+  { x: -7.0, z: 6.0 },
 ] // donde quedan los montones de compost listos
 export const HEAP_PAINT = 26 // metros de trazo que pinta un montón
-export const RICH_FULL = 70 // "peso" de plantas con el que la canción suena del todo
+export const RICH_FULL = 300 // "peso" de plantas con el que la canción suena del todo
 
 /** Árboles secos en el borde del bancal: reviven (se vuelven árboles verdes) cuando el jardín llega a "at". */
 export const DEAD_TREES = [

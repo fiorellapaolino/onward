@@ -61,6 +61,7 @@ export function songTime() {
 
 /** rich 0..1: cuánto jardín hay. Abre el filtro (y sube un poco el volumen). */
 export function setOpenness(rich: number) {
+  if (!filter) return
   const a = getAudio()
   if (!a || !filter || !gain) return
   const t = songTime()
