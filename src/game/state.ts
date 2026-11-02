@@ -123,7 +123,7 @@ export const shadow = { ...game }
  *   TURN     mira hacia la plaza  ·  STEP  da unos pasos hacia allí
  *   +ECHO_DELAY  la figura hace lo mismo: se levanta, mira y camina detrás de ella
  */
-export const BORN = { RISE: 1.6, RISE_LEN: 2.6, TURN: 4.0, STEP: 4.5, STEP_LEN: 1.7, FREE: 8.6 }
+export const BORN = { RISE: 1.6, RISE_LEN: 2.6, TURN: 4.0, STEP: 4.5, STEP_LEN: 2.3, FREE: 8.6 }
 
 // Controles
 export const input = {

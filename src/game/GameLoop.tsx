@@ -13,7 +13,7 @@ import { NOTES, bell, chord, flute, heartbeat, voice } from './sfx'
 import {
   ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
-import { applyDebug, debugMode, debugStay } from './debug'
+import { applyDebug, debugFF, debugMode, debugPause, debugStay } from './debug'
 import { MEMORY_LINES } from './story'
 import { updateMoments } from './moments'
 import { fires } from './fires'
@@ -37,6 +37,19 @@ function setPhase(phase: Phase) {
 /** Toda la lógica del juego. No dibuja nada; corre antes que el resto cada frame. */
 export function GameLoop() {
   useFrame((_, rawDt) => {
+    // (?ff=T: adelanta el juego T segundos de golpe, para las capturas; con &pause se queda ahí)
+    if (debugPause && game.started && ffLeft <= 0) return
+    step(rawDt)
+    if (ffLeft > 0 && game.started) for (; ffLeft > 0; ffLeft -= 0.05) step(0.05)
+  }, -1)
+
+  return null
+}
+
+let ffLeft = debugFF
+
+/** Un paso del juego (dt en segundos). */
+function step(rawDt: number) {
     const dt = Math.min(rawDt, 0.05)
     const g = game
     g.time += dt
@@ -571,7 +584,4 @@ export function GameLoop() {
     shadow.blocked = false
     shadow.phase = 'play'
     }
-  }, -1)
-
-  return null
 }

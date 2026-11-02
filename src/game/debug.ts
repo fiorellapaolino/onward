@@ -14,6 +14,8 @@ import { fires } from './fires'
  *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
  *   ?at=66&fear&stay … y se queda (como si mantuviera E): se ve nacer su sombra
+ *   …&ff=5          adelanta el juego 5 segundos al empezar (para capturar un momento concreto)
+ *   …&ff=5&pause    … y lo deja quieto ahí
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
  *   ?at=18&fires&lit=2&now  … el bosque apagado, con 2 hogueras encendidas (la última recién) y la brasa
  *   ?at=105&ending  … con la aldea iluminada y su sombra: caminar hasta el claro del final
@@ -80,6 +82,7 @@ export function applyDebug() {
     game.z = ELDER.z + Math.cos(ELDER.rot) * 1.6
     game.yaw = ELDER.rot + Math.PI
     input.camYaw = game.yaw
+    setUi({ cine: true, msg: 'The dark closes in.' })
   }
   if (params.has('music')) {
     game.story = 'music'
@@ -128,6 +131,12 @@ export function applyDebug() {
     setUi({ goal: 'Raise the great lantern: both stones at once.' })
   }
 }
+
+/** ?ff=T: al empezar, adelanta el juego T segundos de golpe (las capturas van muy lentas). */
+export const debugFF = Number(params.get('ff') ?? 0)
+
+/** ?pause: después de adelantar (&ff), el juego se queda quieto en ese momento. */
+export const debugPause = params.has('pause')
 
 /** ?stay: con el miedo, hace como si el jugador mantuviera E (para las capturas). */
 export const debugStay = params.has('stay')

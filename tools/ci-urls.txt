@@ -1,9 +1,8 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-fear1 ?at=58&fear   14
-stay1 ?at=58&fear&stay   10
-stay2 ?at=58&fear&stay   13
-stay3 ?at=58&fear&stay   15
-stay4 ?at=58&fear&stay   18
-stay5 ?at=58&fear&stay   21
-stay6 ?at=58&fear&stay   24
-stay7 ?at=58&fear&stay   28
+# el miedo y el nacimiento de la sombra (&stay = mantener E; &ff=T&pause = adelantar T segundos y quedarse ahí)
+fear1 ?at=58&fear&ff=2&pause   14
+stay1 ?at=58&fear&stay&ff=2&pause   14
+born1 ?at=58&fear&stay&ff=3.2&pause   14
+born2 ?at=58&fear&stay&ff=6.4&pause   14
+born3 ?at=58&fear&stay&ff=9.6&pause   14
+born4 ?at=58&fear&stay&ff=12&pause   14

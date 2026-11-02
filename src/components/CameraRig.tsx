@@ -89,12 +89,13 @@ export function CameraRig() {
         fearSide.current = perp.dot(tmpV.set(camera.position.x - g.x, 0, camera.position.z - g.z)) >= 0 ? 1 : -1
       }
       const sd = fearSide.current
+      const snap = camera.position.distanceTo(tmpV.set(g.x, 1, g.z)) > 9 // (venía de lejos: corte directo)
       if (k < 0) {
-        // 3/4 de frente: 35° hacia un lado de hacia donde mira
-        const a = g.yaw + sd * 0.6
-        const d = 2.9 - 0.7 * g.courage
-        target.set(g.x + Math.sin(a) * d, 0.75 - 0.15 * g.courage, g.z + Math.cos(a) * d)
-        look.set(g.x, 0.55 - 0.15 * g.kneel, g.z)
+        // 3/4 de frente: 55° hacia un lado de hacia donde mira (así no tapa el anciano)
+        const a = g.yaw + sd * 0.95
+        const d = 2.3 - 0.5 * g.courage
+        target.set(g.x + Math.sin(a) * d, 0.8 - 0.2 * g.kneel, g.z + Math.cos(a) * d)
+        look.set(g.x, 0.6 - 0.2 * g.kneel, g.z)
       } else {
         // las dos de perfil: la sombra se queda donde nació; la elfa se levanta y se aleja unos pasos
         const sx = k < ECHO_DELAY ? g.x : shadow.x
@@ -103,7 +104,7 @@ export function CameraRig() {
         perp.set(Math.cos(g.yaw), 0, -Math.sin(g.yaw)).multiplyScalar(sd)
         const open = clamp01((k - 0.6) / 2.5) // al principio cerca (la figura sale de ella); luego se aleja
         const half = Math.hypot(g.x - sx, g.z - sz) / 2 + 0.6
-        const dist = Math.max(2.6 + open * 1.4, fitDist(camera as THREE.PerspectiveCamera, half) + 0.6)
+        const dist = Math.max(2.3 + open * 0.8, fitDist(camera as THREE.PerspectiveCamera, half) + 0.4)
         target.copy(mid).addScaledVector(perp, dist)
         // (un poco hacia atrás de ella, para ver hacia dónde va)
         target.x -= Math.sin(g.yaw) * 1.2 * open
@@ -112,8 +113,8 @@ export function CameraRig() {
         look.set(mid.x, 0.55 + 0.15 * open, mid.z)
         if (k > BORN.FREE - 1) input.camYaw = g.yaw // (al terminar vuelve detrás de ella)
       }
-      camera.position.lerp(target, damp(k < 0 ? 1.4 : 1.8, dt))
-      lookSmooth.current.lerp(look, damp(2, dt))
+      camera.position.lerp(target, snap ? 1 : damp(k < 0 ? 1.4 : 1.8, dt))
+      lookSmooth.current.lerp(look, snap ? 1 : damp(2, dt))
       camera.lookAt(lookSmooth.current)
       if (k < BORN.FREE - 1) input.camYaw = Math.atan2(g.x - camera.position.x, g.z - camera.position.z)
       return

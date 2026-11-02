@@ -80,6 +80,8 @@ export function Hud() {
         )}
       </div>
 
+      <FearDark />
+
       {/* franjas negras de cine mientras alguien habla (o en un momento de cine) */}
       <div className={`cine ${ui.say || ui.cine ? 'show' : ''}`} />
 
@@ -136,5 +138,38 @@ export function Hud() {
         <small>Press R to play again</small>
       </div>
     </div>
+  )
+}
+
+/**
+ * El miedo en la pantalla: la oscuridad se cierra desde los bordes hacia ella.
+ * Al quedarse, se detiene; cuando nace su sombra, un destello de luz la aparta.
+ * (Se lee de "game" cada frame, sin re-renderizar React.)
+ */
+function FearDark() {
+  const dark = useRef<HTMLDivElement>(null)
+  const flash = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let raf = 0
+    const tick = () => {
+      const g = game
+      // hueco de luz alrededor de ella: se cierra con el miedo y se abre un poco al quedarse
+      const hole = 70 - 48 * g.fear + 14 * g.courage
+      if (dark.current) {
+        dark.current.style.opacity = String(Math.min(1, g.fear * 1.2))
+        dark.current.style.background = `radial-gradient(ellipse at 50% 55%, transparent ${hole}%, rgba(4,3,9,0.97) ${hole + 32}%)`
+      }
+      const k = g.shadowOn ? g.time - g.shadowAt : 99
+      if (flash.current) flash.current.style.opacity = String(Math.max(0, Math.min(1, k / 0.15)) * Math.max(0, 1 - k / 1.4) * 0.75)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  return (
+    <>
+      <div ref={dark} className="fear-dark" />
+      <div ref={flash} className="fear-flash" />
+    </>
   )
 }
