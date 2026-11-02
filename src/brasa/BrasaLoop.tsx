@@ -728,7 +728,7 @@ const AUTO_WAY: Way[] = [
   { to: { x: 0, z: 82 } },
   // parte 4: entra a la sala, se da vuelta (de espaldas a la sombra) y camina hacia atrás mirándola en el espejo
   { to: { x: 0, z: 94 }, part4: true },
-  { to: { x: 0, z: 0 }, toFn: () => ({ x: b.shadow.pos.x, z: b.shadow.pos.z - 1.2 }), look: true, give: true, wait: () => b.shadow.lightAt < 0 },
+  { to: { x: 0, z: 0 }, toFn: () => ({ x: b.shadow.pos.x, z: b.shadow.pos.z - 1.1 }), look: true, give: true, wait: () => b.shadow.lightAt < 0 },
   // parte 5: sale por el norte y camina hasta el árbol
   { to: { x: 0, z: 100 }, wait: () => game.time < b.shadow.lightAt + EXIT_OPEN + 0.5, part5: true },
   { to: { x: 0, z: 109 } },

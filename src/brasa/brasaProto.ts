@@ -149,7 +149,7 @@ export const GROTTO_Z = 85 // la entrada a la Gruta de obsidiana (parte 4)
 export const GROTTO = { x: 0, z: 97, r: 8.4 }
 export const CORRIDOR_HALF = 1.8
 export const SHADOW_FLEE = 1.25 // se aleja un poco más rápido de lo que ella avanza
-export const SHADOW_REACH = 1.5
+export const SHADOW_REACH = 2.2
 
 // ── Parte 5: la Copa del alba — el final ─────────────────────────
 // Después de la sombra ya no le teme a la oscuridad: la brasa no se gasta más.
