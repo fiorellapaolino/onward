@@ -22,7 +22,7 @@ function currentTarget(): Target {
   const g = game
   if (g.phase !== 'play' || g.talk || inGiftScene()) return null
   // primero, las hogueras del bosque: la luz va hacia la siguiente apagada (o, sin brasa, a la última encendida)
-  if (g.story === 'seek' || g.story === 'help') {
+  if (false) {
     const n = nextUnlit()
     if (n >= 0) {
       const f = fires.ember > 0 ? FIRES[n] : FIRES[Math.max(0, n - 1)]

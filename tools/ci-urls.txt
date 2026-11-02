@@ -1,3 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-cold ?at=15&fires&lit=1&yaw=-0.5   12
-warm ?at=15&fires&lit=2&now&yaw=-0.5   14
+start ?at=36   10

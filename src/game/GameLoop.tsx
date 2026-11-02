@@ -16,13 +16,15 @@ import {
 import { applyDebug, debugMode } from './debug'
 import { MEMORY_LINES } from './story'
 import { updateMoments } from './moments'
-import { fires, updateFires } from './fires'
+import { fires } from './fires'
 import { GIFT, inGiftScene } from './gift'
 
 const MOVE = new THREE.Vector3()
 const TMP = new THREE.Vector3()
 const TMP2 = new THREE.Vector3()
 
+/** Dónde nace (metro del sendero): cerca de la aldea, para empezar enseguida con el anciano. */
+export const START_Z = 36
 let jumpBuf = 0 // Espacio pulsado hace poco: salta en cuanto pueda (no se pierde la pulsación)
 let blockMsg = false // se está mostrando "la sombra es demasiado espesa"
 
@@ -57,9 +59,11 @@ export function GameLoop() {
     switch (g.phase) {
       case 'intro':
         // al empezar está en el inicio del sendero, mirando hacia delante
-        g.x = pathAt(0, TMP).x
-        g.z = 0
-        g.yaw = headingAt(0)
+        // (nace cerca de la aldea: a pocos pasos está el anciano)
+        g.x = pathAt(START_Z, TMP).x
+        g.z = START_Z
+        g.p = g.pMax = START_Z
+        g.yaw = headingAt(START_Z)
         // Nace de rodillas y respira con la música; cuando entran los graves, se levanta sola
         // (el jugador toma el control cuando ella ya está de pie)
         if (!g.started) g.phaseT = 0 // espera al clic de inicio
@@ -90,7 +94,6 @@ export function GameLoop() {
           g.girlNear = 1
           input.jumpPressed = false
           jumpBuf = 0
-          updateFires(dt) // (en la escena, la niña enciende el fuego de su hogar)
           break
         }
         // Escuchando a alguien: la elfa se queda quieta mirándole; E / Espacio / clic pasa a la siguiente frase
@@ -166,7 +169,7 @@ export function GameLoop() {
 
         // ── Límites: no sale del bosque, no vuelve más atrás del inicio, y la sombra corta el paso ──
         const maxZ = g.shadowOpen ? PATH_LEN : SHADOW_S - 1.2
-        g.z = THREE.MathUtils.clamp(g.z, -3, maxZ)
+        g.z = THREE.MathUtils.clamp(g.z, START_Z - 3, maxZ)
         const cx = pathAt(g.z, TMP).x
         g.x = THREE.MathUtils.clamp(g.x, cx - PATH_HALF_WIDTH, cx + PATH_HALF_WIDTH)
         // no atraviesa las casas, ni a la gente, ni los faroles
@@ -367,8 +370,6 @@ export function GameLoop() {
 
         // ── Momentos de estar viva (semilla, charcos, luciérnagas, flores…) ──
         updateMoments(dt)
-        // ── Las hogueras: llevar la brasa de fuego en fuego ──
-        updateFires(dt)
 
         // el claro del final: se detiene… y se da vuelta
         if (g.shadowOpen && g.z >= PATH_LEN - 12) {

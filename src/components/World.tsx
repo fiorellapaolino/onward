@@ -84,7 +84,7 @@ export function World() {
     if (debugMode) dark.current = dk // (en las pruebas, sin esperar)
     // el bosque está apagado: solo revive cerca de las hogueras encendidas (game/fires.ts)
     const inForest = 1 - smoothstep(VILLAGE_S - VILLAGE_R - 12, VILLAGE_S - VILLAGE_R - 2, game.z)
-    const asleepT = debugMode && !new URLSearchParams(location.search).has('fires') ? 0 : inForest * (1 - aliveAt(game.x, game.z)) * 0.85
+    const asleepT = 0 * inForest * aliveAt(game.x, game.z) // (sin hogueras: el bosque no está apagado)
     asleep.current += (asleepT - asleep.current) * Math.min(1, dt * 1.2)
     if (debugMode) asleep.current = asleepT // (en las pruebas, sin esperar)
     const night = Math.max(1 - w, dark.current * 0.85, asleep.current)
