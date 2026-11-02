@@ -11,7 +11,7 @@ import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { AWAY_DIST, DAWN_PATH, DAWN_TREE, GROTTO, INTRO, WAIT_SPOT, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_FULL, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
+import { AWAY_DIST, DAWN_PATH, DAWN_TREE, GROTTO, INTRO, WAIT_SPOT, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FEAR_PATH, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_FULL, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -274,6 +274,18 @@ export function RootWall() {
   )
 }
 
+/** Un camino tenue que une el escondite del miedo con las tres luces (para ver que van juntos). */
+export function FearTrail() {
+  return (
+    <Ribbon
+      color="#ffd8a0"
+      width={0.14}
+      y={0.03}
+      get={() => ({ pts: FEAR_PATH, opacity: b.hasEmber && b.fear.calmAt < 0 ? 0.16 + Math.sin(game.time * 2) * 0.06 : 0 })}
+    />
+  )
+}
+
 // ── Las luces del camino: hongos pequeños que se encienden para que el miedo se anime a salir ──
 const pathM = new THREE.Matrix4()
 export function PathLights() {
@@ -304,8 +316,7 @@ export function PathLights() {
       if (!s) return
       const on = p.litAt >= 0 ? clamp01((t - p.litAt) / 0.6) : 0
       // después de que el miedo se esconde, las luces que faltan laten una tras otra: "enciéndeme"
-      const since = t - b.fear.scaredAt
-      const hint = p.litAt < 0 && b.hasEmber && b.fear.calmAt < 0 && since < 8 ? Math.max(0, Math.sin(since * 4 - i * 1.2)) : 0
+      const hint = p.litAt < 0 && b.hasEmber && b.fear.calmAt < 0 ? Math.max(0, Math.sin(t * 3 - i * 1.2)) : 0
       s.material.opacity = 0.05 + on * 0.5 + hint * 0.45
       s.scale.setScalar(1.6 + on * 1.4 + Math.sin(t * 2 + i) * 0.1 * on)
     })
@@ -351,12 +362,15 @@ export function FearBeing() {
     const F = b.fear
     const t = game.time
     const calm = F.calmAt >= 0 ? clamp01((t - F.calmAt) / 1.5) : 0
-    const out = F.progress > 0.05 || F.calmAt >= 0
+    const out = b.hasEmber || F.progress > 0.05 || F.calmAt >= 0
     group.current.position.set(F.pos.x, 0, F.pos.z)
     // mira hacia donde va (o hacia ella, si está quieto)
     const dx = F.pos.x - lastX.current
     const dz = F.pos.z - lastZ.current
-    const want = Math.hypot(dx, dz) > 0.002 ? Math.atan2(dx, dz) : Math.atan2(game.x - F.pos.x, game.z - F.pos.z)
+    // mira hacia donde va; quieto, mira la próxima luz que falta (o a ella, cuando ya se calmó)
+    const nextDark = F.calmAt < 0 ? PATH_LIGHTS.find((p) => p.litAt < 0) : undefined
+    const want =
+      Math.hypot(dx, dz) > 0.002 ? Math.atan2(dx, dz) : nextDark ? Math.atan2(nextDark.x - F.pos.x, nextDark.z - F.pos.z) : Math.atan2(game.x - F.pos.x, game.z - F.pos.z)
     heading.current += Math.atan2(Math.sin(want - heading.current), Math.cos(want - heading.current)) * damp(5, dt)
     group.current.rotation.y = heading.current
     lastX.current = F.pos.x
@@ -370,7 +384,7 @@ export function FearBeing() {
     bodyMat.emissiveIntensity = calm * 0.22
     // los ojos: parpadean; se apagan si se asusta
     const blink = Math.sin(t * 0.9) > 0.97 ? 0 : 1
-    eyeMat.opacity = (1 - F.tight) * blink * (b.hasEmber ? 0.95 : 0.4)
+    eyeMat.opacity = (1 - F.tight * 0.5) * blink * (b.hasEmber ? 0.95 : 0.4)
     eyes.current.position.y = body.current.position.y + 0.08
     orbit.current.visible = calm > 0.01
     orbit.current.rotation.y += dt * 1.5
@@ -549,10 +563,7 @@ function refugeHint(i: number) {
   const lit = RINGS.map((r, k) => ({ k, d: r.litAt >= 0 ? Math.hypot(game.x - r.x, game.z - r.z) : Infinity }))
   const nearest = lit.reduce((a, c) => (c.d < a.d ? c : a)).k
   if (lvl < 0.35 && nearest === i) return true
-  // con las tres luces del camino encendidas, si sigue cerca del miedo: "aléjate y espera aquí"
-  const F = b.fear
-  const allLit = PATH_LIGHTS.every((p) => p.litAt >= 0)
-  return i === WAIT_RING && allLit && F.calmAt < 0 && Math.hypot(game.x - HIDEOUT.x, game.z - HIDEOUT.z) < AWAY_DIST + 1
+  return false
 }
 
 // ── Las flores dormidas: oscuras y cerradas; al darles luz, se abren ──

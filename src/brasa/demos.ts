@@ -54,14 +54,13 @@ const DEMOS: Demo[] = [
     id: 'miedo',
     start: () => ({ x: RINGS[WAIT_RING].x + 1, z: RINGS[WAIT_RING].z + 1.5 }),
     steps: [
-      { dur: 2.6, to: () => ({ x: unlitPath().x + 1, z: unlitPath().z - 1.3 }) },
-      { dur: 2.2, face: unlitPath, arc: unlitPath },
-      { dur: 2.6, to: { x: RINGS[WAIT_RING].x - 0.4, z: RINGS[WAIT_RING].z } },
-      { dur: 3, face: { x: 0, z: 62 } }, // espera, mirando hacia las raíces
+      { dur: 2.4, to: () => ({ x: unlitPath().x + 1, z: unlitPath().z - 1.3 }) },
+      { dur: 2.4, face: unlitPath, arc: unlitPath }, // le da luz a una de las luces del camino…
+      { dur: 2.2, face: { x: 0, z: 62 } }, // …y mira al ser: "mira lo que pasa"
     ],
-    when: () => b.hasEmber && b.fear.scaredAt > 0 && b.fear.calmAt < 0 && near({ x: 0, z: 56 }, 16),
-    done: () => b.fear.calmAt >= 0 || (PATH_LIGHTS.every((p) => p.litAt >= 0) && !near({ x: 0, z: 62 }, 7.5)),
-    again: 25,
+    when: () => b.hasEmber && b.fear.calmAt < 0 && near({ x: 0, z: 56 }, 11),
+    done: () => b.fear.calmAt >= 0 || PATH_LIGHTS.every((p) => p.litAt >= 0),
+    again: 18,
   },
   {
     id: 'puente',

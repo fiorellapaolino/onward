@@ -666,30 +666,20 @@ function fearStep(dt: number) {
   const toBeing = Math.hypot(g.x - F.pos.x, g.z - F.pos.z)
 
   if (F.calmAt < 0) {
-    // si se acerca demasiado a su escondite: se esconde y las raíces se cierran más
-    const scared = toHide < SCARE_DIST || (F.progress > 0 && toBeing < 4.2)
-    F.tight = Math.min(1, Math.max(0, F.tight + (scared ? dt * 0.9 : -dt * 0.25)))
-    if (scared && t - F.scaredAt > 3.5 && toHide < SCARE_DIST) {
+    // si ella se le acerca mucho, tiembla y las raíces crujen (pero no huye: se queda, mirando las luces)
+    const close = toBeing < 2.2
+    F.tight = Math.min(1, Math.max(0, F.tight + (close ? dt * 0.9 : -dt * 0.6)))
+    if (close && t - F.scaredAt > 4) {
       F.scaredAt = t
       rumble(HIDEOUT.x, HIDEOUT.z)
     }
-    // con las tres luces encendidas y ella lejos, se anima a salir: avanza un poco, duda, avanza…
-    const allLit = PATH_LIGHTS.every((p) => p.litAt >= 0)
-    // (solo avanza hasta la última luz encendida)
+    // cada luz encendida (en cualquier orden) lo anima a dar un paso más hacia afuera, hasta la siguiente luz
+    const lit = PATH_LIGHTS.filter((p) => p.litAt >= 0).length
     let reach = 0
-    for (let i = 0; i < PATH_LIGHTS.length && PATH_LIGHTS[i].litAt >= 0; i++) {
-      reach += Math.hypot(FEAR_PATH[i + 1].x - FEAR_PATH[i].x, FEAR_PATH[i + 1].z - FEAR_PATH[i].z)
-    }
-    if (scared) {
-      F.progress = Math.max(0, F.progress - dt * 1.4) // retrocede hacia su escondite
-      moveClock = 0
-    } else if (reach > 0 && toBeing > AWAY_DIST * 0.7 && toHide > AWAY_DIST) {
-      moveClock += dt
-      const going = moveClock % 2.4 < 1.3 // avanza 1,3 s y se queda quieto, mirando
-      if (going) F.progress = Math.min(reach, F.progress + FEAR_SPEED * dt)
-    }
+    for (let i = 0; i < lit; i++) reach += Math.hypot(FEAR_PATH[i + 1].x - FEAR_PATH[i].x, FEAR_PATH[i + 1].z - FEAR_PATH[i].z)
+    if (F.progress < reach) F.progress = Math.min(reach, F.progress + FEAR_SPEED * 1.6 * dt)
     // llegó al final del camino de luz: ya no tiene miedo
-    if (allLit && F.progress >= FEAR_LEN - 0.05) {
+    if (lit === PATH_LIGHTS.length && F.progress >= FEAR_LEN - 0.05) {
       F.calmAt = t
       F.tight = 0
       g.pulse = 1
@@ -697,6 +687,7 @@ function fearStep(dt: number) {
       console.log('[miedo] se calmó')
     }
     F.pos = pointAlong(FEAR_PATH, F.progress / FEAR_LEN)
+    void toHide
     return
   }
 

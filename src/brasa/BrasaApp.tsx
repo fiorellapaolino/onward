@@ -10,7 +10,7 @@ import { TouchControls } from '../components/TouchControls'
 import { Blooms } from '../simbolos/Scene'
 import { BrasaLoop } from './BrasaLoop'
 import {
-  BurntForest, Crack, DawnPathLights, DawnTree, DormantFlowers, FinalCam, PlayerTrail, GrottoChamber, IntroCam, RearMirror, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
+  BurntForest, Crack, FearTrail, DawnPathLights, DawnTree, DormantFlowers, FinalCam, PlayerTrail, GrottoChamber, IntroCam, RearMirror, EmberAndSparks, FearBeing, Fireflies, GrottoGate, Hearth, LavaGround, MirrorBridge, MirrorPickup, MirrorView, MushroomRings,
   Night, PathLights, PrevTrail, RootWall, Stars, Vignette, Volcano,
 } from './BrasaScene'
 import { b, mirrorKey } from './brasaProto'
@@ -42,6 +42,7 @@ export default function BrasaApp() {
         <Vignette />
         <RootWall />
         <FearBeing />
+        <FearTrail />
         <MirrorPickup />
         <Crack />
         <MirrorBridge />
