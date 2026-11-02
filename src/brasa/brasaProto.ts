@@ -59,7 +59,10 @@ export const RINGS: Ring[] = [
   { x: 2, z: 51, litAt: -1 },
   // detrás de las raíces, junto a la grieta: lo enciende el miedo cuando se calma y abre el paso (su regalo)
   { x: 3.2, z: 66.4, litAt: -1 },
+  // del otro lado de la grieta: se enciende cuando el puente se vuelve real (la luz que diste vuelve a ti)
+  { x: -2.6, z: 76, litAt: -1 },
 ]
+export const BRIDGE_RING = 5
 export const FEAR_RING = 4 // (el círculo que enciende el miedo)
 export const WAIT_RING = 3 // (el refugio donde esperar a que el miedo salga)
 
