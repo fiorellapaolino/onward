@@ -1,2 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-village ?at=58&fires&lit=4   12
+cold ?at=15&fires&lit=1&yaw=-0.5   12
+warm ?at=15&fires&lit=2&now&yaw=-0.5   14

@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { game } from '../game/state'
 import { FIRES, fires, type Fire } from '../game/fires'
 import { useGlowTexture } from './TheLight'
-import { Ghost, PARTS, WOMAN, type GhostSpec } from './Memory'
+import { Ghost, type GhostSpec } from './Memory'
 
 /*
  * Las hogueras (game/fires.ts): un círculo de piedras con leños; encendidas, llamas que bailan y una luz cálida.
@@ -140,25 +140,5 @@ function Ember() {
 
 // ── Los recuerdos: quién se sentó alrededor de cada fuego, hace mucho ──
 // (se ven al encenderla, mientras ella está cerca)
-const showAt = (i: number) => () => {
-  const at = fires.litAt[i]
-  if (at < 0) return 0
-  const f = FIRES[i]
-  const near = 1 - Math.max(0, Math.min(1, (Math.hypot(game.x - f.x, game.z - f.z) - 5) / 4))
-  return Math.min(1, Math.max(0, (game.time - at - 0.8) / 1.5)) * near
-}
-const around = (i: number, a: number, r = 1.05) => {
-  const f = FIRES[i]
-  return { x: f.x + Math.cos(a) * r, z: f.z + Math.sin(a) * r, rot: Math.atan2(-Math.cos(a), -Math.sin(a)) }
-}
-const MEMORIES: GhostSpec[] = [
-  // 1: una madre y una niña, juntas, calentándose las manos
-  { parts: WOMAN, height: 1.08, kind: 'warm', ...around(1, 0.6), show: showAt(1) },
-  { parts: PARTS, height: 0.8, kind: 'warm', ...around(1, 1.25, 0.95), off: 1, show: showAt(1) },
-  // 2: una sola, sentada lejos del fuego, meciéndose
-  { parts: PARTS, height: 1.0, kind: 'sit', ...around(2, 2.4, 1.6), off: 2, show: showAt(2) },
-  // 3: varias alrededor del fuego (una fiesta, una despedida)
-  { parts: WOMAN, height: 1.08, kind: 'sit', ...around(3, 0.3), off: 0.5, show: showAt(3) },
-  { parts: PARTS, height: 1.0, kind: 'clap', ...around(3, 1.9, 1.3), off: 1.5, show: showAt(3) },
-  { parts: PARTS, height: 0.85, kind: 'sit', ...around(3, 3.6), off: 2.5, show: showAt(3) },
-]
+// (los recuerdos dorados se quitaron: ahora junto a cada hoguera hay una persona de verdad, ForestPeople.tsx)
+const MEMORIES: GhostSpec[] = []

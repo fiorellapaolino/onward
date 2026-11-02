@@ -19,10 +19,10 @@ import { GIFT, STAND_STEP, elfHand, giftSeedPos, girlStand } from '../game/gift'
  */
 const url = (p: string) => `${import.meta.env.BASE_URL}models/${p}.gltf`
 
-type Axis = 'up' | 'left' | 'fwd'
+export type Axis = 'up' | 'left' | 'fwd'
 type Rot = (bone: string, axis: Axis, angle: number) => void
 
-type Spec = {
+export type Spec = {
   parts: string[] // el primero es el cuerpo
   scale: number // tamaño en el mundo respecto al modelo original
   headScale: number
@@ -227,7 +227,7 @@ export const Musician = () => <Villager spec={MUSICIAN_SPEC} />
 export const Girl = () => <Villager spec={GIRL_SPEC} nearKey="girlNear" />
 export const Elder = () => <Villager spec={ELDER_SPEC} nearKey="elderNear" />
 
-function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elderNear' }) {
+export function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elderNear' }) {
   const gltfs = useGLTF(spec.parts.map(url))
   const S = useMemo(() => ({ near: 0, yaw: 0 }), [])
   const root = useRef<THREE.Group>(null!)

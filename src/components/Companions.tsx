@@ -10,7 +10,7 @@ import { useGlowTexture } from './TheLight'
  * y entra en su pecho (su luz crece). Después se queda a su lado: una lucecita que gira
  * a su alrededor y la acompaña el resto del camino (y le ilumina el tramo oscuro del final).
  */
-const MAX = 3
+const MAX = 5
 const TMP = new THREE.Vector3()
 
 export function Companions() {

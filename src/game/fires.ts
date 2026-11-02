@@ -1,6 +1,6 @@
 import { besidePath } from './config'
 import { GIFT } from './gift'
-import { game } from './state'
+import { game, helpedLights } from './state'
 import { chord } from './sfx'
 
 /*
@@ -70,8 +70,9 @@ export function updateFires(dt: number) {
         chord()
       }
     } else if (d < TOUCH && fires.ember > 0) {
-      // ¡la enciende!
+      // ¡la enciende! la persona que esperaba a oscuras se calienta, y su luz vuela al pecho de la elfa
       fires.litAt[i] = g.time
+      g.returns.push({ x: f.x, y: 0.9, z: f.z, at: g.time + 1.6 })
       g.pulse = 1
       g.c = Math.min(1, g.c + 0.12)
       g.spark = Math.min(1, g.spark + 0.15)
@@ -83,7 +84,8 @@ export function updateFires(dt: number) {
   // junto a un fuego encendido, la brasa se aviva (o la toma)
   if (nearD < TOUCH) fires.ember = 1
   else if (fires.ember > 0) {
-    fires.ember = Math.max(0, fires.ember - dt / EMBER_LIFE)
+    // (cuanta más gente ayudó, más fuerte es su propia luz: la brasa le dura más)
+    fires.ember = Math.max(0, fires.ember - dt / (EMBER_LIFE * (1 + 0.6 * helpedLights())))
     if (fires.ember === 0) fires.emberDiedAt = g.time
   }
 }
