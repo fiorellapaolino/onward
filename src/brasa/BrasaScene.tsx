@@ -11,7 +11,7 @@ import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { AWAY_DIST, DAWN_PATH, DAWN_TREE, GROTTO, INTRO, WAIT_SPOT, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
+import { AWAY_DIST, DAWN_PATH, DAWN_TREE, GROTTO, INTRO, WAIT_SPOT, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_FULL, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -31,6 +31,7 @@ const tmpC = new THREE.Color()
 export function Night() {
   const { scene } = useThree()
   const hemi = useRef<THREE.HemisphereLight>(null!)
+  const sun = useRef<THREE.DirectionalLight>(null!)
   const life = useRef(0)
   useMemo(() => {
     scene.background = SKY_NIGHT.clone()
@@ -49,13 +50,17 @@ export function Night() {
     const up = b.end.aerialAt >= 0 ? smoothstep(b.end.aerialAt, b.end.aerialAt + 5, game.time) : 0
     fog.near = 10 + D * 20 + up * 120
     fog.far = 42 + life.current * 18 + D * 60 + up * 220
-    hemi.current.intensity = 0.45 + life.current * 0.25 + D * 1.1
+    hemi.current.intensity = 0.45 + life.current * 0.25 + D * 1.6
+    hemi.current.color.set(D > 0.5 ? '#ffe2c4' : '#3a4a78')
+    sun.current.intensity = D * 2.6
   })
   return (
     <>
       <hemisphereLight ref={hemi} args={['#3a4a78', '#0c0b10', 0.45]} />
       {/* la luna */}
       <directionalLight position={[-14, 22, 30]} color="#9fb2e0" intensity={0.35} />
+      {/* el sol del amanecer (al final) */}
+      <directionalLight ref={sun} position={[60, 25, 160]} color="#ffc48a" intensity={0} />
     </>
   )
 }
@@ -431,12 +436,16 @@ export function MirrorPickup() {
 // ── El camino del jugador anterior: un rastro dorado tenue que lleva a la hoguera ──
 export function PrevTrail() {
   return (
-    <Ribbon
+    <>
+      {/* y, muy tenue, todo el camino de la persona anterior (si lo hay): alguien pasó por aquí */}
+      <Ribbon color="#ffd77a" width={0.16} y={0.03} get={() => ({ pts: PREV_FULL, opacity: b.hasEmber && b.end.giveAt < 0 ? 0.1 : 0 })} />
+      <Ribbon
       color="#ffd77a"
       width={0.22}
       y={0.035}
       get={() => ({ pts: PREV_PATH, opacity: (b.hasEmber ? 0.12 : 0.32) + Math.sin(game.time * 1.3) * 0.05 })}
     />
+    </>
   )
 }
 

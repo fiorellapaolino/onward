@@ -515,8 +515,8 @@ body.grabbing canvas {
 /* el final */
 .story.end-card {
   top: 14%;
-  color: #4a2e1a;
-  text-shadow: 0 0 14px rgba(255, 240, 210, 0.8);
+  color: #fff3df;
+  text-shadow: 0 0 6px rgba(40, 20, 10, 0.9), 0 0 22px rgba(255, 170, 90, 0.6);
 }
 .story.end-card .again {
   margin-top: 14px;

@@ -38,7 +38,10 @@ export const ROOTS_Z = 62 // las raíces cerradas: se abren cuando el miedo se c
 export const BOUNDS = { x: 16, zMin: -6, zMax: ROOTS_Z - 1.2 }
 export const BOUNDS_OPEN = 106 // hasta dónde se puede ir cuando las raíces se abren (incluye la gruta)
 
-/** El camino del jugador anterior (por ahora uno de ejemplo): termina en la hoguera. */
+/**
+ * El camino del jugador anterior hasta la hoguera (lo recorre la elfa dorada al principio).
+ * Si hay servicio, se reemplaza por el de una persona real (ver loadPrevPath); si no, es uno de ejemplo.
+ */
 export const PREV_PATH: Pt[] = (() => {
   const pts: Pt[] = []
   for (let i = 0; i <= 60; i++) {
@@ -47,6 +50,31 @@ export const PREV_PATH: Pt[] = (() => {
   }
   return pts
 })()
+
+/** El camino completo de la persona anterior (rastro dorado tenue por todo el bosque). Vacío si no hay. */
+export const PREV_FULL: Pt[] = []
+
+/** Pide al servicio el camino de alguien que ya jugó. Sin internet o sin servicio, queda el de ejemplo. */
+export async function loadPrevPath() {
+  try {
+    const res = await fetch('/api/path', { cache: 'no-store' })
+    if (!res.ok) return
+    const data = (await res.json()) as { pts?: Pt[] | null }
+    const pts = data.pts
+    if (!Array.isArray(pts) || pts.length < 10) return
+    // hasta la hoguera (todos pasan por ahí para tomar la brasa)
+    const k = pts.findIndex((p) => Math.hypot(p.x - HEARTH.x, p.z - HEARTH.z) < 1.8)
+    if (k < 4) return
+    const prefix = pts.slice(0, k + 1)
+    if (Math.hypot(prefix[0].x, prefix[0].z) > 3) return
+    PREV_PATH.length = 0
+    PREV_PATH.push({ x: prefix[0].x, z: Math.max(prefix[0].z, 1.2) }, ...prefix.slice(1))
+    PREV_FULL.length = 0
+    PREV_FULL.push(...pts.filter((_, i) => i % 2 === 0).slice(0, 790))
+  } catch {
+    /* sin servicio: el camino de ejemplo */
+  }
+}
 
 // ── Círculos de hongos (refugios) ────────────────────────────────
 export type Ring = { x: number; z: number; litAt: number }

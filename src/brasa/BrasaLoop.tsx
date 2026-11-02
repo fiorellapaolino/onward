@@ -7,6 +7,7 @@ import { spawnBloom } from '../simbolos/blooms'
 import type { Pt } from '../simbolos/recognizer'
 import { addCricket, rumble, updateCrickets } from './crickets'
 import { pointAlong } from '../simbolos/proto'
+import { loadPrevPath } from './brasaProto'
 import { CORRIDOR_HALF, DAWN_TREE, EXIT_OPEN, GROTTO, GROTTO_Z, INTRO, NEWBORN_REACH, PREV_PATH, SHADOW_FLEE, SHADOW_REACH, TRUNK_R, WAIT_SPOT } from './brasaProto'
 import {
   BRIDGE, BRIDGE_COST, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, LOOK_NEED, MIRROR_SLOW, mirrorKey,
@@ -44,6 +45,9 @@ const MOVE = new THREE.Vector3()
 let moveYaw = 0
 let shadowHint = false // (en la gruta: recordarle que use el espejo)
 let started = false
+
+// el camino de una persona que ya jugó (si hay servicio)
+if (!params.has('auto')) void loadPrevPath()
 
 // ── Los grillos cantan donde hay algo dormido ──
 addCricket({ x: HEARTH.x, z: HEARTH.z, on: () => b.emberLeft && !b.hasEmber, loud: 1.3 }) // la brasa espera
@@ -438,6 +442,7 @@ function giveNewborn(time: number) {
   E.giveAt = time
   E.dawnAt = time + 1.8
   E.aerialAt = E.dawnAt + 8
+  b.near = null
   b.giveAt = time
   b.missionAt = time
   game.pulse = 1
@@ -453,6 +458,8 @@ function endStep(dt: number) {
   const t = g.time
   g.speed = 0
   g.phase = 'play'
+  b.near = null
+  setUi({ prompt: null, goal: null })
   // la mira a ella
   const want = Math.atan2(WAIT_SPOT.x - g.x, WAIT_SPOT.z - g.z)
   g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(4, dt)

@@ -60,3 +60,14 @@ Prueba el `.zip` de Windows en el ordenador de casa: descomprímelo y abre el `.
 - Si usas IA, declararlo en la descripción del juego y explicar qué partes.
 - Todos los modelos/sonidos deben ser propios o con licencia libre.
 - Fecha límite: **8 de noviembre, 8:59 (hora de España)**. Después no se puede editar.
+
+## La luz entre jugadores (Cloudflare KV)
+
+Al terminar, el juego guarda el camino de la jugadora (solo puntos x, z) y, al empezar, usa el de alguien que ya jugó: es la elfa dorada y su rastro. El código está en `functions/api/path.ts` (Cloudflare Pages Functions).
+
+Para activarlo (una sola vez, en el panel de Cloudflare):
+1. **Workers & Pages → KV → Create namespace**, por ejemplo `onward-paths`.
+2. En el proyecto **onward → Settings → Functions → KV namespace bindings → Add binding**: nombre de la variable **`PATHS`**, y el espacio creado. Hacerlo para *Production* y *Preview*.
+3. Volver a desplegar (cualquier push).
+
+Sin esto el juego funciona igual, con un camino de ejemplo. En la versión de escritorio (sin internet) también.
