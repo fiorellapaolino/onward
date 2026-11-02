@@ -36,7 +36,7 @@ export const DAWN_TREE = { x: -60, z: 175, h: 78 }
 export const HEARTH = { x: 4, z: 12 }
 export const ROOTS_Z = 62 // las raíces cerradas: se abren cuando el miedo se calma
 export const BOUNDS = { x: 16, zMin: -6, zMax: ROOTS_Z - 1.2 }
-export const BOUNDS_OPEN = 86 // hasta dónde se puede ir cuando las raíces se abren (la gruta empieza más allá)
+export const BOUNDS_OPEN = 106 // hasta dónde se puede ir cuando las raíces se abren (incluye la gruta)
 
 /** El camino del jugador anterior (por ahora uno de ejemplo): termina en la hoguera. */
 export const PREV_PATH: Pt[] = (() => {
@@ -113,6 +113,16 @@ export const MIRROR_SLOW = 0.45 // con el espejo se camina más despacio
 export const LOOK_NEED = 0.5 // cuánto tiene que estar mirando para poder dar luz a lo oculto
 export const GROTTO_Z = 85 // la entrada a la Gruta de obsidiana (parte 4)
 
+// ── Parte 4: la Gruta de obsidiana — la sombra ───────────────────
+// Una cueva redonda de vidrio volcánico. Adentro la brasa no se gasta (la obsidiana guarda el calor).
+// Su sombra solo aparece en el espejo, y copia sus movimientos al revés.
+// Si camina hacia ella mirándola, se aleja. Para alcanzarla hay que darle la espalda,
+// mirarla en el espejo (como un retrovisor) y caminar hacia atrás. Al alcanzarla, se le da luz.
+export const GROTTO = { x: 0, z: 97, r: 8.4 }
+export const CORRIDOR_HALF = 1.8
+export const SHADOW_FLEE = 1.25 // se aleja un poco más rápido de lo que ella avanza
+export const SHADOW_REACH = 1.5
+
 /** Mantener el espejo: Espacio o clic derecho (en el móvil, un botón que lo activa y desactiva). */
 export const mirrorKey = { held: false }
 
@@ -147,7 +157,7 @@ export const b = {
   outFrom: { x: 0, z: 0 } as Pt,
   giveAt: -99, // la última vez que dio luz (destello)
   failAt: -99, // intentó dar luz sin brasa suficiente
-  near: null as null | { kind: 'ring' | 'flower' | 'path' | 'bridge'; i: number }, // a qué le puede dar luz ahora
+  near: null as null | { kind: 'ring' | 'flower' | 'path' | 'bridge' | 'shadow'; i: number }, // a qué le puede dar luz ahora
   totalWalked: 0,
   // el ser del miedo
   fear: {
@@ -166,6 +176,8 @@ export const b = {
   looking: false, // mantiene el espejo
   look: 0, // 0..1 (suave): cuánto está mirando a través del espejo
   lookedOnce: false,
+  // la sombra de la gruta
+  shadow: { appearAt: -1, pos: { x: 0, z: 0 } as Pt, lightAt: -1 },
   missionAt: -99, // la luz lejana destella para recordar la misión (al tomar la brasa, al tomar el espejo…)
   lowAt: -99, // la última vez que avisó que se queda sin luz
 }

@@ -5,12 +5,13 @@ import * as THREE from 'three'
 import { clamp01, damp, natureUrl, rng, smoothstep } from '../game/config'
 import { game } from '../game/state'
 import { DynamicModel, InstancedModel, placeMatrix, type SetInstance } from '../components/instancing'
+import { SHADOW_MAT } from '../components/Character'
 import { useGlowTexture } from '../components/TheLight'
 import { LIFE, getLifeTexture } from '../simbolos/blooms'
 import { Bonfire } from '../simbolos/Scene'
 import { Ribbon } from '../simbolos/Ribbon'
 import { pointAlong } from '../simbolos/proto'
-import { AWAY_DIST, DAWN_TREE, INTRO, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
+import { AWAY_DIST, DAWN_TREE, GROTTO, INTRO, BRIDGE, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, FLOWERS, GROTTO_Z, HEARTH, HIDEOUT, MEMORY_FLIGHT, PATH_LIGHTS, PREV_PATH, RETURN_TIME, RING_R, RINGS, ROOTS_Z, WAIT_RING, b, emberLevel } from './brasaProto'
 
 /*
  * Lo que se ve en la parte 1 (todo provisional: se reemplaza por modelos de artistas).
@@ -889,9 +890,145 @@ export function MirrorView() {
     if (!el) return
     el.style.opacity = String(b.look)
     const n = b.memories
-    el.className = `mirror-view${n >= 1 ? ' m1' : ''}${n >= 2 ? ' m2' : ''}${n >= 3 ? ' m3' : ''}${n >= 5 ? ' m4' : ''}`
+    const rear = rearMirrorOn()
+    el.className = `mirror-view${n >= 1 ? ' m1' : ''}${n >= 2 ? ' m2' : ''}${n >= 3 ? ' m3' : ''}${n >= 5 ? ' m4' : ''}${rear ? ' rear' : ''}`
   })
   return null
+}
+
+// ── Parte 4: la Gruta de obsidiana ──
+/** ¿El espejo muestra lo que hay detrás (en la gruta, mientras la sombra no se volvió luz)? */
+export const rearMirrorOn = () => b.shadow.appearAt >= 0 && b.shadow.lightAt < 0
+
+export function GrottoChamber() {
+  const pillars = useMemo(() => {
+    const out: { x: number; z: number; h: number; s: number; r: number; exit: boolean }[] = []
+    const n = 22
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2
+      const x = GROTTO.x + Math.cos(a) * (GROTTO.r + 0.4)
+      const z = GROTTO.z + Math.sin(a) * (GROTTO.r + 0.4)
+      if (Math.abs(x) < 2.4 && z < GROTTO.z) continue // la entrada
+      out.push({ x, z, h: 3 + ((i * 7) % 5) * 0.8, s: 1.1 + ((i * 3) % 4) * 0.15, r: i * 1.3, exit: Math.abs(x) < 2.6 && z > GROTTO.z })
+    }
+    // el pasillo de entrada
+    for (let z = GROTTO_Z + 0.5; z < GROTTO.z - GROTTO.r + 0.5; z += 1.3) {
+      for (const sx of [-1, 1]) out.push({ x: sx * 2.6, z, h: 2.6 + ((z * 10) % 3) * 0.4, s: 1, r: z, exit: false })
+    }
+    return out
+  }, [])
+  const exitRefs = useRef<(THREE.Mesh | null)[]>([])
+  const light = useRef<THREE.PointLight>(null!)
+  useFrame(() => {
+    const t = game.time
+    const S = b.shadow
+    const open = S.lightAt >= 0 ? smoothstep(S.lightAt + 3, S.lightAt + 6, t) : 0
+    exitRefs.current.forEach((m) => {
+      if (m) m.position.y = -open * 6
+    })
+    light.current.intensity = 2.5 + (S.lightAt >= 0 ? Math.max(0, 1 - (t - S.lightAt) / 4) * 10 : 0)
+  })
+  return (
+    <group>
+      {/* el piso: vidrio volcánico, negro y brillante */}
+      <mesh rotation-x={-Math.PI / 2} position={[GROTTO.x, 0.02, GROTTO.z]} renderOrder={2}>
+        <circleGeometry args={[GROTTO.r + 0.6, 40]} />
+        <meshStandardMaterial color="#0b0a10" metalness={0.65} roughness={0.12} />
+      </mesh>
+      {pillars.map((p, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            if (p.exit) exitRefs.current[i] = el
+          }}
+          position={[p.x, 0, p.z]}
+          rotation={[0, p.r, 0]}
+          scale={[p.s, p.h, p.s]}
+        >
+          <cylinderGeometry args={[0.55, 0.85, 1, 5]} />
+          <meshStandardMaterial color="#0d0c14" metalness={0.6} roughness={0.15} />
+        </mesh>
+      ))}
+      <pointLight ref={light} position={[GROTTO.x, 4, GROTTO.z]} color="#9b86ff" distance={16} decay={1.3} intensity={2.5} />
+    </group>
+  )
+}
+
+/**
+ * El espejo como retrovisor: en la gruta, el óvalo del espejo muestra lo que hay DETRÁS de ella
+ * (se dibuja la escena desde su cabeza, mirando hacia atrás). La sombra solo se ve ahí.
+ */
+const REAR_W = 256
+const REAR_H = 320
+export function RearMirror() {
+  const { gl, scene, camera } = useThree()
+  const target = useMemo(() => new THREE.WebGLRenderTarget(REAR_W, REAR_H), [])
+  const rearCam = useMemo(() => new THREE.PerspectiveCamera(62, REAR_W / REAR_H, 0.1, 80), [])
+  const alpha = useMemo(() => {
+    const c = document.createElement('canvas')
+    c.width = 64
+    c.height = 80
+    const ctx = c.getContext('2d')!
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, 64, 80)
+    ctx.fillStyle = '#fff'
+    ctx.beginPath()
+    ctx.ellipse(32, 40, 29, 37, 0, 0, Math.PI * 2)
+    ctx.fill()
+    return new THREE.CanvasTexture(c)
+  }, [])
+  const plane = useRef<THREE.Mesh>(null!)
+  const frame = useRef<THREE.Mesh>(null!)
+  const fwd = useMemo(() => new THREE.Vector3(), [])
+  const right = useMemo(() => new THREE.Vector3(), [])
+  const up = useMemo(() => new THREE.Vector3(), [])
+  useFrame(() => {
+    const on = rearMirrorOn() && b.look > 0.02
+    plane.current.visible = false
+    frame.current.visible = false
+    const S = b.shadow
+    if (S.appearAt < 0 || !game.shadowOn) return
+    if (S.lightAt >= 0) return // (ya es luz: se ve en el mundo)
+    // la sombra solo existe en el espejo: se dibuja para el reflejo y se esconde para la vista normal
+    if (on) {
+      rearCam.position.set(game.x - Math.sin(game.yaw) * 0.45, 1.45, game.z - Math.cos(game.yaw) * 0.45)
+      rearCam.rotation.set(0, game.yaw + Math.PI, 0, 'YXZ')
+      rearCam.rotateX(-0.12)
+      rearCam.updateMatrixWorld()
+      SHADOW_MAT.opacity = 0.85 * game.ghostAlpha
+      gl.setRenderTarget(target)
+      gl.render(scene, rearCam)
+      gl.setRenderTarget(null)
+      // el óvalo, pegado a la cámara abajo a la derecha
+      camera.getWorldDirection(fwd)
+      right.set(1, 0, 0).applyQuaternion(camera.quaternion)
+      up.set(0, 1, 0).applyQuaternion(camera.quaternion)
+      const pos = camera.position.clone().addScaledVector(fwd, 0.5).addScaledVector(right, 0.3).addScaledVector(up, -0.13)
+      plane.current.position.copy(pos)
+      plane.current.quaternion.copy(camera.quaternion)
+      frame.current.position.copy(pos).addScaledVector(fwd, 0.001)
+      frame.current.quaternion.copy(camera.quaternion)
+      const m = plane.current.material as THREE.MeshBasicMaterial
+      m.opacity = b.look
+      ;(frame.current.material as THREE.MeshBasicMaterial).opacity = b.look
+      plane.current.visible = true
+      frame.current.visible = true
+    }
+    SHADOW_MAT.opacity = 0
+  })
+  return (
+    <>
+      <mesh ref={frame} renderOrder={998} visible={false} frustumCulled={false} scale={[1, 1.25, 1]}>
+        <ringGeometry args={[0.062, 0.07, 40]} />
+        <meshBasicMaterial color="#3a332d" transparent depthTest={false} depthWrite={false} toneMapped={false} fog={false} />
+      </mesh>
+      {/* (invertido como un espejo de verdad) */}
+      <mesh ref={plane} renderOrder={999} visible={false} frustumCulled={false} scale={[-1, 1, 1]}>
+        <planeGeometry args={[0.124, 0.155]} />
+        <meshBasicMaterial map={target.texture} alphaMap={alpha} transparent depthTest={false} depthWrite={false} toneMapped={false} fog={false} />
+      </mesh>
+    </>
+  )
 }
 
 /** (para el rastro dorado: un punto a lo largo del camino anterior) */

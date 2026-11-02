@@ -7,7 +7,7 @@ import { spawnBloom } from '../simbolos/blooms'
 import type { Pt } from '../simbolos/recognizer'
 import { addCricket, rumble, updateCrickets } from './crickets'
 import { pointAlong } from '../simbolos/proto'
-import { DAWN_TREE, INTRO, PREV_PATH } from './brasaProto'
+import { CORRIDOR_HALF, DAWN_TREE, GROTTO, GROTTO_Z, INTRO, PREV_PATH, SHADOW_FLEE, SHADOW_REACH } from './brasaProto'
 import {
   BRIDGE, BRIDGE_COST, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, LOOK_NEED, MIRROR_SLOW, mirrorKey,
 } from './brasaProto'
@@ -29,16 +29,19 @@ import {
  *   ?fear      frente a las raíces, con la brasa y el último refugio encendido (parte 2)
  *   ?calm      el miedo ya se calmó: las raíces abiertas y el espejo saliendo de la tierra
  *   ?mirror    ya tiene el espejo, frente a la grieta de lava (parte 3); con &look, mirando por el espejo
+ *   ?grotto    en la entrada de la gruta, con el espejo (parte 4)
  */
 const params = new URLSearchParams(location.search)
 const AUTO = params.has('auto')
 const STEPS = Number(params.get('steps') ?? 0)
 const INTRO_TEST = params.has('intro') // (para las capturas: empieza solo, con la escena del principio)
-const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm', 'mirror'].some((k) => params.has(k))
+const QUICK = AUTO || ['go', 'ember', 'lit', 'out', 'fear', 'calm', 'mirror', 'grotto'].some((k) => params.has(k))
 ;(window as unknown as Record<string, unknown>).__game = game
 ;(window as unknown as Record<string, unknown>).__brasa = b
 
 const MOVE = new THREE.Vector3()
+let moveYaw = 0
+let shadowHint = false // (en la gruta: recordarle que use el espejo)
 let started = false
 
 // ── Los grillos cantan donde hay algo dormido ──
@@ -69,7 +72,7 @@ function step(dt: number) {
     g.started = true
     g.time = Math.max(g.time, 30)
     setUi({ start: false })
-    if (['ember', 'lit', 'out', 'fear', 'calm', 'mirror'].some((k) => params.has(k))) pick(g.time - 5, true)
+    if (['ember', 'lit', 'out', 'fear', 'calm', 'mirror', 'grotto'].some((k) => params.has(k))) pick(g.time - 5, true)
     if (params.has('ember')) {
       g.x = HEARTH.x - 1.5
       g.z = HEARTH.z + 1
@@ -84,12 +87,12 @@ function step(dt: number) {
       g.x = 0
       g.z = 30
     }
-    if (params.has('fear') || params.has('calm') || params.has('mirror')) {
+    if (params.has('fear') || params.has('calm') || params.has('mirror') || params.has('grotto')) {
       RINGS.forEach((r, i) => (r.litAt = (i === FEAR_RING && params.has('fear')) || i === BRIDGE_RING ? -1 : g.time - 8))
       g.x = RINGS[3].x
       g.z = RINGS[3].z
     }
-    if (params.has('calm') || params.has('mirror')) {
+    if (params.has('calm') || params.has('mirror') || params.has('grotto')) {
       PATH_LIGHTS.forEach((p) => (p.litAt = g.time - 20))
       ;[...RINGS, ...PATH_LIGHTS].forEach((p) => bloomAround(p.x, p.z, g.time - 20, 1.5))
       const F = b.fear
@@ -103,12 +106,16 @@ function step(dt: number) {
       g.x = 1.5
       g.z = 57
     }
-    if (params.has('mirror')) {
+    if (params.has('grotto')) {
+      BRIDGE.litAt = g.time - 10
+      RINGS[BRIDGE_RING].litAt = g.time - 9
+    }
+    if (params.has('mirror') || params.has('grotto')) {
       b.hasMirror = true
       b.mirrorAt = g.time - 20
       b.lookedOnce = true
       g.x = 0.5
-      g.z = 65
+      g.z = params.has('grotto') ? GROTTO_Z + 1 : 65
     }
     if (params.has('out')) {
       b.lastRefuge = { x: RINGS[0].x, z: RINGS[0].z }
@@ -160,21 +167,24 @@ function step(dt: number) {
   b.looking = b.hasMirror && (mirrorKey.held || autoLook || firstLook || params.has('look'))
   if (b.looking && !firstLook) b.lookedOnce = true
   b.look += ((b.looking ? 1 : 0) - b.look) * damp(6, dt)
-  setUi({ goal: b.hasMirror && !b.lookedOnce && !firstLook ? 'mirror' : null })
+  setUi({ goal: (b.hasMirror && !b.lookedOnce && !firstLook) || shadowHint ? 'mirror' : null })
 
   const running = input.run || input.runToggle
   const target = (moving ? (running ? RUN : WALK) : 0) * (1 - b.look * (1 - MIRROR_SLOW))
   g.speed += (target - g.speed) * damp(5, dt)
   if (moving) {
     const want = Math.atan2(MOVE.x, MOVE.z)
-    g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(9, dt)
+    // con el espejo levantado no se da vuelta: camina hacia donde quiera sin dejar de mirar adelante
+    // (así puede caminar hacia atrás, guiándose por el reflejo)
+    if (!b.looking) g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(9, dt)
+    moveYaw = b.looking ? want : g.yaw
     if (g.phaseT > 3) setUi({ hint: false })
-  }
+  } else if (!b.looking) moveYaw = g.yaw
   g.idle = g.speed < 0.15 ? g.idle + dt : 0
   const px = g.x
   const pz = g.z
-  g.x = THREE.MathUtils.clamp(g.x + Math.sin(g.yaw) * g.speed * dt, -BOUNDS.x, BOUNDS.x)
-  g.z = THREE.MathUtils.clamp(g.z + Math.cos(g.yaw) * g.speed * dt, BOUNDS.zMin, BOUNDS.zMax)
+  g.x = THREE.MathUtils.clamp(g.x + Math.sin(moveYaw) * g.speed * dt, -BOUNDS.x, BOUNDS.x)
+  g.z = THREE.MathUtils.clamp(g.z + Math.cos(moveYaw) * g.speed * dt, BOUNDS.zMin, BOUNDS.zMax)
   // (el paso entre las raíces abiertas es angosto)
   if (g.z > ROOTS_Z - 1.5 && g.z < ROOTS_Z + 4) g.x = THREE.MathUtils.clamp(g.x, -2.6, 2.6)
   // (la grieta de lava: solo se cruza por el puente, cuando ya es real)
@@ -183,6 +193,22 @@ function step(dt: number) {
   } else {
     if (pz <= CRACK_Z0 && g.z > CRACK_Z0 - 0.35) g.z = CRACK_Z0 - 0.35
     if (pz >= CRACK_Z1 && g.z < CRACK_Z1 + 0.35) g.z = CRACK_Z1 + 0.35
+  }
+  // (la gruta: un pasillo angosto y una sala redonda)
+  if (g.z > GROTTO_Z - 1.5) {
+    const cz = GROTTO.z - GROTTO.r + 0.8
+    if (g.z < cz) g.x = THREE.MathUtils.clamp(g.x, -CORRIDOR_HALF, CORRIDOR_HALF)
+    else {
+      const dx = g.x - GROTTO.x
+      const dz = g.z - GROTTO.z
+      const d = Math.hypot(dx, dz)
+      const R = GROTTO.r - 0.6
+      const inDoor = Math.abs(g.x) < CORRIDOR_HALF && dz < 0 // (por donde se entra)
+      if (d > R && !inDoor) {
+        g.x = GROTTO.x + (dx / d) * R
+        g.z = GROTTO.z + (dz / d) * R
+      }
+    }
   }
   const stepLen = Math.hypot(g.x - px, g.z - pz)
 
@@ -197,8 +223,9 @@ function step(dt: number) {
       b.ember = Math.min(b.max, b.ember + RECHARGE * dt)
       b.lastRefuge = { x: ref.x, z: ref.z }
     } else {
+      const warm = g.z > GROTTO_Z + 1 // (en la gruta la obsidiana guarda el calor: la brasa no se gasta)
       const company = b.fear.following && Math.hypot(g.x - b.fear.pos.x, g.z - b.fear.pos.z) < 4 ? COMPANION_DRAIN : 1
-      b.ember -= (dt / EMBER_TIME) * (running && g.speed > WALK + 0.2 ? RUN_DRAIN : 1) * company
+      if (!warm) b.ember -= (dt / EMBER_TIME) * (running && g.speed > WALK + 0.2 ? RUN_DRAIN : 1) * company
       if (b.ember <= 0) {
         b.ember = 0
         b.outAt = g.time
@@ -246,6 +273,12 @@ function step(dt: number) {
         b.near = { kind: 'path', i }
       }
     })
+    // la sombra: solo de espaldas y mirándola en el espejo
+    const S = b.shadow
+    if (S.appearAt >= 0 && S.lightAt < 0 && b.look > LOOK_NEED && Math.hypot(g.x - S.pos.x, g.z - S.pos.z) < SHADOW_REACH) {
+      best = 0
+      b.near = { kind: 'shadow', i: 0 }
+    }
     // el puente: solo se le puede dar luz mientras se lo ve en el espejo
     const dB = Math.hypot(g.x - BRIDGE.x, g.z - BRIDGE.z)
     if (b.hasMirror && BRIDGE.litAt < 0 && b.look > LOOK_NEED && dB < best + 0.6) {
@@ -261,6 +294,7 @@ function step(dt: number) {
   setUi({ prompt: b.near ? 'give' : null })
 
   fearStep(dt)
+  shadowStep(dt, px, pz)
   // (para las pruebas automáticas: cada 10 s, cómo va)
   if (AUTO && Math.floor(g.time / 10) !== Math.floor((g.time - dt) / 10)) {
     const F = b.fear
@@ -302,6 +336,7 @@ function pick(time: number, quiet: boolean) {
 function giveLight(time: number) {
   const n = b.near
   if (!n) return
+  if (n.kind === 'shadow') return giveShadow(time)
   const cost = n.kind === 'ring' ? RING_COST : n.kind === 'path' ? PATH_COST : n.kind === 'bridge' ? BRIDGE_COST : FLOWER_COST
   if (b.ember < cost + 0.04) {
     b.failAt = time
@@ -330,6 +365,103 @@ function giveLight(time: number) {
     b.memFlights.push({ from: { x: f.x, z: f.z }, at: time + 0.9 })
     bell(NOTES[3], true)
   }
+}
+
+// ── Parte 4: la sombra ───────────────────────────────────────────
+function giveShadow(time: number) {
+  const S = b.shadow
+  S.lightAt = time
+  b.giveAt = time
+  b.memories = Math.max(b.memories, 5) // (su rostro se enciende del todo)
+  b.missionAt = time + 3
+  game.pulse = 1
+  chord()
+  console.log('[sombra] se volvió luz')
+}
+
+function shadowStep(dt: number, px: number, pz: number) {
+  const g = game
+  const S = b.shadow
+  const t = g.time
+  const toC = Math.hypot(g.x - GROTTO.x, g.z - GROTTO.z)
+  // aparece cuando entra a la sala: del otro lado, frente a ella
+  if (S.appearAt < 0) {
+    if (toC < GROTTO.r - 2.5 && b.hasMirror) {
+      S.appearAt = t
+      S.pos = { x: GROTTO.x, z: GROTTO.z + GROTTO.r - 2 }
+      g.shadowOn = true
+      g.shadowAt = t
+      g.ghostGold = 0
+      g.ghostAlpha = 1
+      shadow.x = S.pos.x
+      shadow.z = S.pos.z
+      shadow.yaw = Math.PI
+      console.log('[sombra] apareció')
+    }
+    return
+  }
+  if (S.lightAt >= 0) {
+    shadowHint = false
+    // se vuelve luz: dorada, y se desvanece
+    const k = t - S.lightAt
+    g.ghostGold = Math.min(1, k / 1.5)
+    g.ghostAlpha = 1 - THREE.MathUtils.smoothstep(k, 3, 5)
+    if (k > 5) g.shadowOn = false
+    shadow.speed = 0
+    return
+  }
+  const vx = (g.x - px) / Math.max(dt, 1e-4)
+  const vz = (g.z - pz) / Math.max(dt, 1e-4)
+  let dx = S.pos.x - g.x
+  let dz = S.pos.z - g.z
+  const d = Math.max(0.001, Math.hypot(dx, dz))
+  const ux = dx / d
+  const uz = dz / d
+  const fx = Math.sin(g.yaw)
+  const fz = Math.cos(g.yaw)
+  const approach = vx * ux + vz * uz
+  const backTurned = fx * ux + fz * uz < -0.4
+  const mirrorOn = b.look > LOOK_NEED
+  let nx = S.pos.x
+  let nz = S.pos.z
+  // copia sus movimientos al revés: si ella va a un costado, la sombra va al otro
+  const lx = vx - approach * ux
+  const lz = vz - approach * uz
+  nx -= lx * 0.6 * dt
+  nz -= lz * 0.6 * dt
+  if (approach > 0.15 && !(backTurned && mirrorOn)) {
+    // ella va de frente hacia la sombra: se aleja
+    nx += ux * approach * SHADOW_FLEE * dt
+    nz += uz * approach * SHADOW_FLEE * dt
+  }
+  // dentro de la sala (si queda contra la pared y ella está cerca, se escabulle por el costado)
+  dx = nx - GROTTO.x
+  dz = nz - GROTTO.z
+  const R = GROTTO.r - 1.2
+  const r = Math.hypot(dx, dz)
+  if (r > R) {
+    nx = GROTTO.x + (dx / r) * R
+    nz = GROTTO.z + (dz / r) * R
+    if (d < 3 && !(backTurned && mirrorOn)) {
+      const ang = Math.atan2(dz, dx)
+      const side = Math.sign((g.x - GROTTO.x) * dz - (g.z - GROTTO.z) * dx) || 1
+      const a2 = ang + side * dt * 1.4
+      nx = GROTTO.x + Math.cos(a2) * R
+      nz = GROTTO.z + Math.sin(a2) * R
+    }
+  }
+  const moved = Math.hypot(nx - S.pos.x, nz - S.pos.z)
+  S.pos = { x: nx, z: nz }
+  shadow.x = nx
+  shadow.z = nz
+  shadow.speed = moved / Math.max(dt, 1e-4)
+  const want = Math.atan2(g.x - nx, g.z - nz) // la mira a ella
+  shadow.yaw += Math.atan2(Math.sin(want - shadow.yaw), Math.cos(want - shadow.yaw)) * damp(6, dt)
+  shadow.phase = 'play'
+  shadow.phaseT += dt
+  shadow.time = t
+  // mientras no la mira en el espejo, recordarle que existe
+  shadowHint = !mirrorOn && d < 9
 }
 
 // ── La escena del principio ──────────────────────────────────────
@@ -471,7 +603,7 @@ function fearStep(dt: number) {
 }
 
 // ── Piloto automático (?auto) ────────────────────────────────────
-type Way = { to: Pt; give?: boolean; wait?: () => boolean; part2?: boolean; mirror?: boolean; look?: boolean; part3?: boolean }
+type Way = { to: Pt; toFn?: () => Pt; give?: boolean; wait?: () => boolean; part2?: boolean; mirror?: boolean; look?: boolean; part3?: boolean; part4?: boolean }
 const AUTO_WAY: Way[] = [
   { to: { x: 1.5, z: 5 } },
   { to: { x: HEARTH.x - 0.6, z: HEARTH.z - 0.6 } }, // toma la brasa
@@ -501,9 +633,13 @@ const AUTO_WAY: Way[] = [
   { to: { x: 0, z: 73.5 } },
   { to: { x: 5.1, z: 74.6 }, look: true, give: true },
   { to: { x: 0, z: 82 } },
+  // parte 4: entra a la sala, se da vuelta (de espaldas a la sombra) y camina hacia atrás mirándola en el espejo
+  { to: { x: 0, z: 94 }, part4: true },
+  { to: { x: 0, z: 92.6 } }, // (camina hacia la entrada: queda mirando al sur, de espaldas a la sombra)
+  { to: { x: 0, z: 0 }, toFn: () => ({ x: b.shadow.pos.x, z: b.shadow.pos.z - 1 }), look: true, give: true, wait: () => b.shadow.lightAt < 0 },
 ]
 // (con ?fear el piloto empieza directamente en la parte 2; con ?calm, en el espejo)
-let autoI = params.has('mirror') ? AUTO_WAY.findIndex((w) => w.part3) : params.has('calm') ? AUTO_WAY.findIndex((w) => w.mirror) : params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
+let autoI = params.has('grotto') ? AUTO_WAY.findIndex((w) => w.part4) : params.has('mirror') ? AUTO_WAY.findIndex((w) => w.part3) : params.has('calm') ? AUTO_WAY.findIndex((w) => w.mirror) : params.has('fear') ? AUTO_WAY.findIndex((w) => w.part2) : 0
 let gaveAt = -1
 let autoLook = false
 
@@ -516,7 +652,8 @@ function autopilot(dt: number) {
   }
   const w = AUTO_WAY[autoI]
   autoLook = !!w.look
-  MOVE.set(w.to.x - g.x, 0, w.to.z - g.z)
+  const to = w.toFn ? w.toFn() : w.to
+  MOVE.set(to.x - g.x, 0, to.z - g.z)
   const near = MOVE.length() < 0.45
   if (near) {
     MOVE.set(0, 0, 0)

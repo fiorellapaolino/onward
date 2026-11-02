@@ -455,3 +455,7 @@ body.grabbing canvas {
 .ember-hud.full::after {
   border-color: rgba(160, 230, 200, 0.6);
 }
+/* en la gruta el óvalo del espejo muestra lo que hay detrás (no el rostro) */
+.mirror-view.rear .reflection {
+  display: none;
+}

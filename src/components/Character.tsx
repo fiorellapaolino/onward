@@ -90,7 +90,8 @@ function makeEar(side: 1 | -1, material: THREE.Material) {
 
 // Material de su sombra: casi negra, con un leve brillo violeta y algo transparente
 // Su "sombra" es clara: una figura de luz suave, blanca azulada y algo translúcida (su pasado, pero amable)
-const SHADOW_MAT = new THREE.MeshStandardMaterial({
+/** (exportado: en Onward, la sombra de la gruta solo se ve en el espejo) */
+export const SHADOW_MAT = new THREE.MeshStandardMaterial({
   color: '#e4ebf7',
   emissive: '#a9bde6',
   emissiveIntensity: 0.45,
