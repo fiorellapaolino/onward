@@ -27,16 +27,18 @@ export const GOAL_SEED = 'Bring her a flame.'
 
 /** Lo que dice el anciano, sentado a oscuras junto a su puerta. */
 export const ELDER_LINES = [
-  // "…¿Hay alguien ahí?"
-  '…Is someone there?',
-  // "Mi farol se apagó cuando llegó la sombra."
-  'My lantern went out when the shadow came.',
-  // "Soy viejo… y tengo miedo de salir ahí fuera."
-  "I'm old… and I'm afraid to go out there.",
+  // "…¿Quién está ahí?"
+  "…Who's there?",
+  // "Esa luz… Volviste."
+  'That light… You came back.',
+  // "Después de que te fuiste, llegó la sombra. Una a una, nuestras luces se apagaron."
+  'After you left, the shadow came. One by one, our lights went out.',
+  // "La mía también. Soy viejo… y tengo miedo de salir ahí fuera."
+  "Mine too. I'm old… and too afraid to go out there.",
   // "El gran farol de la plaza se cayó. Hacen falta dos para subirlo…"
   'The great lantern in the square fell. It takes two to raise it…',
   // "…y aquí todos estamos solos."
-  '…and everyone here is alone.',
+  '…and here, everyone is alone.',
 ]
 
 /** La oscuridad la rodea. "Mantén E · Quédate" (en el móvil: mantén el dedo) */

@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GIRL_S, clamp01, damp, headingAt, tangentAt } from '../game/config'
 import { game, input } from '../game/state'
-import { GIRL } from '../game/village'
+import { ELDER, GIRL, POLE } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
 
 const pos = new THREE.Vector3()
@@ -27,6 +27,7 @@ export function CameraRig() {
   const lookSmooth = useRef(new THREE.Vector3(0, 1.3, 4))
   const cineSide = useRef(0)
   const endSide = useRef(0)
+  const talkSide = useRef(0)
 
   useFrame(({ camera }, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
@@ -42,6 +43,37 @@ export function CameraRig() {
       input.camYaw += d * damp(intro ? 4 : 1.2, dt)
       input.camPitch += (0 - input.camPitch) * damp(1, dt)
     }
+
+    // ── Hablando con el anciano: plano de los dos, de perfil (como en una película); con la frase
+    //    del gran farol, la cámara mira a la plaza ──
+    if (g.talk === 'elder') {
+      const first = talkSide.current === 0
+      mid.set((g.x + ELDER.x) / 2, 0, (g.z + ELDER.z) / 2)
+      perp.set(ELDER.z - g.z, 0, -(ELDER.x - g.x)).normalize()
+      if (first) talkSide.current = perp.dot(tmpV.copy(camera.position).sub(mid)) >= 0 ? 1 : -1
+      const half = Math.hypot(ELDER.x - g.x, ELDER.z - g.z) / 2 + 0.55
+      const dist = Math.max(2.4, fitDist(camera as THREE.PerspectiveCamera, half))
+      if (g.line === 4) {
+        // "el gran farol de la plaza…": desde detrás del anciano, mirando hacia el poste caído
+        tmpV.set(POLE.x - ELDER.x, 0, POLE.z - ELDER.z).normalize()
+        target.set(ELDER.x - tmpV.x * 1.6 + perp.x * 0.6 * talkSide.current, 1.5, ELDER.z - tmpV.z * 1.6 + perp.z * 0.6 * talkSide.current)
+        look.set(POLE.x, 1.6, POLE.z)
+      } else {
+        target.copy(mid).addScaledVector(perp, dist * talkSide.current)
+        target.y = 1.05
+        look.set(mid.x, 0.85, mid.z)
+      }
+      if (first) {
+        camera.position.copy(target)
+        lookSmooth.current.copy(look)
+      }
+      camera.position.lerp(target, damp(2.5, dt))
+      lookSmooth.current.lerp(look, damp(3, dt))
+      camera.lookAt(lookSmooth.current)
+      input.camYaw = g.yaw
+      return
+    }
+    talkSide.current = 0
 
     // ── La escena de la semilla: plano de las dos, de perfil, mirando la semilla subir ──
     if (inGiftScene()) {

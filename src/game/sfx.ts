@@ -131,3 +131,34 @@ export function splash() {
   o.start(t)
   o.stop(t + 0.2)
 }
+
+/**
+ * La "voz" de quien habla: no son palabras, son murmullos suaves (una nota corta por palabra),
+ * como si se oyera hablar a lo lejos. pitch = lo grave o agudo de la voz.
+ */
+export function voice(text: string, pitch = 140) {
+  const a = audio()
+  if (!a || !master) return
+  const words = text.split(/\s+/).filter((w) => /\w/.test(w)).slice(0, 10)
+  let t = a.currentTime + 0.05
+  const lp = a.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.value = 900
+  lp.connect(master)
+  words.forEach((w, i) => {
+    const o = a.createOscillator()
+    const g = a.createGain()
+    o.type = 'triangle'
+    const f = pitch * (1 + 0.12 * Math.sin(i * 2.3 + w.length))
+    o.frequency.setValueAtTime(f, t)
+    o.frequency.linearRampToValueAtTime(f * 0.92, t + 0.1)
+    const len = 0.07 + Math.min(0.08, w.length * 0.012)
+    g.gain.setValueAtTime(0, t)
+    g.gain.linearRampToValueAtTime(0.16, t + 0.015)
+    g.gain.exponentialRampToValueAtTime(0.0005, t + len)
+    o.connect(g).connect(lp)
+    o.start(t)
+    o.stop(t + len + 0.02)
+    t += len + 0.06
+  })
+}

@@ -327,3 +327,32 @@ body.grabbing canvas {
 .prompt.holding.show:not(.touch-ui) {
   padding: 14px 0;
 }
+
+/* franjas de cine (arriba y abajo) mientras alguien habla */
+.cine {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.cine::before,
+.cine::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 11vh;
+  background: #000;
+  transition: transform 0.8s ease;
+}
+.cine::before {
+  top: 0;
+  transform: translateY(-100%);
+}
+.cine::after {
+  bottom: 0;
+  transform: translateY(100%);
+}
+.cine.show::before,
+.cine.show::after {
+  transform: translateY(0);
+}

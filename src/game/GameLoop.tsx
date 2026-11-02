@@ -9,7 +9,7 @@ import { ECHO_DELAY, RETURN_TIME, game, input, setUi, shadow, trail, type Phase 
 import { MUSIC, musicTime, playThemeAgain } from './music'
 import { CLIPS, duration } from './anim'
 import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
-import { NOTES, bell, chord, flute } from './sfx'
+import { NOTES, bell, chord, flute, voice } from './sfx'
 import {
   ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
 } from './story'
@@ -112,7 +112,10 @@ export function GameLoop() {
           if (next) {
             g.line++
             g.lineT = 0
-            if (g.line < lines.length) setUi({ say: lines[g.line] })
+            if (g.line < lines.length) {
+              setUi({ say: lines[g.line] })
+              voice(lines[g.line], g.talk === 'elder' ? 120 : 260)
+            }
             else {
               const was = g.talk
               g.talk = null
@@ -223,6 +226,7 @@ export function GameLoop() {
           g.line = 0
           g.lineT = 0
           setUi({ prompt: null, hint: false, msg: null, say: lines[0] })
+          voice(lines[0], who === 'elder' ? 120 : 260)
         }
         // a quién puede escuchar ahora (la niña primero; el anciano después de ella)
         const listen = g.story === 'seek' && gd < TALK_DIST ? 'girl' : g.story === 'help' && ed < TALK_DIST ? 'elder' : null

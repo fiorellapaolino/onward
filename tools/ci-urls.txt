@@ -1,2 +1,3 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-start ?at=36   10
+elder1 ?at=58&etalk=1   14
+elder4 ?at=58&etalk=4   14

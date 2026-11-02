@@ -1,5 +1,5 @@
 import { headingAt, pathAt } from './config'
-import { GIRL_LINES } from './story'
+import { ELDER_LINES, GIRL_LINES } from './story'
 import { ELDER, GIRL } from './village'
 import { game, input, setUi } from './state'
 import { fires } from './fires'
@@ -44,6 +44,16 @@ export function applyDebug() {
     game.girlNear = 1
     setUi({ say: GIRL_LINES[game.line] })
     game.memory = 1 // (si es una frase del recuerdo, que se vea ya)
+  }
+  if (params.has('etalk')) {
+    // hablando con el anciano, en la frase N (de pie delante de él)
+    game.x = ELDER.x + Math.sin(ELDER.rot) * 1.6
+    game.z = ELDER.z + Math.cos(ELDER.rot) * 1.6
+    game.yaw = ELDER.rot + Math.PI
+    game.talk = 'elder'
+    game.line = Number(params.get('etalk'))
+    game.elderNear = 1
+    setUi({ say: ELDER_LINES[game.line] })
   }
   if (params.has('help') || params.has('fear') || params.has('plates') || params.has('music')) {
     game.story = 'help'

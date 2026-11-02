@@ -183,14 +183,26 @@ const ELDER_SPEC: Spec = {
     ['lowerarm_r', 'fwd', 0.9],
   ],
   spot: ELDER,
-  gestures: (rot, _t, near, yaw) => {
-    // (quieto: sin temblores)
-    // cabeza baja… hasta que la elfa se acerca; cuando vuelve la luz, la levanta del todo
+  gestures: (rot, t, near, yaw) => {
+    // cabeza baja, encorvado, respirando despacio… hasta que la elfa se acerca:
+    // levanta la cabeza, la mira; y mientras habla, cada frase tiene su gesto (ELDER_ACT)
+    const breathe = Math.sin(t * 1.6) * 0.025
+    rot('spine_02', 'left', breathe)
     const lookUp = Math.max(near, game.lightAwake ? 1 : 0)
-    rot('Head', 'left', 0.35 * (1 - lookUp) - 0.15 * lookUp)
-    rot('spine_02', 'left', -0.1 * lookUp)
-    rot('neck_01', 'up', yaw * 0.35 * near)
-    rot('Head', 'up', yaw * 0.45 * near)
+    const act = ELDER_ACT.update(t)
+    rot('Head', 'left', 0.35 * (1 - lookUp) - 0.3 * lookUp + act.headDown)
+    rot('neck_01', 'left', -0.12 * lookUp)
+    rot('spine_02', 'left', -0.12 * lookUp + act.lean)
+    rot('neck_01', 'up', (yaw * 0.45 * near) * (1 - act.away) + act.turn * 0.5)
+    rot('Head', 'up', (yaw * 0.55 * near) * (1 - act.away) + act.turn * 0.6)
+    // los brazos: alarga la mano hacia ella / señala la plaza / se toma las rodillas
+    rot('upperarm_r', 'left', -0.9 * act.reach - 1.1 * act.point)
+    rot('lowerarm_r', 'fwd', 0.7 * act.reach + 0.8 * act.point)
+    rot('upperarm_r', 'fwd', -0.35 * act.point)
+    rot('upperarm_l', 'left', -0.25 * act.hug)
+    rot('lowerarm_l', 'fwd', -0.5 * act.hug)
+    // mientras dice algo, asiente un poco
+    rot('Head', 'left', Math.sin(t * 5.5) * 0.035 * act.speaking)
   },
 }
 
@@ -221,6 +233,58 @@ const MUSICIAN_SPEC: Spec = {
 }
 
 const TMP_Q = new THREE.Quaternion()
+
+/*
+ * Lo que hace el anciano con cada frase (game.line mientras habla con la elfa):
+ *   0 "…¿Quién está ahí?"            se sobresalta: se echa atrás y levanta la cabeza
+ *   1 "Esa luz… Volviste."            se inclina hacia ella y alarga la mano
+ *   2 "Después de que te fuiste…"     aparta la mirada hacia la oscuridad
+ *   3 "Mi farol también…"             mira su farol apagado, se abraza las rodillas
+ *   4 "El gran farol de la plaza…"    señala la plaza
+ *   5 "…y aquí todos estamos solos."  baja la cabeza
+ */
+const ELDER_ACT = (() => {
+  const cur = { lean: 0, reach: 0, away: 0, turn: 0, headDown: 0, point: 0, hug: 0, speaking: 0 }
+  let last = -1
+  let lineAt = 0
+  return {
+    update(t: number) {
+      const talking = game.talk === 'elder'
+      const line = talking ? game.line : -1
+      if (line !== last) {
+        last = line
+        lineAt = t
+      }
+      const want = { lean: 0, reach: 0, away: 0, turn: 0, headDown: 0, point: 0, hug: 0, speaking: 0 }
+      if (talking) {
+        want.speaking = t - lineAt < 1.6 ? 1 : 0
+        if (line === 0) want.lean = -0.12
+        if (line === 1) {
+          want.lean = 0.12
+          want.reach = 1
+        }
+        if (line === 2) {
+          want.away = 1
+          want.turn = -0.9
+        }
+        if (line === 3) {
+          want.away = 1
+          want.turn = 0.8
+          want.headDown = 0.3
+          want.hug = 1
+        }
+        if (line === 4) {
+          want.away = 1
+          want.turn = -0.7
+          want.point = 1
+        }
+        if (line === 5) want.headDown = 0.35
+      }
+      for (const k of Object.keys(cur) as (keyof typeof cur)[]) cur[k] += (want[k] - cur[k]) * 0.06
+      return cur
+    },
+  }
+})()
 const STAND_GROUND = 0.025 // de pie, lo más bajo del cuerpo (las botas) queda un poco bajo el origen
 
 export const Musician = () => <Villager spec={MUSICIAN_SPEC} />
