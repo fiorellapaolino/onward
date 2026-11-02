@@ -45,7 +45,7 @@ export const game = {
   idle: 0, // segundos sin moverse
   blocked: false, // empuja contra la sombra (no puede pasar)
   walkPhase: 0,
-  story: 'seek' as Story,
+  story: 'help' as Story, // (sin la niña: la aldea empieza por el anciano)
   talk: null as Talker,
   line: 0, // frase que se está leyendo
   lineT: 0, // segundos desde que apareció esa frase

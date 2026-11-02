@@ -1,5 +1,4 @@
 import { besidePath } from './config'
-import { GIRL } from './village'
 import { GIFT } from './gift'
 import { game } from './state'
 import { chord } from './sfx'
@@ -20,11 +19,9 @@ export const FIRES: Fire[] = [
   { ...besidePath(19, 1, 2.3), s: 19 },
   { ...besidePath(34, -1, 2.4), s: 34 },
   { ...besidePath(49, -1, 2.6), s: 49 },
-  // el fuego del hogar de la niña (a su lado): lo enciende ella con la brasa que le da la elfa
-  { x: GIRL.x + Math.sin(GIRL.rot) * 0.45 - Math.cos(GIRL.rot) * 1.15, z: GIRL.z + Math.cos(GIRL.rot) * 0.45 + Math.sin(GIRL.rot) * 1.15, s: 64 },
 ].map((p) => ({ x: p.x, z: p.z, s: p.s }))
 /** El fuego del hogar de la niña (el último): no se enciende tocándolo, se lo da a ella. */
-export const HEARTH = 4
+export const HEARTH = -1 // (sin la niña, no hay hogar que encender)
 
 export const TOUCH = 1.6 // distancia para tomar o dar el fuego
 export const EMBER_LIFE = 32 // segundos que dura la brasa lejos del fuego

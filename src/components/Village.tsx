@@ -65,14 +65,7 @@ export function Village() {
         <LanternLamp position={[0.45, 0, 0.1]} isLit={() => game.liftAt} />
       </group>
 
-      {/* La piedra donde se sienta la niña (medio enterrada, detrás de sus piernas: solo bajo la cadera) */}
-      <mesh material={mats.stone} position={[GIRL.x - Math.sin(GIRL.rot) * 0.13, 0, GIRL.z - Math.cos(GIRL.rot) * 0.13]} rotation-y={GIRL.rot} scale={[1.15, 0.97, 0.85]}>
-        <dodecahedronGeometry args={[0.24, 1]} />
-      </mesh>
-
-      {/* Unas luciérnagas acompañan a la niña mientras llora: así se la ve desde el sendero */}
-      <GirlFireflies />
-
+      {/* (la niña se quitó: queda solo su árbol) */}
       {/* El árbol de la niña */}
       <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} />
 
@@ -83,7 +76,7 @@ export function Village() {
   )
 }
 
-function GirlFireflies() {
+export function GirlFireflies() {
   const ref = useRef<THREE.Group>(null!)
   useFrame(() => {
     // se van cuando ya habló con ella

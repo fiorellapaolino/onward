@@ -21,6 +21,14 @@ type Target = { key: string; x: number; z: number; y: number; near: number } | n
 function currentTarget(): Target {
   const g = game
   if (g.phase !== 'play' || g.talk || inGiftScene()) return null
+  // primero, las hogueras del bosque: la luz va hacia la siguiente apagada (o, sin brasa, a la última encendida)
+  if (g.story === 'seek' || g.story === 'help') {
+    const n = nextUnlit()
+    if (n >= 0) {
+      const f = fires.ember > 0 ? FIRES[n] : FIRES[Math.max(0, n - 1)]
+      return { key: 'fire' + n + (fires.ember > 0 ? '' : 'b'), x: f.x, z: f.z, y: 1.0, near: 1.4 }
+    }
+  }
   switch (g.story) {
     case 'seek': {
       // primero, las hogueras del bosque: la luz va hacia la siguiente apagada (o, sin brasa, a la última encendida)

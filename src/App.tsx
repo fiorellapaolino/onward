@@ -12,7 +12,7 @@ import { Guide } from './components/Guide'
 import { Companions } from './components/Companions'
 import { Memory } from './components/Memory'
 import { Fires } from './components/Fires'
-import { Elder, Girl, Musician } from './components/Villager'
+import { Elder, Musician } from './components/Villager'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
 import { CameraRig } from './components/CameraRig'
@@ -31,7 +31,6 @@ export default function App() {
         <Suspense fallback={null}>
           <Character />
           <ShadowSelf />
-          <Girl />
           <Elder />
           <Musician />
         </Suspense>

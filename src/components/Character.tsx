@@ -136,7 +136,7 @@ function whoToLookAt(x: number, z: number, talk: 'girl' | 'elder' | null) {
   if (talk === 'elder') return elder
   const dg = Math.hypot(x - GIRL.x, z - GIRL.z)
   const de = Math.hypot(x - ELDER.x, z - ELDER.z)
-  if (dg < LOOK_DIST.girl && dg <= de) return girl
+  if (false && dg < LOOK_DIST.girl && dg <= de) return girl // (sin la niña)
   if (de < LOOK_DIST.elder) return elder
   return null
 }

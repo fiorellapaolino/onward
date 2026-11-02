@@ -137,7 +137,6 @@ export const MUSICIAN = (() => {
 /** Cosas sólidas de la aldea (círculos en el suelo): la elfa no las atraviesa. */
 export const COLLIDERS: { x: number; z: number; r: number }[] = [
   { x: GIRL_TREE.x, z: GIRL_TREE.z, r: 0.6 },
-  { x: GIRL.x, z: GIRL.z, r: 0.75 },
   { x: ELDER.x, z: ELDER.z, r: 0.8 },
   ...LANTERNS.map((l) => ({ x: l.x, z: l.z, r: 0.2 })),
   { x: POLE.x, z: POLE.z, r: 0.3 },

@@ -1,3 +1,2 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-give ?at=60&give=-3.5&fires&lit=4   12
-lit ?at=60&give=-8&fires&lit=4   12
+village ?at=58&fires&lit=4   12
