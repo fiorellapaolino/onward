@@ -1119,8 +1119,9 @@ export function PlayerTrail() {
 }
 
 /** La cámara del final: después de mirarse, sube despacio hasta ver todo su camino desde arriba. */
-const endPos = new THREE.Vector3(-6, 150, 58)
-const endLook = new THREE.Vector3(-4, 0, 64)
+// (inclinada: se ve todo el camino y, arriba, el cielo del amanecer)
+const endPos = new THREE.Vector3(-14, 95, -8)
+const endLook = new THREE.Vector3(-6, 0, 78)
 const endTmp = new THREE.Vector3()
 export function FinalCam() {
   const pos = useRef<THREE.Vector3 | null>(null)

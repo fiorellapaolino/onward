@@ -38,7 +38,7 @@ const DEMOS: Demo[] = [
       { dur: 1.8, to: { x: flower0.x - 1.1, z: flower0.z - 0.4 } },
       { dur: 2.8, face: flower0, arc: flower0 },
     ],
-    when: () => b.hasEmber && game.time > b.pickAt + 2,
+    when: () => b.hasEmber && game.time > b.pickAt + 2 && near(HEARTH, 12),
     done: () => flower0.giftAt >= 0,
     again: 22,
   },
@@ -59,7 +59,7 @@ const DEMOS: Demo[] = [
       { dur: 2.6, to: { x: RINGS[WAIT_RING].x - 0.4, z: RINGS[WAIT_RING].z } },
       { dur: 3, face: { x: 0, z: 62 } }, // espera, mirando hacia las raíces
     ],
-    when: () => b.hasEmber && b.fear.scaredAt > 0 && b.fear.calmAt < 0,
+    when: () => b.hasEmber && b.fear.scaredAt > 0 && b.fear.calmAt < 0 && near({ x: 0, z: 56 }, 16),
     done: () => b.fear.calmAt >= 0 || (PATH_LIGHTS.every((p) => p.litAt >= 0) && !near({ x: 0, z: 62 }, 7.5)),
     again: 25,
   },
