@@ -55,13 +55,15 @@ export function CameraRig() {
       const dist = Math.max(2.4, fitDist(camera as THREE.PerspectiveCamera, half))
       if (g.line === 4) {
         // "el gran farol de la plaza…": desde detrás del anciano, mirando hacia el poste caído
-        tmpV.set(POLE.x - ELDER.x, 0, POLE.z - ELDER.z).normalize()
-        target.set(ELDER.x - tmpV.x * 1.6 + perp.x * 0.6 * talkSide.current, 1.5, ELDER.z - tmpV.z * 1.6 + perp.z * 0.6 * talkSide.current)
-        look.set(POLE.x, 1.6, POLE.z)
+        // (de lado, a medio camino entre él y la plaza: se ve el poste caído y las dos piedras)
+        tmpV.set(POLE.z - ELDER.z, 0, -(POLE.x - ELDER.x)).normalize()
+        const side = tmpV.dot(perp) * talkSide.current >= 0 ? 1 : -1
+        target.set(ELDER.x + (POLE.x - ELDER.x) * 0.5 + tmpV.x * 4.5 * side, 2.2, ELDER.z + (POLE.z - ELDER.z) * 0.5 + tmpV.z * 4.5 * side)
+        look.set(POLE.x, 1.0, POLE.z)
       } else {
         target.copy(mid).addScaledVector(perp, dist * talkSide.current)
-        target.y = 1.05
-        look.set(mid.x, 0.85, mid.z)
+        target.y = 1.2
+        look.set(mid.x, 0.55, mid.z) // (más abajo: así quedan en la parte de arriba, sin taparlos el texto)
       }
       if (first) {
         camera.position.copy(target)
