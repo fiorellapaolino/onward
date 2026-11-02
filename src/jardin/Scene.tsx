@@ -137,7 +137,9 @@ function GrowModel({ name, index }: { name: string; index: number }) {
       const sp = p.species
       const dur = sp === 'tree' ? 2.6 : sp === 'bush' ? 1.6 : 1.1
       const u = Math.min(1, (j.t - p.born) / dur)
-      put(p.x, 0.03, p.z, p.rot + Math.sin(j.t * 1.3 + p.x) * 0.03, p.scale * Math.max(0.001, easeOutBack(u)), 1 + (1 - u) * 0.9)
+      // (las hojas de los árboles y arbustos de Quaternius salen oscuras con esta luz: se aclaran un poco)
+      const base = sp === 'tree' || sp === 'bush' ? 1.45 : sp === 'fern' ? 1.15 : 1
+      put(p.x, 0.03, p.z, p.rot + Math.sin(j.t * 1.3 + p.x) * 0.03, p.scale * Math.max(0.001, easeOutBack(u)), base + (1 - u) * 0.9)
     }
     // el montón de compost lleva encima una planta pequeña de lo que va a crecer
     j.heaps.forEach((h, i) => {
