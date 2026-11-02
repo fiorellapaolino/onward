@@ -181,3 +181,19 @@ flowchart TD
 - **Estado:** objetos que cambian en cada frame (sin estado de React), como en el resto del juego.
 - **Se reutiliza del prototipo anterior** (`src/simbolos/`): la elfa, la cámara y los controles; el rastro que florece y el "mapa de vida" (`blooms.ts`); el bosque oscuro, las hogueras y el muro de sombra; la cámara final desde arriba (`Scene.tsx`); los seres de tierra y fuego como base visual.
 - **Se deja de usar:** el reconocedor de símbolos (`recognizer.ts`) y dibujar figuras con los pasos.
+
+## Estado (2 nov 2026)
+
+Rama `dev/brasa-y-espejo` · se juega en https://dev-brasa-y-espejo.onward-afi.pages.dev
+
+Hecho y verificado con el piloto automático (por partes y de principio a fin):
+- Escena del principio, la misión visible, la brasa en pantalla.
+- Parte 1 (Claro de los grillos), parte 2 (el miedo y el espejo), parte 3 (el espejo, el puente, las flores ocultas), parte 4 (la gruta y la sombra), parte 5 (la Copa del alba y el final).
+- Idioma visual común, la tecla sobre el objeto, columnas de chispas, demostraciones de la elfa dorada.
+- La luz entre jugadores (falta conectar el espacio KV en Cloudflare: ver README).
+
+Pendiente:
+- **Prueba con personas** (ver `prueba-con-personas.md`) y arreglar lo que salga.
+- Reemplazar piezas provisionales: la elfa propia, el ser del miedo, el espejo, las raíces, la gruta, el árbol, la sombra y la recién nacida.
+- Sonidos propios para cada ser; la música por capas.
+- Pasar la rama a `main` y subir a itch.io (`npm run zip:web` y el workflow de Windows).
