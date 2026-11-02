@@ -16,12 +16,14 @@ export type Phase = 'intro' | 'rise' | 'gather' | 'look' | 'play' | 'end'
 //             (cuando ayudas a alguien, ayudas a todos: su alegría viaja como una luz hasta el siguiente)
 // help      → la niña sonrió: la luz viajó hasta el anciano
 // fear      → el anciano le contó su miedo; la oscuridad la rodea y tiene que quedarse (mantener E)
+// born      → se quedó: la oscuridad se cierra sobre ella y sale de ella una figura de luz, de rodillas como ella.
+//             Se levanta y da unos pasos hacia la plaza; detrás, la figura hace lo mismo (es ella misma, de antes)
 // plates    → la oscuridad tomó su forma: nace su sombra, que repite lo que ella hizo segundos antes.
 //             Con ella hay que pisar a la vez las dos piedras que suben el gran farol de la plaza
 // music     → subió el gran farol; se oye a alguien tocar a escondidas: hay que tocar su melodía en las campanas
 //             (y la sombra la repite detrás, como un canon)
 // next      → la música volvió a la aldea (lo siguiente: los dos que no se dijeron lo que sentían)
-export type Story = 'seek' | 'seed' | 'help' | 'fear' | 'plates' | 'music' | 'next'
+export type Story = 'seek' | 'seed' | 'help' | 'fear' | 'born' | 'plates' | 'music' | 'next'
 // Con quién está hablando (mientras alguien habla, la elfa se queda quieta escuchando)
 export type Talker = 'girl' | 'elder' | null
 
@@ -110,9 +112,18 @@ export function litFraction() {
  * "shadow" tiene la misma forma que "game" para poder dibujarla con el mismo personaje.
  */
 export const ECHO_DELAY = 3.5
-type Frame = { t: number; x: number; z: number; yaw: number; speed: number; jumpT: number; jumpY: number; idle: number }
+type Frame = { t: number; x: number; z: number; yaw: number; speed: number; jumpT: number; jumpY: number; idle: number; kneel: number; kneelT: number }
 export const trail: Frame[] = []
 export const shadow = { ...game }
+
+/**
+ * El nacimiento de la sombra (segundos desde game.shadowAt). La elfa no se mueve sola hasta FREE:
+ *   0        la oscuridad se cierra sobre ella; de ella sale una figura de luz, de rodillas como ella
+ *   RISE     se levanta (la figura sigue de rodillas)
+ *   TURN     mira hacia la plaza  ·  STEP  da unos pasos hacia allí
+ *   +ECHO_DELAY  la figura hace lo mismo: se levanta, mira y camina detrás de ella
+ */
+export const BORN = { RISE: 1.6, RISE_LEN: 2.6, TURN: 4.0, STEP: 4.5, STEP_LEN: 1.7, FREE: 8.6 }
 
 // Controles
 export const input = {
@@ -155,8 +166,9 @@ type Ui = {
   hold: number // -1 = sin barra; 0..1 = cuánto lleva manteniendo E
   say: string | null // lo que dice la niña
   goal: string | null // qué hay que hacer ahora (arriba a la izquierda)
+  cine: boolean // franjas negras de cine (también sin diálogo: el miedo y el nacimiento de la sombra)
 }
-let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, prompt: null, hold: -1, say: null, goal: null }
+let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, prompt: null, hold: -1, say: null, goal: null, cine: false }
 const listeners = new Set<() => void>()
 
 export function setUi(patch: Partial<Ui>) {

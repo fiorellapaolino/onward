@@ -33,7 +33,7 @@ for (const line of shots) {
     const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 > 3000) res(n / 3); else requestAnimationFrame(f) }; requestAnimationFrame(f) }))
     log.push(`[${name}] fps≈${fps}`)
     try {
-    const st = await page.evaluate(() => { const g = window.__game; return g && { phase: g.phase, story: g.story, x: g.x, z: g.z, jumpT: g.jumpT, jumpY: g.jumpY, speed: g.speed, talk: g.talk } })
+    const st = await page.evaluate(() => { const g = window.__game; return g && { phase: g.phase, story: g.story, x: g.x, z: g.z, jumpT: g.jumpT, jumpY: g.jumpY, speed: g.speed, talk: g.talk, courage: g.courage, kneel: g.kneel, sinceShadow: g.shadowOn ? g.time - g.shadowAt : null } })
     log.push(`[${name}] state ${JSON.stringify(st)}`)
   } catch (e) { log.push(`[${name}] state error ${e.message}`) }
   await page.screenshot({ path: `ci-out/${name}.png`, timeout: 120000 })

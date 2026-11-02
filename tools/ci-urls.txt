@@ -1,3 +1,9 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-elder1 ?at=58&etalk=1   14
-elder4 ?at=58&etalk=4   14
+fear1 ?at=58&fear   14
+stay1 ?at=58&fear&stay   10
+stay2 ?at=58&fear&stay   13
+stay3 ?at=58&fear&stay   15
+stay4 ?at=58&fear&stay   18
+stay5 ?at=58&fear&stay   21
+stay6 ?at=58&fear&stay   24
+stay7 ?at=58&fear&stay   28

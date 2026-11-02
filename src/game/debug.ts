@@ -13,6 +13,7 @@ import { fires } from './fires'
  *   ?at=60&give     … la escena de darle la semilla a la niña
  *   ?at=60&help     … después de darle la semilla a la niña
  *   ?at=66&fear     … con la oscuridad rodeándola (después de escuchar al anciano)
+ *   ?at=66&fear&stay … y se queda (como si mantuviera E): se ve nacer su sombra
  *   ?at=66&plates   … con su sombra ya nacida, para el reto de las dos piedras
  *   ?at=18&fires&lit=2&now  … el bosque apagado, con 2 hogueras encendidas (la última recién) y la brasa
  *   ?at=105&ending  … con la aldea iluminada y su sombra: caminar hasta el claro del final
@@ -72,7 +73,14 @@ export function applyDebug() {
     game.yaw = GIRL.rot + Math.PI
     game.giftAt = game.time + Number(params.get('give') || 0)
   }
-  if (params.has('fear')) game.story = 'fear'
+  if (params.has('fear')) {
+    // recién terminó de hablar con el anciano (de pie delante de él)
+    game.story = 'fear'
+    game.x = ELDER.x + Math.sin(ELDER.rot) * 1.6
+    game.z = ELDER.z + Math.cos(ELDER.rot) * 1.6
+    game.yaw = ELDER.rot + Math.PI
+    input.camYaw = game.yaw
+  }
   if (params.has('music')) {
     game.story = 'music'
     game.shadowOn = true
@@ -120,6 +128,9 @@ export function applyDebug() {
     setUi({ goal: 'Raise the great lantern: both stones at once.' })
   }
 }
+
+/** ?stay: con el miedo, hace como si el jugador mantuviera E (para las capturas). */
+export const debugStay = params.has('stay')
 
 /** En modo de prueba la música no suena y su reloj no avanza. */
 export const debugMode = params.has('at')

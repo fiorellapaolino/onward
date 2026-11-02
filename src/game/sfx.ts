@@ -162,3 +162,24 @@ export function voice(text: string, pitch = 140) {
     t += len + 0.06
   })
 }
+
+/** Un latido ("pum-pum"), grave y apagado. Suena mientras la oscuridad la rodea. */
+export function heartbeat(volume = 1) {
+  const a = audio()
+  if (!a || !master) return
+  const t = a.currentTime
+  ;[0, 0.2].forEach((dt, i) => {
+    const o = a.createOscillator()
+    const g = a.createGain()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(i ? 58 : 66, t + dt)
+    o.frequency.exponentialRampToValueAtTime(38, t + dt + 0.14)
+    const v = (i ? 0.45 : 0.7) * volume
+    g.gain.setValueAtTime(0, t + dt)
+    g.gain.linearRampToValueAtTime(v, t + dt + 0.012)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.22)
+    o.connect(g).connect(master!)
+    o.start(t + dt)
+    o.stop(t + dt + 0.25)
+  })
+}

@@ -293,9 +293,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
         ? 1
         : g.phase === 'rise'
           ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.85) / (RISE_TIME * 0.15)))
-          : g.phase === 'end'
-            ? smooth(g.kneel) // al final: de rodillas frente a su sombra, y se levantan juntas
-            : 0
+          : smooth(g.kneel) // de rodillas: al quedarse con miedo, cuando nace su sombra, y al final frente a ella
 
     // pose del Mago: al terminar de incorporarse alza el brazo, hasta que agarra las herramientas
     // (alza el brazo justo cuando entran los graves en la canción)
@@ -323,7 +321,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
       // 0–8 s de rodillas; de 8 s hasta que entran los graves se va levantando poco a poco, sin volver atrás
       if (g.phase === 'intro') a.tryT = g.started ? smoothstep(0.5, MUSIC.RISE_AT, g.musicT) * STAND_BY_BASS : 0
       const total = duration(CLIPS.standup)
-      const t = g.phase === 'end' ? g.kneelT : g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
+      const t = g.phase !== 'intro' && g.phase !== 'rise' ? g.kneelT : g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
       blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
       // respira de rodillas al ritmo de las frases de la canción (inhala cuando la música sube)
       if (g.phase === 'intro') {
@@ -437,8 +435,8 @@ export function Character({ echo = false }: { echo?: boolean }) {
       }
     }
 
-    // De rodillas al final: la pose de "Standing Up" trae la cabeza girada; se corrige para que mire al frente
-    if (g.phase === 'end' && g.kneel > 0.001) {
+    // De rodillas: la pose de "Standing Up" trae la cabeza girada; se corrige para que mire al frente
+    if (g.phase !== 'intro' && g.phase !== 'rise' && g.kneel > 0.001) {
       const k = smooth(g.kneel)
       rotateBoneLocal(bones.neck_01, axes.neck.up, HEAD_FRONT * 0.4 * k)
       rotateBoneLocal(bones.Head, axes.head.up, HEAD_FRONT * 0.6 * k)

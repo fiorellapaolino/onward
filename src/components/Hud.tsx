@@ -80,8 +80,8 @@ export function Hud() {
         )}
       </div>
 
-      {/* franjas negras de cine mientras alguien habla */}
-      <div className={`cine ${ui.say ? 'show' : ''}`} />
+      {/* franjas negras de cine mientras alguien habla (o en un momento de cine) */}
+      <div className={`cine ${ui.say || ui.cine ? 'show' : ''}`} />
 
       <div className={`msg ${ui.msg ? 'show' : ''}`}>{lastMsg.current}</div>
 

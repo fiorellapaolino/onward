@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GIRL_S, clamp01, damp, headingAt, tangentAt } from '../game/config'
-import { game, input } from '../game/state'
+import { BORN, ECHO_DELAY, game, input, shadow } from '../game/state'
 import { ELDER, GIRL, POLE } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
 
@@ -28,6 +28,7 @@ export function CameraRig() {
   const cineSide = useRef(0)
   const endSide = useRef(0)
   const talkSide = useRef(0)
+  const fearSide = useRef(0)
 
   useFrame(({ camera }, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
@@ -76,6 +77,48 @@ export function CameraRig() {
       return
     }
     talkSide.current = 0
+
+    // ── El miedo: plano cercano, casi de frente y bajo, con la oscuridad alrededor;
+    //    mientras se queda, la cámara se acerca despacio ──
+    // ── El nacimiento de su sombra: de perfil, las dos (la figura de luz sale de ella y la imita) ──
+    if (g.story === 'fear' || g.story === 'born') {
+      const k = g.story === 'born' ? g.time - g.shadowAt : -1
+      if (fearSide.current === 0) {
+        // del lado donde ya estaba la cámara
+        perp.set(Math.cos(g.yaw), 0, -Math.sin(g.yaw))
+        fearSide.current = perp.dot(tmpV.set(camera.position.x - g.x, 0, camera.position.z - g.z)) >= 0 ? 1 : -1
+      }
+      const sd = fearSide.current
+      if (k < 0) {
+        // 3/4 de frente: 35° hacia un lado de hacia donde mira
+        const a = g.yaw + sd * 0.6
+        const d = 2.9 - 0.7 * g.courage
+        target.set(g.x + Math.sin(a) * d, 0.75 - 0.15 * g.courage, g.z + Math.cos(a) * d)
+        look.set(g.x, 0.55 - 0.15 * g.kneel, g.z)
+      } else {
+        // las dos de perfil: la sombra se queda donde nació; la elfa se levanta y se aleja unos pasos
+        const sx = k < ECHO_DELAY ? g.x : shadow.x
+        const sz = k < ECHO_DELAY ? g.z : shadow.z
+        mid.set((g.x + sx) / 2, 0, (g.z + sz) / 2)
+        perp.set(Math.cos(g.yaw), 0, -Math.sin(g.yaw)).multiplyScalar(sd)
+        const open = clamp01((k - 0.6) / 2.5) // al principio cerca (la figura sale de ella); luego se aleja
+        const half = Math.hypot(g.x - sx, g.z - sz) / 2 + 0.6
+        const dist = Math.max(2.6 + open * 1.4, fitDist(camera as THREE.PerspectiveCamera, half) + 0.6)
+        target.copy(mid).addScaledVector(perp, dist)
+        // (un poco hacia atrás de ella, para ver hacia dónde va)
+        target.x -= Math.sin(g.yaw) * 1.2 * open
+        target.z -= Math.cos(g.yaw) * 1.2 * open
+        target.y = 0.85 + open * 0.35
+        look.set(mid.x, 0.55 + 0.15 * open, mid.z)
+        if (k > BORN.FREE - 1) input.camYaw = g.yaw // (al terminar vuelve detrás de ella)
+      }
+      camera.position.lerp(target, damp(k < 0 ? 1.4 : 1.8, dt))
+      lookSmooth.current.lerp(look, damp(2, dt))
+      camera.lookAt(lookSmooth.current)
+      if (k < BORN.FREE - 1) input.camYaw = Math.atan2(g.x - camera.position.x, g.z - camera.position.z)
+      return
+    }
+    fearSide.current = 0
 
     // ── La escena de la semilla: plano de las dos, de perfil, mirando la semilla subir ──
     if (inGiftScene()) {
