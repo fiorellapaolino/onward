@@ -1,4 +1,7 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
-# (pruebas largas, a mano: ?auto&steps=60 (todo) · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10 · ?grotto&auto&steps=40 · ?dawn&auto&steps=20)
-grotto_in ?grotto&auto&steps=8 30
-grotto_auto ?grotto&auto&steps=40 80
+# (el jardín: ?auto = piloto automático; &speed=N = el tiempo del juego va N veces más rápido)
+# (Onward: ?onward, ?auto&steps=60 …)
+jardin_start ? 10
+jardin_early ?auto&speed=3 20
+jardin_auto ?auto&speed=3 70
+jardin_m ?auto&speed=3 45

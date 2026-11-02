@@ -1,26 +1,20 @@
 import { lazy, Suspense } from 'react'
-import BrasaApp from './brasa/BrasaApp'
+import JardinApp from './jardin/JardinApp'
 
-// El juego: Onward, la luz que se pasa de mano en mano (src/brasa/).
-// La versión anterior (la aldea) sigue disponible con ?aldea en la dirección; solo se carga si se pide.
+// El juego: el jardín que suena (src/jardin/).
+// Onward (la luz que se pasa de mano en mano) sigue disponible con ?onward; solo se carga si se pide.
+const q = new URLSearchParams(location.search)
+const BrasaApp = lazy(() => import('./brasa/BrasaApp'))
 const VillageApp = lazy(() => import('./VillageApp'))
-const VILLAGE = new URLSearchParams(location.search).has('aldea')
-// El prototipo de los símbolos (el bosque que se dibuja) sigue disponible con ?simbolos.
 const SymbolsApp = lazy(() => import('./simbolos/SymbolsApp'))
-const SYMBOLS = new URLSearchParams(location.search).has('simbolos')
+const ONWARD = ['onward', 'ember', 'fear', 'calm', 'mirror', 'grotto', 'dawn', 'intro', 'nointro', 'lit', 'out'].some((k) => q.has(k))
 
 export default function App() {
-  if (SYMBOLS)
-    return (
-      <Suspense fallback={null}>
-        <SymbolsApp />
-      </Suspense>
-    )
-  return VILLAGE ? (
+  const Other = q.has('simbolos') ? SymbolsApp : q.has('aldea') ? VillageApp : ONWARD ? BrasaApp : null
+  if (!Other) return <JardinApp />
+  return (
     <Suspense fallback={null}>
-      <VillageApp />
+      <Other />
     </Suspense>
-  ) : (
-    <BrasaApp />
   )
 }
