@@ -15,6 +15,7 @@ import {
 } from './BrasaScene'
 import { b, mirrorKey } from './brasaProto'
 import { Reflection } from './Reflection'
+import { ActionIcons, Beacons, Beckons, giveGlyph } from './Guides'
 
 /*
  * Onward — la luz que se pasa de mano en mano (ver game-design.md).
@@ -46,6 +47,9 @@ export default function BrasaApp() {
         <GrottoGate />
         <GrottoChamber />
         <MirrorView />
+        <Beckons />
+        <Beacons />
+        <ActionIcons />
         <Suspense fallback={null}>
           <Character />
           {/* la elfa dorada del jugador anterior (en la escena del principio) y su sombra (en la gruta) */}
@@ -163,35 +167,24 @@ function Overlay() {
         Carry it to the one who waits.
       </div>
 
+      {/* los controles, solo con teclas (sin palabras): moverse · correr */}
       <div className={`controls ${ui.hint && hintShown ? 'show' : ''}`}>
-        {isTouch ? (
-          <p>Left thumb to move · drag on the right to look around</p>
-        ) : (
-          <>
-            <p>
-              <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move · <kbd>Tab</kbd> to run
-            </p>
-            <p className="hint">Drag to look around · scroll to zoom</p>
-          </>
+        {isTouch ? null : (
+          <p>
+            <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> &nbsp;·&nbsp; <kbd>Tab</kbd> »
+          </p>
         )}
       </div>
 
-      {/* "Mantén Espacio para mirar por el espejo" (hasta la primera vez que lo usa) */}
-      <div className={`give mirror-hint ${ui.goal === 'mirror' ? 'show' : ''}`}>
-        {isTouch ? 'Tap Mirror to look through it' : (
-          <>
-            Hold <kbd>Space</kbd> to look through the mirror
-          </>
-        )}
+      {/* la tecla sobre lo que se puede hacer (sin palabras): dar luz / mirar por el espejo */}
+      <div id="icon-give" className="world-icon give-icon">
+        <kbd>{giveGlyph}</kbd>
       </div>
-
-      {/* "E: dar luz" (solo aparece cerca de algo a lo que se le puede dar luz) */}
-      <div className={`give ${ui.prompt === 'give' ? 'show' : ''}`}>
-        {isTouch ? 'Tap Light to give light' : (
-          <>
-            <kbd>E</kbd> give light
-          </>
-        )}
+      <div id="icon-mirror" className="world-icon mirror-icon">
+        {isTouch ? null : <kbd className="wide">Space</kbd>}
+        <svg viewBox="0 0 20 26" aria-hidden="true">
+          <ellipse cx="10" cy="13" rx="8" ry="11" fill="#0b0912" stroke="#c8a8ff" strokeWidth="2" />
+        </svg>
       </div>
 
       <TouchControls show={!ui.start} jumpLabel="Light" />
