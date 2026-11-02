@@ -19,6 +19,29 @@ Documento de diseño (1 nov 2026). Reemplaza la versión anterior ("el bosque qu
 
 **Las herramientas se encuentran, no se tienen:** nace con las manos vacías. Primero encuentra la brasa (la esperanza) y después, gracias al miedo que calmó, el espejo (poder mirarse). Cada objeto es un paso de su historia.
 
+## La historia, momento a momento (y cómo se juega)
+
+Regla de oro: **nadie tiene que leer nada para entender qué hacer.** Cada momento de la historia es algo que se ve y se hace. La primera vez que aparece una acción, **la elfa dorada (el eco del jugador anterior) la muestra**; después la jugadora la repite. Idioma visual: **dorado que late** = dale luz · **lila** = solo en el espejo · **verde agua** = refugio · **chispas que suben** = algo te espera ahí · **la tecla flota** sobre lo que se puede hacer.
+
+| # | Momento | Qué pasa en la historia | Qué ve | Qué hace | Cómo lo aprende sin leer |
+|---|---|---|---|---|---|
+| 1 | **La luz lejana** | Alguien espera en la copa de un árbol gigante, del otro lado del bosque quemado | La luz en la copa, a lo lejos; el título | Nada (escena) | La cámara empieza mirando esa luz: es el destino. Siempre visible, como la montaña de Journey |
+| 2 | **La elfa dorada** | Otra elfa (el jugador anterior) dejó su brasa en una hoguera y siguió su camino | La elfa dorada camina hasta la hoguera, deja la brasa, mira la luz lejana y se desvanece. *"Someone left a light for you."* | Nada (escena) | Se ve: alguien deja una luz para ti |
+| 3 | **Nacer** | La elfa nace sin nada, de la luz, donde estuvo la otra | Nace de rodillas, se levanta. *"Carry it to the one who waits."* | Empieza a moverse | Las teclas de moverse aparecen solas, sin palabras |
+| 4 | **La brasa** | Toma la luz que le dejaron | El rastro dorado del jugador anterior lleva a la hoguera; ahí un anillo dorado late y suben chispas | Camina hasta la hoguera | Rastro + anillo + chispas. Al tomarla, la luz lejana destella (misión) y aparece la brasa en pantalla |
+| 5 | **El primer regalo** | La naturaleza devuelve algo a quien da | Junto a la hoguera, una flor dormida con anillo dorado; **la elfa dorada aparece, le tiende la mano y le da un hilo de luz** (no la despierta: solo muestra) | Se acerca: flota la **E**; la usa | Demostración + tecla. La flor se abre, un recuerdo vuela a ella, **la brasa en pantalla crece** y el reflejo gana los ojos (más tarde se ve) |
+| 6 | **El refugio** | La luz se apaga lejos del fuego; los hongos, la primera vida después del volcán, la cuidan | **La elfa dorada camina hasta un círculo de hongos encendido y su luz se llena** | Va al refugio cuando la brasa baja | Demostración. Cuando queda poca luz: la brasa en pantalla se pone roja y tiembla, los bordes se oscurecen, suena un aviso y **el refugio más cercano late** |
+| 7 | **Encender el camino** | Cada círculo apagado puede volver a vivir si le das parte de tu luz | Círculos apagados con anillo dorado y chispas | Da luz (E): se vuelven refugios | Mismo idioma que la flor |
+| 8 | **El miedo** | Entre las raíces se esconde un ser asustado (su propio miedo) | Unos ojos entre raíces. Si se acerca, las raíces crujen y se cierran; **las tres luces del camino laten** | Enciende las tres luces | Después de que se esconde, **la elfa dorada enciende una luz del camino y vuelve al refugio a esperar, sentada**. El refugio late |
+| 9 | **Esperar** | El miedo no se vence: se le da espacio | El ser sale solo, avanzando y dudando, por las luces | Se queda lejos, en el refugio | Si se acerca, el ser retrocede: se entiende jugando |
+| 10 | **El espejo** | Calmado, el ser abre las raíces y saca de la tierra un espejo de obsidiana | El espejo flota con anillo lila | Lo toma | Se mira sola por primera vez: **su reflejo no tiene rostro** |
+| 11 | **Mirar distinto** | El espejo muestra lo que existe pero no se ve | Flota **Espacio + el óvalo** (en el móvil, el botón late); junto a ella hay una flor lila que solo se ve con el espejo | Mantiene el espejo y le da luz a la flor | Lugar seguro (hay refugio al lado). El reflejo gana un detalle |
+| 12 | **La grieta** | La lava vieja cortó el camino; en el espejo se ve el puente que hubo | Anillo lila en la orilla; **la elfa dorada aparece en la orilla con el espejo levantado** | Mira con el espejo y da luz al puente | El puente se vuelve real y del otro lado se enciende un refugio |
+| 13 | **La sombra** | En la gruta de vidrio volcánico aparece su sombra: lo que no quiere ver de sí | La sombra solo se ve en el espejo, que aquí muestra lo que hay **detrás** de ella. Si va de frente, la sombra se aleja | Le da la espalda y **camina hacia atrás** mirándola en el espejo; la alcanza y le da luz | Al entrar, **la elfa dorada camina hacia atrás con el espejo levantado**. La sombra se vuelve dorada: su rostro se enciende del todo |
+| 14 | **El alba** | Sale de la gruta; la luz de quien espera está cerca | Un camino hasta el árbol gigante; la luz baja de la copa | Camina hasta el árbol | La luz baja a medida que se acerca |
+| 15 | **Dar la luz** | Quien espera es una elfa recién nacida (la próxima persona que jugará) | La recién nacida, de rodillas, con anillo dorado; flota la **E** | Le da su llama | Lo mismo que aprendió desde el principio. Amanece |
+| 16 | **Su camino** | Ya no necesita la brasa: el bosque está encendido. Se reconoce | Su reflejo completo, con rostro; la cámara sube y se ve todo lo que encendió. *"Your light will wait for someone."* | — | Fin. Su camino queda guardado como el rastro dorado de la próxima persona |
+
 ## El mundo: un bosque sobre un volcán dormido
 
 Hace mucho, una erupción quemó el bosque. Por eso está apagado y por eso hay obsidiana en la tierra. Todo lo que aparece en el juego sale de esa historia: **un lugar que se quemó y vuelve a vivir**, igual que la elfa.
