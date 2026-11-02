@@ -1,6 +1,5 @@
 # nombre  consulta  segundos-de-espera  teclas (tecla:ms,…)
 # (prototipo anterior, con ?simbolos: proto_dark ?simbolos&at=28&solved&steps=10 25)
-# (pruebas largas, a mano: ?auto · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10)
-brasa_grotto ?grotto&steps=4 20
-brasa_grotto_look ?grotto&auto&steps=5 40
-brasa_grotto_auto ?grotto&auto&steps=10 90
+# (pruebas largas, a mano: ?auto · ?fear&auto&steps=30 · ?calm&auto · ?mirror&auto&steps=10 · ?grotto&auto&steps=60)
+brasa_grotto_mid ?grotto&auto&steps=40 45
+brasa_grotto_auto ?grotto&auto&steps=60 110
