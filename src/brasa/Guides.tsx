@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { game, isTouch } from '../game/state'
 import { useGlowTexture } from '../components/TheLight'
 import type { Pt } from '../simbolos/recognizer'
+import { demo } from './demos'
 import { BRIDGE, BRIDGE_RING, FEAR_RING, FLOWERS, HEARTH, HIDEOUT, PATH_LIGHTS, RINGS, WAIT_SPOT, b } from './brasaProto'
 
 /*
@@ -189,3 +190,52 @@ export function ActionIcons() {
 
 /** (para el HTML: qué dibujar en el ícono) */
 export const giveGlyph = isTouch ? '✦' : 'E'
+
+// ── La demostración: el hilo de luz que sale de la mano de la elfa dorada (y el espejo, lila) ──
+const ARC = 9
+export function DemoFx() {
+  const tex = useGlowTexture()
+  const refs = useRef<(THREE.Sprite | null)[]>([])
+  const mirror = useRef<THREE.Sprite>(null!)
+  const mats = useMemo(
+    () => Array.from({ length: ARC }, () => new THREE.SpriteMaterial({ map: tex, color: GOLD.clone(), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })),
+    [tex],
+  )
+  useFrame(() => {
+    const t = game.time
+    const on = demo.on && !!demo.arc
+    for (let i = 0; i < ARC; i++) {
+      const sp = refs.current[i]
+      if (!sp) continue
+      sp.visible = on
+      if (!on || !demo.arc) continue
+      const f = (t * 0.9 + i / ARC) % 1
+      const a = demo.hand
+      const c = demo.arc
+      sp.position.set(a.x + (c.x - a.x) * f, 1.1 + (0.35 - 1.1) * f + Math.sin(Math.PI * f) * 0.9, a.z + (c.z - a.z) * f)
+      sp.scale.setScalar(0.28 + Math.sin(Math.PI * f) * 0.18)
+      mats[i].color.copy(demo.lilac ? LILAC : GOLD)
+      mats[i].opacity = demo.alpha * Math.sin(Math.PI * f)
+    }
+    mirror.current.visible = demo.on && demo.lilac
+    mirror.current.position.set(demo.hand.x, 1.25, demo.hand.z)
+    mirror.current.material.opacity = demo.alpha * 0.9
+  })
+  return (
+    <>
+      {mats.map((m, i) => (
+        <sprite
+          key={i}
+          material={m}
+          visible={false}
+          ref={(el) => {
+            refs.current[i] = el
+          }}
+        />
+      ))}
+      <sprite ref={mirror} scale={[0.35, 0.45, 1]} visible={false}>
+        <spriteMaterial map={tex} color="#c8a8ff" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+    </>
+  )
+}

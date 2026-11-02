@@ -15,7 +15,7 @@ import {
 } from './BrasaScene'
 import { b, mirrorKey } from './brasaProto'
 import { Reflection } from './Reflection'
-import { ActionIcons, Beacons, Beckons, giveGlyph } from './Guides'
+import { ActionIcons, Beacons, Beckons, DemoFx, giveGlyph } from './Guides'
 
 /*
  * Onward — la luz que se pasa de mano en mano (ver game-design.md).
@@ -52,6 +52,7 @@ export default function BrasaApp() {
         <Beckons />
         <Beacons />
         <ActionIcons />
+        <DemoFx />
         <Suspense fallback={null}>
           <Character />
           {/* la elfa dorada del jugador anterior (en la escena del principio) y su sombra (en la gruta) */}

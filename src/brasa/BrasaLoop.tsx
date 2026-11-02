@@ -8,6 +8,7 @@ import type { Pt } from '../simbolos/recognizer'
 import { addCricket, rumble, updateCrickets } from './crickets'
 import { pointAlong } from '../simbolos/proto'
 import { loadPrevPath } from './brasaProto'
+import { demoStep } from './demos'
 import { CORRIDOR_HALF, DAWN_TREE, EXIT_OPEN, GROTTO, GROTTO_Z, INTRO, NEWBORN_REACH, PREV_PATH, SHADOW_FLEE, SHADOW_REACH, TRUNK_R, WAIT_SPOT } from './brasaProto'
 import {
   BRIDGE, BRIDGE_COST, BRIDGE_HALF, CRACK_Z0, CRACK_Z1, LOOK_NEED, MIRROR_SLOW, mirrorKey,
@@ -340,6 +341,7 @@ function step(dt: number) {
 
   fearStep(dt)
   shadowStep(dt, px, pz)
+  demoStep(dt)
   // la luz de quien espera baja de la copa cuando ella se acerca
   if (b.end.landAt < 0 && b.shadow.lightAt >= 0 && Math.hypot(g.x - WAIT_SPOT.x, g.z - WAIT_SPOT.z) < 16) {
     b.end.landAt = g.time
