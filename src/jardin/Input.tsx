@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { HEAP_SLOTS, ISLAND_R } from './data'
 import { dropScrap, gardenStep, j, paintTo } from './garden'
 import { setOpenness } from './audio'
+import { updateVoices } from './voices'
 
 /*
  * Un solo gesto para todo: tocar y arrastrar.
@@ -130,6 +131,7 @@ export function GardenLoop() {
     const dt = Math.min(rawDt, 0.05) * SPEED
     gardenStep(dt)
     setOpenness(j.richSmooth)
+    updateVoices()
     if (AUTO && j.started) autopilot(auto, dt)
   })
   return null
