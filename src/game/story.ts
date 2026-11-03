@@ -29,18 +29,18 @@ export const GOAL_SEED = 'Bring her a flame.'
 export const ELDER_LINES = [
   // "…¿Quién está ahí?"
   "…Who's there?",
-  // "Me recuerdas a alguien."
-  'You remind me of someone.',
-  // "Una chica que vivía aquí. Huérfana. Iba a donde iban los demás."
-  'A girl who lived here. An orphan. She went wherever the others went.',
-  // "Un día todos se fueron al bosque. Ella los siguió… y nunca volvió."
-  'One day they all went into the forest. She followed them… and never came back.',
-  // "Después llegó la sombra, y una a una nuestras luces se apagaron."
-  'Then the shadow came, and one by one our lights went out.',
-  // "El gran farol de la plaza se cayó. Hacen falta dos para subirlo…"
-  'The great lantern in the square fell. It takes two to raise it…',
-  // "…y aquí todos estamos solos."
-  '…and here, everyone is alone.',
+  // "Perdona. Por un momento te pareciste a alguien."
+  'Forgive me. For a moment, you looked like someone.',
+  // "Una chica de aquí. Sin familia. Caminaba detrás de quien fuera caminando."
+  'A girl from here. No family. She walked behind whoever was walking.',
+  // "Cuando los demás se fueron al bosque, ella fue detrás. Nadie se lo pidió. Nadie se lo impidió."
+  'When the others went into the forest, she went after them. No one asked her to. No one stopped her.',
+  // "Ninguno volvió. Esa noche nadie subió el gran farol… y entró la oscuridad."
+  'None of them came back. That night, no one raised the great lantern… and the dark came in.',
+  // "Hacen falta dos para subirlo."
+  'It takes two to raise it.',
+  // "Y aquí cada uno se queda detrás de su puerta."
+  'And here, each of us stays behind our own door.',
 ]
 
 /** La frase del gran farol (la cámara mira a la plaza y el anciano la señala). */

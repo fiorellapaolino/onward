@@ -238,12 +238,12 @@ const TMP_Q = new THREE.Quaternion()
 /*
  * Lo que hace el anciano con cada frase (game.line mientras habla con la elfa):
  *   0 "…¿Quién está ahí?"            se sobresalta: se echa atrás y levanta la cabeza
- *   1 "Me recuerdas a alguien."       se inclina hacia ella y alarga la mano
- *   2 "Una chica que vivía aquí…"     aparta la mirada hacia la aldea, recordando
- *   3 "Un día todos se fueron…"       mira hacia el bosque, se abraza las rodillas
- *   4 "Después llegó la sombra…"      baja la cabeza, mirando a la oscuridad
- *   5 "El gran farol de la plaza…"    señala la plaza
- *   6 "…y aquí todos estamos solos."  baja la cabeza
+ *   1 "Te pareciste a alguien."       se inclina hacia ella y alarga la mano
+ *   2 "Una chica de aquí…"            aparta la mirada, recordando
+ *   3 "…Nadie se lo impidió."         se abraza las rodillas (él tampoco se lo impidió)
+ *   4 "Ninguno volvió…"               baja la cabeza, mirando a la oscuridad
+ *   5 "Hacen falta dos para subirlo." señala la plaza
+ *   6 "…detrás de su puerta."         baja la cabeza
  */
 const ELDER_ACT = (() => {
   const cur = { lean: 0, reach: 0, away: 0, turn: 0, headDown: 0, point: 0, hug: 0, speaking: 0 }
