@@ -8,6 +8,7 @@ import { game } from '../game/state'
 import { CLIPS, makeSample, sampleAt } from '../game/anim'
 import { ELDER, GIRL, MUSICIAN } from '../game/village'
 import { GIFT, STAND_STEP, elfHand, giftSeedPos, girlStand } from '../game/gift'
+import { ELDER_LANTERN_LINE } from '../game/story'
 
 /*
  * La gente de la aldea. Usan los personajes de Quaternius (CC0) con ropa de campesino,
@@ -237,11 +238,12 @@ const TMP_Q = new THREE.Quaternion()
 /*
  * Lo que hace el anciano con cada frase (game.line mientras habla con la elfa):
  *   0 "…¿Quién está ahí?"            se sobresalta: se echa atrás y levanta la cabeza
- *   1 "Esa luz… Volviste."            se inclina hacia ella y alarga la mano
- *   2 "Después de que te fuiste…"     aparta la mirada hacia la oscuridad
- *   3 "Mi farol también…"             mira su farol apagado, se abraza las rodillas
- *   4 "El gran farol de la plaza…"    señala la plaza
- *   5 "…y aquí todos estamos solos."  baja la cabeza
+ *   1 "Me recuerdas a alguien."       se inclina hacia ella y alarga la mano
+ *   2 "Una chica que vivía aquí…"     aparta la mirada hacia la aldea, recordando
+ *   3 "Un día todos se fueron…"       mira hacia el bosque, se abraza las rodillas
+ *   4 "Después llegó la sombra…"      baja la cabeza, mirando a la oscuridad
+ *   5 "El gran farol de la plaza…"    señala la plaza
+ *   6 "…y aquí todos estamos solos."  baja la cabeza
  */
 const ELDER_ACT = (() => {
   const cur = { lean: 0, reach: 0, away: 0, turn: 0, headDown: 0, point: 0, hug: 0, speaking: 0 }
@@ -275,10 +277,15 @@ const ELDER_ACT = (() => {
         }
         if (line === 4) {
           want.away = 1
+          want.turn = -0.4
+          want.headDown = 0.3
+        }
+        if (line === ELDER_LANTERN_LINE) {
+          want.away = 1
           want.turn = -0.7
           want.point = 1
         }
-        if (line === 5) want.headDown = 0.35
+        if (line === 6) want.headDown = 0.35
       }
       for (const k of Object.keys(cur) as (keyof typeof cur)[]) cur[k] += (want[k] - cur[k]) * 0.06
       return cur

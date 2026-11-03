@@ -29,17 +29,22 @@ export const GOAL_SEED = 'Bring her a flame.'
 export const ELDER_LINES = [
   // "…¿Quién está ahí?"
   "…Who's there?",
-  // "Esa luz… Volviste."
-  'That light… You came back.',
-  // "Después de que te fuiste, llegó la sombra. Una a una, nuestras luces se apagaron."
-  'After you left, the shadow came. One by one, our lights went out.',
-  // "La mía también. Soy viejo… y tengo miedo de salir ahí fuera."
-  "Mine too. I'm old… and too afraid to go out there.",
+  // "Me recuerdas a alguien."
+  'You remind me of someone.',
+  // "Una chica que vivía aquí. Huérfana. Iba a donde iban los demás."
+  'A girl who lived here. An orphan. She went wherever the others went.',
+  // "Un día todos se fueron al bosque. Ella los siguió… y nunca volvió."
+  'One day they all went into the forest. She followed them… and never came back.',
+  // "Después llegó la sombra, y una a una nuestras luces se apagaron."
+  'Then the shadow came, and one by one our lights went out.',
   // "El gran farol de la plaza se cayó. Hacen falta dos para subirlo…"
   'The great lantern in the square fell. It takes two to raise it…',
   // "…y aquí todos estamos solos."
   '…and here, everyone is alone.',
 ]
+
+/** La frase del gran farol (la cámara mira a la plaza y el anciano la señala). */
+export const ELDER_LANTERN_LINE = 5
 
 /** La oscuridad la rodea. "Mantén E · Quédate" (en el móvil: mantén el dedo) */
 export const PROMPT_STAY = 'Stay'

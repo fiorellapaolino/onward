@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { GIRL_S, clamp01, damp, headingAt, tangentAt } from '../game/config'
 import { BORN, ECHO_DELAY, game, input, shadow } from '../game/state'
 import { ELDER, GIRL, POLE } from '../game/village'
+import { ELDER_LANTERN_LINE } from '../game/story'
 import { GIFT, elfHand, giftSeedPos, inGiftScene } from '../game/gift'
 
 const pos = new THREE.Vector3()
@@ -54,7 +55,7 @@ export function CameraRig() {
       if (first) talkSide.current = perp.dot(tmpV.copy(camera.position).sub(mid)) >= 0 ? 1 : -1
       const half = Math.hypot(ELDER.x - g.x, ELDER.z - g.z) / 2 + 0.55
       const dist = Math.max(2.4, fitDist(camera as THREE.PerspectiveCamera, half))
-      if (g.line === 4) {
+      if (g.line === ELDER_LANTERN_LINE) {
         // "el gran farol de la plaza…": desde detrás del anciano, mirando hacia el poste caído
         // (de lado, a medio camino entre él y la plaza: se ve el poste caído y las dos piedras)
         tmpV.set(POLE.z - ELDER.z, 0, -(POLE.x - ELDER.x)).normalize()
