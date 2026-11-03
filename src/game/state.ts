@@ -132,7 +132,7 @@ export const input = {
   left: false,
   right: false,
   backPressed: false,
-  run: false, // Tab mantenido (o el botón "Run" activado en el móvil)
+  run: false, // Shift o Tab mantenido (o el botón "Run" activado en el móvil)
   runToggle: false, // botón "Run" del móvil: se activa / desactiva con un toque
   joyX: 0, // palanca táctil del móvil: -1 izquierda … 1 derecha
   joyY: 0, // -1 adelante … 1 atrás (como en la pantalla: hacia arriba = adelante)

@@ -33,7 +33,7 @@ export const JUMP_BOOST = 2.6 // impulso hacia delante en el aire (metros por se
 
 // ── Velocidades (metros por segundo) ─────────────────────────────
 export const WALK_SPEED = 0.85 // caminar (sube un poco con la confianza)
-export const RUN_SPEED = 2.7 // correr con Tab
+export const RUN_SPEED = 2.7 // correr con Shift (o Tab)
 
 // ── Límites del bosque ───────────────────────────────────────────
 export const PATH_HALF_WIDTH = 7 // cuánto se puede alejar del sendero hacia los lados

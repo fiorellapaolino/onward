@@ -71,8 +71,8 @@ export function Hud() {
         ) : (
           <>
             <p>
-              {/* "W A S D para moverte · Tab para correr · Espacio para saltar" */}
-              <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move · <kbd>Tab</kbd> to run · <kbd>Space</kbd> to jump
+              {/* "W A S D para moverte · Shift para correr · Espacio para saltar" */}
+              <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move · <kbd>Shift</kbd> to run · <kbd>Space</kbd> to jump
             </p>
             {/* "Arrastra para mirar alrededor · rueda para acercar" */}
             <p className="hint">Drag to look around · scroll to zoom</p>

@@ -3,7 +3,9 @@ import { game, input } from './state'
 
 // Moverse (relativo a la cámara): W/↑ adelante, S/↓ atrás, A/← izquierda, D/→ derecha
 // (en móvil/tablet: palanca con el pulgar izquierdo, arrastrar a la derecha para mirar, botones para correr y saltar).
-// Correr: mantener Tab mientras camina. Saltar: Espacio. Escuchar / hablar: E.
+// Correr: mantener Shift (o Tab) mientras camina.
+// (Shift es una tecla modificadora: el teclado siempre la manda junto con W y Espacio;
+//  con Tab, muchos teclados no mandan las tres a la vez y no saltaba al correr) Saltar: Espacio. Escuchar / hablar: E.
 // Cámara: arrastrar con el ratón gira alrededor de la elfa; la rueda acerca o aleja.
 const FORWARD = new Set(['ArrowUp', 'KeyW'])
 const BACK = new Set(['ArrowDown', 'KeyS'])
@@ -24,7 +26,7 @@ export function useInput() {
       input.backward = any(BACK)
       input.left = any(LEFT)
       input.right = any(RIGHT)
-      input.run = keys.has('Tab') || input.runToggle
+      input.run = keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('Tab') || input.runToggle
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
