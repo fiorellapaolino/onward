@@ -16,6 +16,7 @@ import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
 import { CameraRig } from './components/CameraRig'
 import { Hud } from './components/Hud'
+import { Effects, fxEnabled } from './components/Effects'
 
 export default function App() {
   useInput()
@@ -27,6 +28,7 @@ export default function App() {
         <TheLight />
         <OtherPaths />
         <CameraRig />
+        {fxEnabled && <Effects />}
         <Suspense fallback={null}>
           <Character />
           <ShadowSelf />
