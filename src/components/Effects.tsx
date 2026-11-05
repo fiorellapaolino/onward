@@ -13,11 +13,30 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
  *   2. Gradación de color: sombras un poco azuladas, luces cálidas, algo más de saturación.
  *   3. Viñeta: los bordes un poco más oscuros, para llevar la mirada al centro.
  *   4. Grano muy fino: quita el aspecto "plástico" del render.
- *   5. Tone mapping AgX (en OutputPass): colores suaves, sin quemarse en las luces.
+ *   5. Tone mapping ACES (en OutputPass): el mismo con el que se ajustaron los colores del juego.
  *
  * Para comparar con el antes: añade ?fx=0 a la dirección.
  */
 export const fxEnabled = new URLSearchParams(location.search).get('fx') !== '0'
+
+// Limpia píxeles inválidos (NaN / infinito) antes del bloom: si no, uno solo se desenfoca y apaga toda la pantalla
+const CleanShader = {
+  uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      bvec3 bad = bvec3(c.r != c.r || c.r > 6e4, c.g != c.g || c.g > 6e4, c.b != c.b || c.b > 6e4);
+      if (any(bad)) c.rgb = vec3(0.0);
+      gl_FragColor = vec4(clamp(c.rgb, 0.0, 32.0), c.a);
+    }
+  `,
+}
 
 const GradeShader = {
   uniforms: {
@@ -25,9 +44,9 @@ const GradeShader = {
     time: { value: 0 },
     shadowTint: { value: new THREE.Color('#3c5a66') }, // azul verdoso en las sombras
     lightTint: { value: new THREE.Color('#ffe2b8') }, // dorado en las luces
-    tintAmount: { value: 0.1 },
-    saturation: { value: 1.12 },
-    vignette: { value: 0.35 },
+    tintAmount: { value: 0.08 },
+    saturation: { value: 1.18 },
+    vignette: { value: 0.3 },
     grain: { value: 0.025 },
   },
   vertexShader: /* glsl */ `
@@ -83,6 +102,7 @@ export function Effects() {
     const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 })
     const composer = new EffectComposer(gl, target)
     composer.addPass(new RenderPass(scene, camera))
+    composer.addPass(new ShaderPass(CleanShader))
     // fuerza, radio, umbral: solo brilla lo que de verdad es luz (umbral alto)
     composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.6, 0.85))
     const grade = new ShaderPass(GradeShader)
@@ -92,8 +112,8 @@ export function Effects() {
   }, [gl, scene, camera])
 
   useEffect(() => {
-    gl.toneMapping = THREE.AgXToneMapping
-    gl.toneMappingExposure = 1.05
+    gl.toneMapping = THREE.ACESFilmicToneMapping
+    gl.toneMappingExposure = 1
   }, [gl])
 
   useEffect(() => {

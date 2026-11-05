@@ -3,5 +3,5 @@ fx_bosque     ?at=20&yaw=0.4        14
 antes_bosque  ?at=20&yaw=0.4&fx=0   14
 fx_aldea      ?at=58                14
 antes_aldea   ?at=58&fx=0           14
-fx_final      ?at=105&ending        14
-antes_final   ?at=105&ending&fx=0   14
+fx_final      ?at=105&ending        20
+antes_final   ?at=105&ending&fx=0   20
