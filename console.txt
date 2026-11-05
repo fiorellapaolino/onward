@@ -1,0 +1,12 @@
+[fx_bosque] fps≈0.3333333333333333
+[fx_bosque] state {"phase":"play","story":"help","x":1.4921931571089537,"z":33,"jumpT":-1,"jumpY":0,"speed":0,"talk":null,"courage":0,"kneel":0,"sinceShadow":null}
+[antes_bosque] fps≈2
+[antes_bosque] state {"phase":"play","story":"help","x":1.4921931571089537,"z":33,"jumpT":-1,"jumpY":0,"speed":0,"talk":null,"courage":0,"kneel":0,"sinceShadow":null}
+[fx_aldea] fps≈1
+[fx_aldea] state {"phase":"play","story":"help","x":-0.24325151885187424,"z":58,"jumpT":-1,"jumpY":0,"speed":0,"talk":null,"courage":0,"kneel":0,"sinceShadow":null}
+[antes_aldea] fps≈0.3333333333333333
+[antes_aldea] state {"phase":"play","story":"help","x":-0.24325151885187424,"z":58,"jumpT":-1,"jumpY":0,"speed":0,"talk":null,"courage":0,"kneel":0,"sinceShadow":null}
+[fx_final] fps≈0.6666666666666666
+[fx_final] state {"phase":"play","story":"next","x":4.469938513978424,"z":105,"jumpT":-1,"jumpY":0,"speed":0,"talk":null,"courage":0,"kneel":0,"sinceShadow":5.350000000000005}
+[antes_final] fps≈0.3333333333333333
+[antes_final] state {"phase":"play","story":"next","x":4.469938513978424,"z":105,"jumpT":-1,"jumpY":0,"speed":0,"talk":null,"courage":0,"kneel":0,"sinceShadow":5.548500000000004}
