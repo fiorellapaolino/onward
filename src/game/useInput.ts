@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { game, input } from './state'
+import { CAM_ZOOM_MAX, CAM_ZOOM_MIN, game, input } from './state'
 
 // Moverse (relativo a la cámara): W/↑ adelante, S/↓ atrás, A/← izquierda, D/→ derecha
 // (en móvil/tablet: palanca con el pulgar izquierdo, arrastrar a la derecha para mirar, botones para correr y saltar).
@@ -120,8 +120,27 @@ export function useInput() {
       }
       sync()
     }
+    // El zoom siempre es de la cámara, hacia la elfa. El pellizco del trackpad llega como rueda con Ctrl:
+    // si no se lo frena, el navegador amplía la página entera (se pixela y la elfa se va a un costado)
+    const zoomBy = (factor: number) => {
+      if (game.started) input.camZoom = clamp(input.camZoom * factor, CAM_ZOOM_MIN, CAM_ZOOM_MAX)
+    }
     const onWheel = (e: WheelEvent) => {
-      input.camZoom = clamp(input.camZoom * Math.exp(e.deltaY * 0.001), 0.6, 1.8)
+      if (e.ctrlKey) e.preventDefault()
+      // (el pellizco manda valores mucho más chicos que la rueda)
+      zoomBy(Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.001)))
+    }
+    // Safari no manda rueda al pellizcar: usa sus propios eventos de gesto
+    let gestureScale = 1
+    const onGestureStart = (e: Event) => {
+      e.preventDefault()
+      gestureScale = 1
+    }
+    const onGestureChange = (e: Event) => {
+      e.preventDefault()
+      const scale = (e as unknown as { scale: number }).scale
+      if (scale > 0) zoomBy(gestureScale / scale)
+      gestureScale = scale
     }
     const onBlur = () => {
       keys.clear()
@@ -139,7 +158,9 @@ export function useInput() {
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
     window.addEventListener('pointercancel', onPointerUp)
-    window.addEventListener('wheel', onWheel, { passive: true })
+    window.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('gesturestart', onGestureStart, { passive: false })
+    window.addEventListener('gesturechange', onGestureChange, { passive: false })
     window.addEventListener('blur', onBlur)
     return () => {
       window.removeEventListener('keydown', onKeyDown, true)
@@ -149,6 +170,8 @@ export function useInput() {
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('pointercancel', onPointerUp)
       window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('gesturestart', onGestureStart)
+      window.removeEventListener('gesturechange', onGestureChange)
       window.removeEventListener('blur', onBlur)
     }
   }, [])

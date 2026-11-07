@@ -2,20 +2,17 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Clone, Sparkles, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { SHADOW_S, VILLAGE_R, VILLAGE_S, damp, natureUrl, pathAt, rng, sideAt } from '../game/config'
-import { game, litFraction } from '../game/state'
-import { BELLS, BELL_R, ELDER, GIRL, GIRL_TREE, LANTERNS, MUSICIAN, PLATES, PLATE_R, POLE, buildHuts, type Hut, type Lantern } from '../game/village'
+import { STAIR_Z0, STREET_YAW, TERRACE_END, TERRACE_H, damp, natureUrl, rng, streetToWorld } from '../game/config'
+import { game } from '../game/state'
+import { BELLS, BELL_R, ELDER, GIRL, GIRL_TREE, LANTERNS, MUSICIAN, PLATES, PLATE_R, POLE, type Lantern } from '../game/village'
 import { useGlowTexture } from './TheLight'
-import HOUSE_TYPES from '../game/houseTypes.json'
 
 /*
- * La aldea: casas de entramado y piedra (Medieval Village MegaKit de Quaternius, CC0),
- * faroles apagados y una sombra que la cubre. A la salida, la sombra es tan espesa que no se puede pasar.
+ * La aldea: faroles apagados (las casas están en StreetScene.tsx) y una sombra que la cubre. A la salida, la sombra es tan espesa que no se puede pasar.
  * (Los faroles, el poste y la piedra están hechos con formas simples.)
  */
 
 const TREE_URL = natureUrl('CommonTree_3')
-const HOUSES_URL = `${import.meta.env.BASE_URL}models/village/houses.gltf`
 
 // Materiales compartidos (sombreado plano: se ve "hecho a mano", como el resto del bosque)
 const mats = {
@@ -31,28 +28,10 @@ const GLASS_ON = new THREE.Color('#ffe2b0')
 
 
 export function Village() {
-  const huts = useMemo(buildHuts, [])
   const { scene: tree } = useGLTF(TREE_URL)
-  const { materials } = useGLTF(HOUSES_URL)
-
-  // las ventanas de las casas: oscuras mientras la sombra cubre la aldea; se encienden con los faroles
-  const glass = materials.MI_WindowGlass as THREE.MeshStandardMaterial | undefined
-  useFrame((_, rawDt) => {
-    if (!glass) return
-    const dt = Math.min(rawDt, 0.05)
-    const on = litFraction()
-    glass.emissive.set('#ffb45e')
-    glass.emissiveIntensity += (on * 1.8 - glass.emissiveIntensity) * damp(1.5, dt)
-    glass.color.lerpColors(GLASS_OFF, GLASS_ON, Math.min(1, on))
-    glass.opacity = 0.3 + 0.65 * on
-    glass.transparent = true
-  })
 
   return (
     <group>
-      {huts.map((h, i) => (
-        <HouseMesh key={i} hut={h} />
-      ))}
       {LANTERNS.map((l, i) => (
         <LanternPost key={i} lantern={l} index={i} />
       ))}
@@ -67,7 +46,7 @@ export function Village() {
 
       {/* (la niña se quitó: queda solo su árbol) */}
       {/* El árbol de la niña */}
-      <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} />
+      <Clone object={tree} position={[GIRL_TREE.x, 0, GIRL_TREE.z]} rotation-y={GIRL_TREE.rot + 1.2} scale={1.45} castShadow />
 
       <Square />
       <ShadowMist />
@@ -154,25 +133,6 @@ function LanternLamp({ position, isLit }: { position: [number, number, number]; 
   )
 }
 
-/**
- * Una casa del kit (Medieval Village MegaKit de Quaternius, CC0), ya armada por tools/bake_houses.py.
- * Las copias comparten geometría y materiales con el original.
- */
-function HouseMesh({ hut }: { hut: Hut }) {
-  const { nodes } = useGLTF(HOUSES_URL)
-  const t = HOUSE_TYPES[hut.type]
-  return (
-    <group position={[hut.x, 0, hut.z]} rotation-y={hut.rot} scale={hut.scale}>
-      <Clone object={nodes['House_' + hut.type]} />
-      {/* interior a oscuras: por las ventanas no se ve nada hasta que vuelve la luz */}
-      <mesh material={INTERIOR} position={[0, 1.6, 0]}>
-        <boxGeometry args={[t.hx * 2 - 0.7, 3.1, t.hz * 2 - 0.7]} />
-      </mesh>
-    </group>
-  )
-}
-const INTERIOR = new THREE.MeshBasicMaterial({ color: '#120e0c' })
-
 /*
  * La sombra: manchas oscuras que flotan sobre la aldea y un muro espeso a la salida.
  * Respiran despacio. Cuando la sombra deje pasar (más adelante), se desvanecen.
@@ -184,49 +144,56 @@ function ShadowMist() {
   const blobs = useMemo(() => {
     const r = rng(666)
     const out: Blob[] = []
-    const p = new THREE.Vector3()
-    const sd = new THREE.Vector3()
-    // muro a la salida: varias capas que cruzan todo el ancho del bosque
-    for (let i = 0; i < 70; i++) {
-      const s = SHADOW_S + r() * 7
-      pathAt(s, p)
-      sideAt(s, sd)
-      const lat = (r() - 0.5) * 22
-      out.push({ x: p.x + sd.x * lat, y: 0.4 + r() * 4.5, z: p.z + sd.z * lat, size: 3 + r() * 4, phase: r() * 6.28, speed: 0.2 + r() * 0.3, wall: true })
-    }
-    // sobre la aldea: nubarrones bajos
-    const c = pathAt(VILLAGE_S)
-    for (let i = 0; i < 26; i++) {
-      const a = r() * Math.PI * 2
-      const d = Math.sqrt(r()) * VILLAGE_R
-      out.push({ x: c.x + Math.cos(a) * d, y: 6 + r() * 4, z: c.z + Math.sin(a) * d, size: 5 + r() * 6, phase: r() * 6.28, speed: 0.1 + r() * 0.15, wall: false })
+    // la oscuridad que llena el portal de arriba de la escalera (se va cuando sube el farol)
+    for (let i = 0; i < 14; i++) {
+      const lz = TERRACE_END - STAIR_Z0 - 0.5 + r() * 1.4
+      const p2 = streetToWorld((r() - 0.5) * 3.2, lz)
+      out.push({ x: p2.x, y: TERRACE_H + 0.4 + r() * 4, z: p2.z, size: 1.6 + r() * 1.7, phase: r() * 6.28, speed: 0.2 + r() * 0.3, wall: true })
     }
     return out
   }, [])
 
   const material = useMemo(
-    () => new THREE.SpriteMaterial({ map: tex, color: '#17141f', transparent: true, opacity: 0.8, depthWrite: false, fog: false }),
+    () => new THREE.SpriteMaterial({ map: tex, color: '#17141f', transparent: true, opacity: 0.8, depthWrite: false }),
     [tex],
   )
   const refs = useRef<(THREE.Sprite | null)[]>([])
   const fade = useRef(1)
+  // el cuerpo de la oscuridad: una sola pieza con la forma del arco (las manchas son solo su borde de humo)
+  const gate = useMemo(() => {
+    const R = 2.05
+    const H = 2.9
+    const shape = new THREE.Shape()
+    shape.moveTo(-R, 0)
+    shape.lineTo(R, 0)
+    shape.lineTo(R, H)
+    shape.absarc(0, H, R, 0, Math.PI, false)
+    shape.lineTo(-R, 0)
+    const w = streetToWorld(0, TERRACE_END - STAIR_Z0 - 0.05)
+    return { geometry: new THREE.ShapeGeometry(shape, 18), x: w.x, z: w.z }
+  }, [])
+  const gateMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#17141f', transparent: true, depthWrite: false, side: THREE.DoubleSide }), [])
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
     fade.current += ((game.shadowOpen ? 0 : 1) - fade.current) * damp(0.8, dt)
     material.opacity = 0.8 * fade.current * (1 - 0.9 * game.memory) // (en el recuerdo todavía no había sombra)
+    gateMat.opacity = fade.current * (1 - 0.9 * game.memory)
+    const open = fade.current < 0.01
     const t = game.time
     blobs.forEach((b, i) => {
       const s = refs.current[i]
       if (!s) return
+      s.visible = !open
       const breathe = 1 + Math.sin(t * b.speed * 2 + b.phase) * 0.12
-      s.position.set(b.x + Math.sin(t * b.speed + b.phase) * 0.6, b.y + Math.sin(t * b.speed * 1.3 + b.phase) * 0.3, b.z)
+      s.position.set(b.x + Math.sin(t * b.speed + b.phase) * 0.18, b.y + Math.sin(t * b.speed * 1.3 + b.phase) * 0.15, b.z)
       s.scale.setScalar(b.size * breathe)
     })
   })
 
   return (
     <>
+      <mesh geometry={gate.geometry} material={gateMat} position={[gate.x, TERRACE_H, gate.z]} rotation-y={STREET_YAW} renderOrder={2} />
       {blobs.map((b, i) => (
         <sprite key={i} ref={(el) => {
             refs.current[i] = el
@@ -416,7 +383,6 @@ function StoneBells() {
     [tex],
   )
   const halos = useRef<(THREE.Sprite | null)[]>([])
-  const glowWindow = useRef<THREE.PointLight>(null!)
 
   useFrame(() => {
     const g = game
@@ -435,7 +401,6 @@ function StoneBells() {
     // la ventana de la mujer brilla mientras toca (a escondidas) y del todo cuando sale
     const playing = BELLS.some((_, i) => g.bellBy[i] === 3 && g.time - g.bellAt[i] < 0.8)
     const target = g.freedAt >= 0 ? 6 : playing ? 3 : 0
-    glowWindow.current.intensity += (target - glowWindow.current.intensity) * 0.08
   })
 
   return (
@@ -454,11 +419,8 @@ function StoneBells() {
           />
         </group>
       ))}
-      {/* luz cálida que sale de la casa de la música */}
-      <pointLight ref={glowWindow} position={[MUSICIAN.x, 1.3, MUSICIAN.z]} color="#ffc98a" distance={7} intensity={0} />
     </group>
   )
 }
 
 useGLTF.preload(TREE_URL)
-useGLTF.preload(HOUSES_URL)

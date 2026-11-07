@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useProgress } from '@react-three/drei'
 import { consumePointer, game, input, isTouch, setUi, useUi } from '../game/state'
 import { TouchControls } from './TouchControls'
-import { startMusic } from '../game/music'
+import { primeMusic, startMusic } from '../game/music'
 
 // Textos en pantalla. Están en inglés porque las reglas lo piden;
 // la traducción está en el comentario de al lado.
@@ -14,19 +14,32 @@ export function Hud() {
   const lastSay = useRef('')
   if (ui.say) lastSay.current = ui.say
 
-  // Carga de modelos: no se puede empezar hasta que el bosque esté listo
+  // Carga de modelos: el juego no arranca hasta que el bosque esté listo
   const { active, progress } = useProgress()
   const loaded = !active && progress >= 100
   useEffect(() => {
     game.loaded = loaded
   }, [loaded])
 
-  const begin = () => {
-    if (!loaded || game.started) return
+  // Begin se puede apretar desde el primer momento: si todavía carga, el juego arranca apenas esté listo
+  const [waiting, setWaiting] = useState(false)
+  const start = () => {
+    if (game.started) return
     startMusic() // en el mismo clic: los navegadores solo dejan sonar audio así
     game.started = true
     setUi({ start: false })
   }
+  const begin = () => {
+    if (game.started) return
+    if (loaded) start()
+    else {
+      primeMusic()
+      setWaiting(true)
+    }
+  }
+  useEffect(() => {
+    if (waiting && loaded) start()
+  })
 
   // también se puede empezar con Enter o Espacio
   useEffect(() => {
@@ -40,20 +53,13 @@ export function Hud() {
   return (
     <div className="hud">
       {/* Pantalla de inicio */}
-      <div className={`start ${ui.start ? 'show' : ''}`}>
+      <div className={`start ${ui.start ? 'show' : ''} ${ui.titleReady ? 'ready' : ''}`}>
         {/* "Hacia adelante" */}
         <h1>Onward</h1>
-        {loaded ? (
-          <button type="button" className="begin" onPointerDown={(e) => e.stopPropagation()} onClick={begin}>
-            {/* "Empezar" */}
-            Begin
-          </button>
-        ) : (
-          // "Cargando el bosque…"
-          <p>Loading the forest… {Math.round(progress)}%</p>
-        )}
-        {/* "Mejor con auriculares" */}
-        <p className="hint">Best with headphones</p>
+        <button type="button" className={`begin ${waiting ? 'waiting' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={begin}>
+          {/* "Empezar" */}
+          Begin
+        </button>
       </div>
 
       {/* Título, en el silencio después de la canción */}
@@ -130,12 +136,16 @@ export function Hud() {
 
       <div className={`fade ${ui.fade ? 'show' : ''}`} />
 
-      <div className={`final ${ui.final ? 'show' : ''}`}>
+      <div
+        className={`final ${ui.final ? 'show' : ''}`}
+        style={ui.final && isTouch ? { pointerEvents: 'auto' } : undefined}
+        onClick={ui.final && isTouch ? () => location.reload() : undefined}
+      >
         <h1>Onward</h1>
         {/* "Gracias por jugar" */}
         <p>Thank you for playing.</p>
-        {/* "Pulsa R para jugar de nuevo" */}
-        <small>Press R to play again</small>
+        {/* "Pulsa R para jugar de nuevo" (en el móvil no hay teclado: se toca la pantalla) */}
+        <small>{isTouch ? 'Tap to play again' : 'Press R to play again'}</small>
       </div>
     </div>
   )

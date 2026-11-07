@@ -1,9 +1,5 @@
 import { useFrame } from '@react-three/fiber'
-import {
-  RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST,
-  PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END,
-  smoothstep, damp, headingAt, pathAt, sideAt, tangentAt,
-} from './config'
+import { RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST, PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, smoothstep, damp, headingAt, pathAt, sideAt, tangentAt, STAIR_END, STAIR_Z0, STREET_HALF, streetToWorld, worldToStreet } from './config'
 import * as THREE from 'three'
 import { BORN, ECHO_DELAY, RETURN_TIME, game, input, setUi, shadow, trail, type Phase } from './state'
 import { MUSIC, musicTime, playThemeAgain } from './music'
@@ -16,6 +12,7 @@ import {
 import { applyDebug, debugFF, debugMode, debugPause, debugStay } from './debug'
 import { MEMORY_LINES } from './story'
 import { updateMoments } from './moments'
+import { SOMBRA_END, sombraMode, updateSombra } from './sombra'
 import { fires } from './fires'
 import { GIFT, inGiftScene } from './gift'
 
@@ -49,6 +46,12 @@ export function GameLoop() {
 let ffLeft = debugFF
 
 /** Un paso del juego (dt en segundos). */
+/** Hasta dónde se guía a la elfa hacia el hueco de la escalera: metros antes del muro y a los lados del hueco. */
+const STAIR_GUIDE = { ahead: 1.6, reach: 3 }
+/** Los muros de la terraza, en metros de la calle (dejando el grosor de su cuerpo para que no los atraviese). */
+const WALL_FRONT = -0.35
+const WALL_BACK = STAIR_END - STAIR_Z0 + 0.5
+
 function step(rawDt: number) {
     const dt = Math.min(rawDt, 0.05)
     const g = game
@@ -194,6 +197,18 @@ function step(rawDt: number) {
         // (con miedo, mientras mantiene E se queda: de rodillas, sin caminar)
         const moving = MOVE.lengthSq() > 0.04 && !(g.story === 'fear' && input.hold) // (con la palanca, un toque mínimo no la mueve)
         if (moving) MOVE.normalize()
+        // ── Al llegar a la escalera, si va hacia adelante y apenas le erra al hueco, camina hacia él (no se queda contra el muro) ──
+        const here = worldToStreet(g.x, g.z)
+        if (moving && MOVE.z > 0.3 && here.lz > WALL_FRONT - STAIR_GUIDE.ahead && here.lz <= WALL_FRONT) {
+          const edge = STREET_HALF - 0.3
+          if (Math.abs(here.lx) > edge && Math.abs(here.lx) < STREET_HALF + STAIR_GUIDE.reach) {
+            const aim = streetToWorld(Math.sign(here.lx) * edge, WALL_FRONT + 0.6)
+            const aimX = aim.x - g.x
+            const aimZ = aim.z - g.z
+            const len = Math.hypot(aimX, aimZ)
+            if (MOVE.x * (aimX / len) >= -0.3) MOVE.set(aimX / len, 0, aimZ / len) // (si se aleja a propósito, no se la fuerza)
+          }
+        }
         if (moving && g.phaseT > 4) setUi({ hint: false }) // los controles se van tras los primeros pasos
         if (moving) g.c += (cMax - g.c) * dt * 0.6
         else g.c = Math.max(0, g.c - dt * 0.06)
@@ -213,14 +228,30 @@ function step(rawDt: number) {
         const airborne = g.jumpT >= JUMP_CROUCH && g.jumpT < JUMP_CROUCH + JUMP_AIR
         const air = airborne ? Math.sin(((g.jumpT - JUMP_CROUCH) / JUMP_AIR) * Math.PI) : 0
         const step = airborne ? g.speed + JUMP_BOOST * (0.6 + 0.4 * air) : g.speed
+        const fromX = g.x
+        const fromZ = g.z
         g.x += Math.sin(g.yaw) * step * dt
         g.z += Math.cos(g.yaw) * step * dt
 
         // ── Límites: no sale del bosque, no vuelve más atrás del inicio, y la sombra corta el paso ──
-        const maxZ = g.shadowOpen ? PATH_LEN : SHADOW_S - 1.2
+        const maxZ = sombraMode ? SOMBRA_END : g.shadowOpen ? PATH_LEN : SHADOW_S - 1.2
         g.z = THREE.MathUtils.clamp(g.z, START_Z - 3, maxZ)
         const cx = pathAt(g.z, TMP).x
         g.x = THREE.MathUtils.clamp(g.x, cx - PATH_HALF_WIDTH, cx + PATH_HALF_WIDTH)
+        // ── La escalera: solo se entra por el hueco entre los muros; arriba y al bajar, por el medio ──
+        // (en coordenadas de la calle, que está girada: el muro no es una línea recta en el mundo)
+        const inStreet = worldToStreet(g.x, g.z)
+        if (inStreet.lz > WALL_FRONT && inStreet.lz < WALL_BACK) {
+          let { lx, lz } = inStreet
+          if (Math.abs(lx) > STREET_HALF + 0.4) lz = lz < WALL_BACK / 2 ? WALL_FRONT : WALL_BACK // (choca contra el muro)
+          else {
+            const inside = THREE.MathUtils.clamp(lx, -STREET_HALF, STREET_HALF)
+            lx += THREE.MathUtils.clamp(inside - lx, -2 * dt, 2 * dt) // (se acomoda al entrar, sin saltar)
+          }
+          const back = streetToWorld(lx, lz)
+          g.x = back.x
+          g.z = back.z
+        }
         // no atraviesa las casas, ni a la gente, ni los faroles
         for (const c of COLLIDERS) {
           const cdx = g.x - c.x
@@ -248,12 +279,14 @@ function step(rawDt: number) {
             g.z = b.z - lx * s + lz * c
           }
         }
+        // si algo la frena (un muro, una casa), los pies van a lo que de verdad avanzó: no camina en el sitio
+        if (dt > 0) g.speed = Math.min(g.speed, Math.hypot(g.x - fromX, g.z - fromZ) / dt)
         const gd = Math.hypot(g.x - GIRL.x, g.z - GIRL.z)
         g.p = g.z
         g.pMax = Math.max(g.pMax, g.p)
 
         // empuja contra la sombra: duda, y un texto lo explica
-        g.blocked = !g.shadowOpen && g.z >= maxZ - 0.05
+        g.blocked = !sombraMode && !g.shadowOpen && g.z >= maxZ - 0.05
         if (g.blocked && moving && MOVE.z > 0.3) {
           g.speed = Math.min(g.speed, 0.2)
           setUi({ msg: SHADOW_BLOCK })
@@ -431,6 +464,7 @@ function step(rawDt: number) {
 
         // ── Momentos de estar viva (semilla, charcos, luciérnagas, flores…) ──
         updateMoments(dt)
+        if (sombraMode) updateSombra()
 
         // el claro del final: se detiene… y se da vuelta
         if (g.shadowOpen && g.z >= PATH_LEN - 12) {
@@ -547,7 +581,9 @@ function step(rawDt: number) {
     if (input.jumpPressed) jumpBuf = 0.3
     input.jumpPressed = false
     if (!(g.jumpT >= 0)) g.jumpT = -1 // (nunca queda en un valor raro)
-    if (jumpBuf > 0 && g.jumpT < 0 && g.phase === 'play' && !g.talk && !inGiftScene()) {
+    // (puede volver a saltar apenas toca el piso: no hace falta esperar a que termine de amortiguar)
+    const landedFor = g.jumpT - (JUMP_CROUCH + JUMP_AIR)
+    if (jumpBuf > 0 && (g.jumpT < 0 || landedFor >= 0) && g.phase === 'play' && !g.talk && !inGiftScene()) {
       g.jumpT = 0
       jumpBuf = 0
     }

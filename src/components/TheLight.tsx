@@ -1,7 +1,8 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { PATH_LEN, clamp01, headingAt, pathAt } from '../game/config'
+import { PATH_LEN, clamp01, damp, headingAt, pathAt } from '../game/config'
+import { MUSIC } from '../game/music'
 import { game } from '../game/state'
 
 /** Textura redonda que se desvanece hacia los bordes (para halos de luz). */
@@ -24,6 +25,7 @@ export function useGlowTexture() {
 
 const LIGHT_S = PATH_LEN + 10
 const lightPos = pathAt(LIGHT_S).add(new THREE.Vector3(0, 2.4, 0))
+const LIGHT_MAX = 25
 
 /**
  * La luz cálida al fondo del bosque. Se ve desde el principio (atraviesa la niebla)
@@ -35,23 +37,39 @@ export function TheLight() {
   const core = useRef<THREE.Sprite>(null!)
   const light = useRef<THREE.PointLight>(null!)
 
-  useFrame(() => {
+  const fade = useRef(1)
+
+  useFrame((_, rawDt) => {
     const g = game
+    // Brilla en la niebla del principio y se apaga al abrirse: en la aldea lo que importa es hablar con el anciano.
+    // Solo vuelve después del abrazo, cuando las dos caminan juntas hacia ella.
+    const fogOpen = g.started && g.musicT >= MUSIC.BASS_IN
+    const finale = g.phase === 'end' && g.phaseT >= 10
+    const want = finale || !fogOpen ? 1 : 0
+    fade.current += (want - fade.current) * damp(1.2, Math.min(rawDt, 0.05))
+    const f = fade.current
+    const haloMat = halo.current.material as THREE.SpriteMaterial
+    const coreMat = core.current.material as THREE.SpriteMaterial
+    haloMat.opacity = 0.7 * f
+    coreMat.opacity = f
+    halo.current.visible = core.current.visible = f > 0.005
     const near = clamp01(1 - (LIGHT_S - g.p) / LIGHT_S) // 0 al empezar, 1 al llegar
     const end = g.phase === 'end' ? Math.max(0, g.phaseT - 10) : 0
     const breathe = 1 + Math.sin(g.time * 1.2) * 0.06
     halo.current.scale.setScalar((14 + near * 30 + end * 12) * breathe)
     core.current.scale.setScalar((3 + near * 4 + end * 2) * breathe)
-    light.current.intensity = near * near * 60 + end * 20
+    // (intensidad acotada: más fuerte quema la colina y el castillo)
+    light.current.intensity = Math.min(LIGHT_MAX, near * near * 60 + end * 20) * f
   })
 
   return (
     <group position={lightPos}>
-      <sprite ref={halo}>
-        <spriteMaterial map={tex} color="#ffd9a0" transparent depthWrite={false} blending={THREE.AdditiveBlending} fog={false} toneMapped={false} opacity={0.7} />
+      {/* siempre encima de todo: es un resplandor; si el suelo o las casas lo recortan, se ve un corte recto */}
+      <sprite ref={halo} renderOrder={10}>
+        <spriteMaterial map={tex} color="#ffd9a0" transparent depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} fog={false} toneMapped={false} opacity={0.7} />
       </sprite>
-      <sprite ref={core}>
-        <spriteMaterial map={tex} color="#fff6e6" transparent depthWrite={false} blending={THREE.AdditiveBlending} fog={false} toneMapped={false} />
+      <sprite ref={core} renderOrder={10}>
+        <spriteMaterial map={tex} color="#fff6e6" transparent depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} fog={false} toneMapped={false} />
       </sprite>
       <pointLight ref={light} color="#ffd9a0" distance={60} intensity={0} />
     </group>

@@ -9,7 +9,7 @@ Fiorella Paolino
 Character body, Ranger outfit and hairstyle. Recolored; elf ears added.
 
 **Medieval Village MegaKit** — by [Quaternius](https://quaternius.com) (CC0 1.0)
-Village houses, assembled from the kit's modular pieces. Textures resized for real-time use.
+Ivy leaf texture for the village. The buildings and their other materials (stone, plaster, tiles, wood, cobbles) are generated in code.
 
 **Stylized Nature MegaKit** — by [Quaternius](https://quaternius.com) (CC0 1.0)
 Trees, plants, flowers, rocks and path stones. Textures resized for real-time use.
@@ -20,7 +20,7 @@ Theme music for thatgamejam #02, composed by **Jason Grace**. Used unmodified, a
 
 ## Animation
 
-Character animations (walk, run, idle, looking around, standing up) from [Mixamo](https://www.mixamo.com) by Adobe, retargeted to the character.
+Character animations (walk, run, idle, looking around, standing up, jump, kneeling, turning) from [Mixamo](https://www.mixamo.com) by Adobe, retargeted to the character.
 
 ## AI disclosure
 

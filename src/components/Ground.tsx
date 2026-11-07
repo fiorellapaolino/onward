@@ -170,11 +170,11 @@ export function Ground({ tintRef }: { tintRef: React.RefObject<THREE.MeshStandar
 
   return (
     <>
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, PATH_END / 2]}>
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, PATH_END / 2]} receiveShadow>
         <planeGeometry args={[GROUND_W, GROUND_L]} />
         <meshStandardMaterial ref={tintRef} map={grass} roughness={1} />
       </mesh>
-      <mesh geometry={pathGeo} position-y={0.004} renderOrder={1}>
+      <mesh geometry={pathGeo} position-y={0.004} renderOrder={1} receiveShadow>
         <meshStandardMaterial map={dirt} transparent depthWrite={false} roughness={1} polygonOffset polygonOffsetFactor={-1} />
       </mesh>
     </>

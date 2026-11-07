@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { GIRL_DIST, GIRL_S, GIRL_SIDE, VILLAGE_S, besidePath, headingAt, pathAt, rng, sideAt, tangentAt } from './config'
+import { GIRL_DIST, GIRL_S, GIRL_SIDE, STAIR_END, STAIR_Z0, STREET_YAW, TERRACE_END, VILLAGE_S, besidePath, headingAt, pathAt, rng, sideAt, streetCenter, streetToWorld, tangentAt, worldToStreet } from './config'
 import HOUSE_TYPES from './houseTypes.json'
 
 /*
@@ -16,6 +16,7 @@ export type Hut = { x: number; z: number; rot: number; scale: number; seed: numb
 /** Las casas del kit miden ~3 m de pared: se encogen para que la puerta tenga la altura de la elfa. */
 export const HOUSE_SCALE = 0.55
 export type Lantern = { x: number; z: number }
+const TERRACE_CENTER = (TERRACE_END - STAIR_Z0) / 2
 
 // [metros del sendero respecto al centro, lado, distancia al sendero, tamaño, tipo de casa]
 const HUT_SPOTS: [number, number, number, number, HouseType][] = [
@@ -29,7 +30,49 @@ const HUT_SPOTS: [number, number, number, number, HouseType][] = [
   [5, -1, 15, 1.0, 'D'],
 ]
 
+/** Las casitas del kit que siguen en pie: al fondo de la entrada (el resto ahora es la calle de casas altas). */
+const KEEP_HUTS = [0, 4, 6]
 export function buildHuts(): Hut[] {
+  return buildAllHuts().filter((_, i) => KEEP_HUTS.includes(i))
+}
+
+/*
+ * Las casas altas de entramado (se arman en StreetScene.tsx). Coordenadas de la calle:
+ * lx hacia la izquierda, lz escalera arriba (0 = primer escalón). La puerta mira a su +z.
+ */
+export type TallHouse = { lx: number; lz: number; lrot: number; w: number; d: number; floors: number; gableFront: boolean; onTerrace: boolean }
+export const TALL_HOUSES: TallHouse[] = [
+  // en la calle, a la izquierda: la grande, de costado a la calle
+  { lx: 7.6, lz: -8.5, lrot: -Math.PI / 2, w: 8.5, d: 6.2, floors: 3, gableFront: true, onTerrace: false },
+  { lx: 8.8, lz: -18.5, lrot: -Math.PI / 2, w: 6.5, d: 6.2, floors: 2, gableFront: false, onTerrace: false },
+  // en la terraza
+  { lx: -9.5, lz: 8.5, lrot: 0, w: 11, d: 7.5, floors: 3, gableFront: false, onTerrace: true },
+  { lx: 7, lz: 7.8, lrot: 0, w: 7, d: 6.5, floors: 2, gableFront: true, onTerrace: true },
+  { lx: 3.9, lz: 16.6, lrot: 0, w: 4.2, d: 4, floors: 3, gableFront: true, onTerrace: true },
+  { lx: -22, lz: 11, lrot: 0.1, w: 9, d: 7, floors: 2, gableFront: true, onTerrace: true },
+  { lx: 18, lz: 11, lrot: -0.1, w: 9, d: 7, floors: 3, gableFront: false, onTerrace: true },
+  { lx: -7.5, lz: 15.9, lrot: 0, w: 6, d: 2.8, floors: 3, gableFront: true, onTerrace: true },
+]
+// Las casas de la entrada: mismo frente y misma puerta que las casitas de antes (el anciano sigue en la suya),
+// pero más anchas y crecen hacia atrás.
+;[
+  { hut: 0, w: 5.4, d: 5.2, floors: 2, gableFront: false },
+  { hut: 1, w: 6, d: 5.5, floors: 2, gableFront: true },
+  { hut: 2, w: 7, d: 5.5, floors: 3, gableFront: false },
+].forEach(({ hut, w, d, floors, gableFront }) => {
+  const h = buildHuts()[hut]
+  const back = d / 2 - h.hz
+  const c = worldToStreet(h.x - Math.sin(h.rot) * back, h.z - Math.cos(h.rot) * back)
+  TALL_HOUSES.push({ lx: c.lx, lz: c.lz, lrot: h.rot - STREET_YAW, w, d, floors, gableFront, onTerrace: false })
+})
+
+const tallBoxes = TALL_HOUSES.filter((h) => !h.onTerrace).map((h) => {
+  const p = streetToWorld(h.lx, h.lz)
+  const j = 0.17 * h.floors + 0.15
+  return { x: p.x, z: p.z, rot: STREET_YAW + h.lrot, hx: h.w / 2 + j, hz: h.d / 2 + j }
+})
+
+function buildAllHuts(): Hut[] {
   const r = rng(314)
   const out: Hut[] = []
   const p = new THREE.Vector3()
@@ -50,7 +93,7 @@ export function buildHuts(): Hut[] {
 export function buildLanterns(): Lantern[] {
   const out: Lantern[] = []
   const p = new THREE.Vector3()
-  for (let ds = -11; ds <= 13; ds += 6) {
+  for (let ds = -11; ds <= 1; ds += 6) { // (más allá está la calle de casas altas)
     for (const side of [-1, 1]) {
       besidePath(VILLAGE_S + ds + (side > 0 ? 1.5 : 0), side, 2.1, p)
       // (ninguno junto a la niña: taparía la escena de la semilla)
@@ -100,9 +143,11 @@ export const ELDER = (() => {
  * Dos cuerdas bajan hasta dos piedras, una a cada lado del sendero:
  * solo sube si se pisan las dos A LA VEZ (ella sola no llega: necesita a su sombra).
  */
-export const POLE = besidePath(VILLAGE_S + 2.8, 1, 0.2)
-export const PLATES = [besidePath(VILLAGE_S - 2, 1, 2.6), besidePath(VILLAGE_S + 4, -1, 2.4)]
-export const PLATE_R = 0.75 // radio de cada piedra
+export const POLE = besidePath(VILLAGE_S + 1, 1, 3.3) // (a un lado: no tapa la escalera)
+// (la sombra va ECHO_DELAY segundos detrás: caminando sin correr tiene que dar tiempo de ir de una a la otra)
+// (y sin faroles encima: chocar con el poste la desvía al pisar la piedra)
+export const PLATES = [besidePath(VILLAGE_S, 1, 2.4), besidePath(VILLAGE_S - 0.8, -1, 2.2)]
+export const PLATE_R = 0.85 // radio de cada piedra
 
 /*
  * La música escondida: una mujer toca a escondidas en la casa de la izquierda, al fondo de la aldea.
@@ -111,7 +156,7 @@ export const PLATE_R = 0.75 // radio de cada piedra
  */
 export const MUSIC_HUT = 3
 // en un arco alrededor de un punto del sendero (así, al ir de una campana a otra no se pisa la de en medio)
-const BELL_S = VILLAGE_S + 11.5
+const BELL_S = VILLAGE_S - 6
 export const BELL_R = 0.38 // radio de cada campana
 export const BELLS = Array.from({ length: 5 }, (_, i) => {
   const c = pathAt(BELL_S)
@@ -126,7 +171,7 @@ export const BELLS = Array.from({ length: 5 }, (_, i) => {
 export const MELODY = [2, 4, 3, 0]
 /** Ella, cuando se atreve: de pie en su puerta. */
 export const MUSICIAN = (() => {
-  const h = buildHuts()[MUSIC_HUT]
+  const h = buildAllHuts()[MUSIC_HUT]
   const fx = Math.sin(h.rot)
   const fz = Math.cos(h.rot)
   const d = h.hz + 0.35
@@ -143,7 +188,19 @@ export const COLLIDERS: { x: number; z: number; r: number }[] = [
 ]
 
 /** Las casas son rectángulos sólidos (girados): x, z, giro, medio ancho y medio fondo. */
-export const BOXES = buildHuts().map((h) => ({ x: h.x, z: h.z, rot: h.rot, hx: h.hx + 0.15, hz: h.hz + 0.15 }))
+export const BOXES = tallBoxes
+
+/** Lo que la cámara no atraviesa: todas las casas (también las de la terraza). */
+export const CAMERA_BOXES = TALL_HOUSES.map((h) => {
+  const p = streetToWorld(h.lx, h.lz)
+  const j = 0.17 * h.floors + 0.15
+  return { x: p.x, z: p.z, rot: STREET_YAW + h.lrot, hx: h.w / 2 + j, hz: h.d / 2 + j }
+})
+/** Los dos bloques de la terraza: la cámara no los atraviesa mientras la elfa está abajo. */
+export const TERRACE_BOXES = [1, -1].map((side) => {
+  const p = streetToWorld(side * (1.8 + 23), TERRACE_CENTER)
+  return { x: p.x, z: p.z, rot: STREET_YAW, hx: 23, hz: TERRACE_CENTER }
+})
 
 /** ¿El punto está dentro de un rectángulo girado (con margen)? */
 export function inBox(b: { x: number; z: number; rot: number; hx: number; hz: number }, x: number, z: number, margin = 0) {
@@ -158,6 +215,8 @@ export function inBox(b: { x: number; z: number; rot: number; hx: number; hz: nu
 
 /** ¿Este punto cae encima de una casa, del árbol de la niña o de ella? (para no poner plantas encima) */
 export function blockedByVillage(x: number, z: number) {
+  // (la terraza y sus muros: nada de árboles atravesándola; y un poco de aire delante)
+  if (z > STAIR_Z0 - 5 && z < STAIR_END + 2 && Math.abs(x - streetCenter(z)) < 50) return true
   for (const b of BOXES) if (inBox(b, x, z, 0.6)) return true
   if (Math.hypot(x - GIRL_TREE.x, z - GIRL_TREE.z) < 2.2) return true
   if (Math.hypot(x - GIRL.x, z - GIRL.z) < 3.5) return true // (sin plantas que la tapen: ahí se ve la escena de la semilla)

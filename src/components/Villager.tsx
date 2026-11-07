@@ -334,6 +334,7 @@ export function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' |
       const m = o as THREE.Mesh
       if (!m.isMesh) return
       m.frustumCulled = false
+      m.castShadow = true
       const mat = (m.material as THREE.MeshStandardMaterial).clone() // (cada uno con su color de pelo)
       if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace
       if (mat.name.startsWith('MI_Hair')) mat.color.set(spec.hairColor)

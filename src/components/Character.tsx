@@ -2,13 +2,14 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep } from '../game/config'
+import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep, heightAt, stoneLift } from '../game/config'
 import { game, shadow, helpedLights } from '../game/state'
 import { ELDER, GIRL } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene, girlStand, STAND_STEP } from '../game/gift'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { MUSIC, musicLevel } from '../game/music'
-import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCycle } from '../game/anim'
+import { TITLE_LAYER, titleState } from './TitleScene'
+import { CLIPS, blendInto, cycleLength, jumpClipTime, makeSample, sampleAt, sampleCycle, turnAt } from '../game/anim'
 
 /*
  * La elfa: personaje de Quaternius (CC0) con esqueleto profesional.
@@ -16,7 +17,7 @@ import { CLIPS, blendInto, cycleLength, duration, makeSample, sampleAt, sampleCy
  *   - outfit.gltf → ropa "Ranger" sin capucha ni hombrera
  *   - hair.gltf   → peinado de moños
  * Las tres piezas comparten el mismo esqueleto: la ropa y el pelo se "atan" a los huesos del cuerpo.
- * Las orejas de elfa se añaden aquí, pegadas al hueso de la cabeza.
+ * Las orejas de elfa salen de estirar las del propio modelo (pointEars).
  * Animaciones: captura de movimiento de Mixamo traspasada a este esqueleto (game/anim.ts).
  */
 const BASE = `${import.meta.env.BASE_URL}models/elf/`
@@ -29,20 +30,16 @@ const MODEL_HEIGHT = 1.777 // altura del modelo original (metros)
 const WS = HEIGHT / MODEL_HEIGHT
 
 const HAIR_COLOR = '#c0683e' // castaño cobrizo
-const SKIN_COLOR = '#a76e4d'
 
 const X_AXIS = new THREE.Vector3(1, 0, 0)
 const Z_AXIS = new THREE.Vector3(0, 0, 1)
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
 const TMP_V = new THREE.Vector3()
 const TMP_V3 = new THREE.Vector3()
-const TMP_V4 = new THREE.Vector3()
 const TMP_P1 = new THREE.Vector3()
 const TMP_P2 = new THREE.Vector3()
 // cabeza al nacer: giro que la deja mirando al frente, cuánto gira a cada lado y cada cuántos segundos
 const HEAD_FRONT = -0.55
-const HEAD_SWAY = 0.55
-const HEAD_PERIOD = 7
 const TMP_Q = new THREE.Quaternion()
 const TMP_Q2 = new THREE.Quaternion()
 const TMP_Q3 = new THREE.Quaternion()
@@ -55,8 +52,13 @@ const easeOutBack = (t: number) => {
 }
 const smooth = (t: number) => t * t * (3 - 2 * t)
 // momento de "Standing Up" (segundos) en el que ya está casi de pie: ahí llega cuando entran los graves
-const STAND_BY_BASS = 3.0
-const SIDE_TURN = Math.PI / 2 // al nacer mira hacia su izquierda: la cámara la ve de perfil
+// Desde acostada: hasta WAKE.STIR casi no se mueve; en WAKE.UP ya está de pie (segundos de la animación)
+const WAKE = { STIR: 2.9, UP: 8.6 }
+const TITLE_TURN = 0.5
+const TITLE_ARM = 0.16
+const TITLE_HEAD = -0.42
+const TMP_FWD = new THREE.Vector3()
+const SIDE_TURN = -Math.PI / 2 // al nacer mira hacia la derecha de la pantalla: la cámara la ve de perfil
 
 /** Velocidad con la que cada hueso alcanza su pose (más bajo = más retraso, más suelto). */
 const LAG: Record<string, number> = { neck_01: 14, Head: 12, hand_l: 12, hand_r: 12 }
@@ -75,17 +77,40 @@ function rotateBoneLocal(bone: THREE.Object3D, axisLocal: THREE.Vector3, angle: 
   bone.quaternion.multiply(TMP_Q.setFromAxisAngle(axisLocal, angle))
 }
 
-/** Oreja de elfa: hoja alargada que apunta hacia fuera, arriba y atrás. */
-function makeEar(side: 1 | -1, material: THREE.Material) {
-  const geo = new THREE.ConeGeometry(0.024, 0.11, 10, 1)
-  geo.translate(0, 0.055, 0) // la base en el origen
-  geo.scale(1, 1, 0.35) // aplanada como una hoja
-  const ear = new THREE.Mesh(geo, material)
-  // dirección: hacia fuera (x), arriba y un poco hacia atrás
-  const dir = new THREE.Vector3(0.85 * side, 0.45, -0.3).normalize()
-  ear.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-  ear.position.set(0.078 * side, 1.635, -0.01)
-  return ear
+/*
+ * Orejas de elfa: se estira la oreja del propio modelo hasta que termina en punta.
+ * (No se agrega ninguna pieza: es la misma piel, la misma textura y se mueve con la cabeza.)
+ */
+const EAR = { y: 1.655, z: -0.038, fromX: 0.07, toX: 0.089, inner: 0.018, outer: 0.046, length: 0.085, taper: 0.65 }
+const EAR_DIR = new THREE.Vector3(0.72, 0.6, -0.35).normalize()
+function pointEars(source: THREE.BufferGeometry) {
+  const geo = source.clone()
+  const pos = geo.attributes.position
+  const moved: number[] = []
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i)
+    const y = pos.getY(i)
+    const z = pos.getZ(i)
+    const dist = Math.hypot(y - EAR.y, z - EAR.z)
+    const t = smoothstep(EAR.fromX, EAR.toX, Math.abs(x)) * (1 - smoothstep(EAR.inner, EAR.outer, dist))
+    if (t <= 0) continue
+    // se afina hacia la punta y se estira hacia fuera, arriba y atrás
+    const pull = EAR.length * t * t
+    pos.setXYZ(
+      i,
+      x + Math.sign(x) * EAR_DIR.x * pull,
+      y + (EAR.y - y) * EAR.taper * t + EAR_DIR.y * pull,
+      z + (EAR.z - z) * EAR.taper * t + EAR_DIR.z * pull,
+    )
+    moved.push(i)
+  }
+  // solo cambia el sombreado de la oreja: en el resto se conservan las normales originales (sin costuras nuevas)
+  const before = geo.attributes.normal.clone()
+  geo.computeVertexNormals()
+  const after = geo.attributes.normal
+  const keep = new Set(moved)
+  for (let i = 0; i < after.count; i++) if (!keep.has(i)) after.setXYZ(i, before.getX(i), before.getY(i), before.getZ(i))
+  return geo
 }
 
 // Material de su sombra: casi negra, con un leve brillo violeta y algo transparente
@@ -114,6 +139,8 @@ const HIDE_ELF = new URLSearchParams(location.search).has('noelf')
 
 // Altura de sus ojos y de la cara de cada persona de la aldea (sentados), en metros
 const EYE_H = 1.05
+// Arrodillarse para escuchar: de la animación se salta la preparación (1,3 s) y se usa hasta el final, algo acelerada
+const KNEEL = { FROM: 1.3, LEN: 2.95, DOWN: 1.5, UP: 2, EYE_DROP: 0.36 }
 const FACE = { girl: 0.64, elder: 0.76 }
 const LOOK_DIST = { girl: 5.5, elder: 4.5 }
 
@@ -145,29 +172,24 @@ export function Character({ echo = false }: { echo?: boolean }) {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ tryLevel: 0, tryT: 0, phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false, atW: 0, atYaw: 0, atPitch: 0 })
+  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false, listenT: 0, atW: 0, atYaw: 0, atPitch: 0 })
   const S = useMemo(() => ({ base: makeSample(), tmp: makeSample(), tmp2: makeSample(), smooth: makeSample() }), [])
 
   const bodyG = useGLTF(BODY_URL)
   const outfitG = useGLTF(OUTFIT_URL)
   const hairG = useGLTF(HAIR_URL)
 
-  // Montaje: cuerpo + ropa + pelo sobre un solo esqueleto, y orejas en la cabeza
+  // Montaje: cuerpo + ropa + pelo sobre un solo esqueleto
   const { model, bones, axes } = useMemo(() => {
-    // la sombra usa copias (los modelos originales son de la elfa).
-    // La ropa y el pelo se copian sin su esqueleto: abajo se atan por nombre a los huesos del cuerpo copiado
+    // el cuerpo siempre es una copia: la gente de la aldea usa el mismo modelo, y sus orejas no cambian.
+    // La ropa y el pelo de la sombra se copian sin su esqueleto: abajo se atan por nombre a los huesos del cuerpo copiado
     // (la elfa ya los ató a SU cuerpo, y SkeletonUtils no encontraría esos huesos dentro de la ropa)
-    const [bodyS, outfitS, hairS] = echo
-      ? [cloneSkinned(bodyG.scene), outfitG.scene.clone(), hairG.scene.clone()]
-      : [bodyG.scene, outfitG.scene, hairG.scene]
-    if (echo) {
-      // (si la copia ya trae las orejas de la elfa, se quitan: se añaden abajo)
-      const extra: THREE.Object3D[] = []
-      bodyS.traverse((o) => {
-        if ((o as THREE.Mesh).isMesh && !(o as THREE.SkinnedMesh).isSkinnedMesh && (o.parent as THREE.Bone)?.isBone) extra.push(o)
-      })
-      extra.forEach((o) => o.removeFromParent())
-    }
+    const bodyS = cloneSkinned(bodyG.scene)
+    const [outfitS, hairS] = echo ? [outfitG.scene.clone(), hairG.scene.clone()] : [outfitG.scene, hairG.scene]
+    bodyS.traverse((o) => {
+      const m = o as THREE.SkinnedMesh
+      if (m.isSkinnedMesh) m.geometry = pointEars(m.geometry)
+    })
     const model = new THREE.Group()
     model.add(bodyS, outfitS, hairS)
     model.updateMatrixWorld(true)
@@ -192,6 +214,8 @@ export function Character({ echo = false }: { echo?: boolean }) {
       const m = o as THREE.Mesh
       if (!m.isMesh) return
       m.frustumCulled = false
+      m.castShadow = !echo // (la figura de luz no proyecta sombra)
+      if (!echo) m.layers.enable(TITLE_LAYER) // (es lo único que se ve en la pantalla de título)
       const mat = m.material as THREE.MeshStandardMaterial
       if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace
       // el pelo y las cejas vienen en gris: les damos color
@@ -202,18 +226,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
       }
     })
 
-    // orejas de elfa pegadas al hueso de la cabeza
-    const head = bones.Head
-    const skin = echo ? SHADOW_MAT : new THREE.MeshStandardMaterial({ color: SKIN_COLOR, roughness: 0.75 })
-    const headInv = head.matrixWorld.clone().invert()
-    for (const side of [1, -1] as const) {
-      const ear = makeEar(side, skin)
-      ear.updateMatrix()
-      ear.matrix.premultiply(headInv) // de "modelo" a "cabeza"
-      ear.matrix.decompose(ear.position, ear.quaternion, ear.scale)
-      head.add(ear)
-    }
-
+    if (!echo) titleState.elfReady = true // (ya se la puede mostrar en el título)
     model.scale.setScalar(WS)
     // Ejes "de la elfa" (arriba, su izquierda, delante) expresados en el espacio de cada hueso,
     // para girar la cabeza en sus propios términos aunque esté inclinada o de costado
@@ -261,17 +274,18 @@ export function Character({ echo = false }: { echo?: boolean }) {
     // Al empezar está de costado (la vemos de perfil); al incorporarse gira para mirar al camino
     // ya de pie, gira hacia el camino dando unos pasitos (no gira sobre sí misma como una estatua)
     const turning = !echo && g.phase === 'gather'
-    const sideways = g.phase === 'intro' || g.phase === 'rise' ? 1 : turning ? 1 - smooth(clamp01(g.phaseT / GATHER_TIME)) : 0
-    root.current.rotation.y = g.yaw + SIDE_TURN * sideways
+    const sideways = g.phase === 'intro' || g.phase === 'rise' ? 1 : turning ? 1 - turnAt(CLIPS.turn, g.phaseT) : 0
+    // (en el título está de pie, apenas girada hacia la cámara)
+    root.current.rotation.y = g.started ? g.yaw + SIDE_TURN * sideways : g.yaw + TITLE_TURN
 
     // ── Nacer: crece desde la luz ──────────────────────────────
-    const birth = g.phase === 'intro' ? clamp01(g.phaseT / BIRTH_TIME) : 1
+    const birth = g.phase === 'intro' && g.started ? clamp01(g.phaseT / BIRTH_TIME) : 1
     root.current.scale.setScalar(Math.max(0.001, easeOutBack(birth)))
 
     // ── Pesos de cada animación ────────────────────────────────
     // en el aire no da pasos: las piernas las pone el salto
     const airborne = g.jumpT >= JUMP_CROUCH && g.jumpT < JUMP_CROUCH + JUMP_AIR
-    const moveTarget = turning ? 0.85 * Math.sin(Math.PI * clamp01(g.phaseT / GATHER_TIME)) : airborne ? 0 : clamp01(g.speed / 0.6)
+    const moveTarget = turning || airborne ? 0 : clamp01(g.speed / 0.6)
     a.move += (moveTarget - a.move) * damp(airborne ? 14 : turning ? 10 : 6, dt) // 0 quieta → 1 en marcha
     a.run += (smoothstep(1.5, 2.6, g.speed) - a.run) * damp(4, dt) // 0 camina → 1 corre
 
@@ -290,7 +304,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
     // al nacer está de rodillas (inicio de "Standing Up"); al empezar se levanta con esa animación
     const standW =
       g.phase === 'intro'
-        ? 1
+        ? g.started ? 1 : 0
         : g.phase === 'rise'
           ? 1 - smooth(clamp01((g.phaseT - RISE_TIME * 0.85) / (RISE_TIME * 0.15)))
           : smooth(g.kneel) // de rodillas: al quedarse con miedo, cuando nace su sombra, y al final frente a ella
@@ -302,35 +316,49 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
     // ── Ritmo del paso: los pies avanzan lo mismo que ella (sin patinar) ──
     const cycle = cycleLength(CLIPS.walk) + (cycleLength(CLIPS.run) - cycleLength(CLIPS.walk)) * a.run
-    a.phase += (g.speed * dt) / cycle + (turning ? dt * 1.3 : 0) // (al girar: pasitos en el sitio)
+    a.phase += (g.speed * dt) / cycle
 
     // ── Mezcla ─────────────────────────────────────────────────
     const base = S.base
-    sampleAt(CLIPS.idle, g.time, base)
+    // (en el título no se balancea: de cerca y de frente parece que se prepara para pelear; solo respira, más abajo)
+    sampleAt(CLIPS.idle, g.started ? g.time : 0, base)
     if (a.look > 0.001) blendInto(base, sampleAt(CLIPS.look, a.lookT, S.tmp), a.look)
     if (a.move > 0.001) {
       const loco = sampleCycle(CLIPS.walk, a.phase, S.tmp)
       if (a.run > 0.001) blendInto(loco, sampleCycle(CLIPS.run, a.phase, S.tmp2), a.run)
       blendInto(base, loco, a.move)
     }
+    // Al girar hacia el camino: solo piernas y cadera de "Left Turn 90"; brazos y torso siguen en reposo (sin gestos)
+    if (turning) {
+      const w = smooth(clamp01(Math.min(g.phaseT, GATHER_TIME - g.phaseT) / 0.15))
+      sampleAt(CLIPS.turn, g.phaseT, S.tmp)
+      for (const name of Object.keys(CLIPS.turn.bones)) base.q[name]?.slerp(S.tmp.q[name]!, w)
+    }
+    // Escuchar al anciano: se arrodilla a su altura; al terminar se levanta (la misma animación al revés)
+    if (!echo) {
+      const listening = g.talk === 'elder'
+      const fast = g.speed > 0.3 ? 3 : 1 // (si se pone a caminar, se levanta enseguida)
+      a.listenT = clamp01((a.listenT + (listening ? dt * KNEEL.DOWN : -dt * KNEEL.UP * fast)) / KNEEL.LEN) * KNEEL.LEN
+      if (a.listenT > 0.001) blendInto(base, sampleAt(CLIPS.kneel, KNEEL.FROM + a.listenT, S.tmp), smooth(clamp01(a.listenT / 0.35)))
+    }
+    // El salto: captura de movimiento de Mixamo, ajustada al tiempo del juego (entra y sale suave)
+    if (g.jumpT >= 0) {
+      const inW = smooth(clamp01(g.jumpT / 0.05))
+      const outW = 1 - smooth(clamp01((g.jumpT - JUMP_CROUCH - JUMP_AIR - JUMP_LAND + 0.14) / 0.14))
+      blendInto(base, sampleAt(CLIPS.jump, jumpClipTime(g.jumpT), S.tmp), inW * outW)
+    }
+    if (!g.started) {
+      const breath = Math.sin(g.time * 1.15)
+      base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, -0.018 * breath))
+      base.q.neck_01?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.008 * breath))
+    }
     if (standW > 0.001) {
-      // De rodillas, en cada frase de la canción intenta levantarse un poco y vuelve a bajar
-      // (usa el principio de "Standing Up"); con los graves se levanta del todo desde donde esté.
-      const level = g.started ? musicLevel(g.musicT) : 0
-      a.tryLevel += (level - a.tryLevel) * damp(3.5, dt)
-      // 0–8 s de rodillas; de 8 s hasta que entran los graves se va levantando poco a poco, sin volver atrás
-      if (g.phase === 'intro') a.tryT = g.started ? smoothstep(0.5, MUSIC.RISE_AT, g.musicT) * STAND_BY_BASS : 0
-      const total = duration(CLIPS.standup)
-      const t = g.phase !== 'intro' && g.phase !== 'rise' ? g.kneelT : g.phase === 'rise' ? a.tryT + (g.phaseT / RISE_TIME) * (total - a.tryT) : a.tryT
-      blendInto(base, sampleAt(CLIPS.standup, t, S.tmp), standW)
-      // respira de rodillas al ritmo de las frases de la canción (inhala cuando la música sube)
-      if (g.phase === 'intro') {
-        const level = g.started ? musicLevel(g.musicT) : 0.3 + 0.2 * Math.sin(g.time * 1.2)
-        // con cada frase levanta un poco el pecho y la cabeza, como quien se asoma, y vuelve a bajar
-        const lift = a.tryLevel
-        base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.04 - 0.1 * lift))
-        base.q.neck_01?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, 0.06 - 0.12 * lift))
-      }
+      if (g.phase === 'intro' || g.phase === 'rise') {
+        // Al nacer: acostada en el suelo. Respira hasta empezar a moverse, y al subir la música se levanta
+        const lying = g.started ? WAKE.STIR * clamp01(g.musicT / MUSIC.RISE_AT) : 0
+        const t = g.phase === 'rise' ? WAKE.STIR + (g.phaseT / RISE_TIME) * (WAKE.UP - WAKE.STIR) : lying
+        blendInto(base, sampleAt(CLIPS.wake, t, S.tmp), standW)
+      } else blendInto(base, sampleAt(CLIPS.standup, g.kneelT, S.tmp), standW)
     }
     // al final levanta la mirada hacia la luz
     if (g.phase === 'end') base.q.Head?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, -0.3 * clamp01((g.phaseT - 10) / 2)))
@@ -357,48 +385,16 @@ export function Character({ echo = false }: { echo?: boolean }) {
       rotateBoneWorld(bones.pelvis, fwd, THREE.MathUtils.clamp(-a.yawRate * 0.1, -0.06, 0.06) * a.move)
     }
 
-    // ── Salto en zancada: se agacha, en el aire abre las piernas (una delante y otra detrás)
-    //    con los brazos al revés, y amortigua al caer ──
-    if (g.jumpT >= 0) {
-      const jt = g.jumpT
-      const inAir = jt >= JUMP_CROUCH && jt < JUMP_CROUCH + JUMP_AIR
-      const air = clamp01((jt - JUMP_CROUCH) / JUMP_AIR)
-      const prep = jt < JUMP_CROUCH ? jt / JUMP_CROUCH : 0
-      const land = jt >= JUMP_CROUCH + JUMP_AIR ? 1 - smooth(clamp01((jt - JUMP_CROUCH - JUMP_AIR) / JUMP_LAND)) : 0
-      const split = inAir ? Math.sin(Math.min(1, air * 1.6) * Math.PI * 0.5) * (1 - smooth(clamp01((air - 0.75) / 0.25)) * 0.6) : 0
-      const c = Math.max(prep, land * 0.8)
-      root.current.updateMatrixWorld(true)
-      const right = TMP_V4.copy(X_AXIS).applyQuaternion(root.current.quaternion)
-      // pierna izquierda adelante, derecha atrás
-      rotateBoneWorld(bones.thigh_l, right, -(0.5 * c + 1.15 * split))
-      rotateBoneWorld(bones.thigh_r, right, -0.5 * c + 0.75 * split)
-      rotateBoneWorld(bones.calf_l, right, 0.95 * c + 0.35 * split)
-      rotateBoneWorld(bones.calf_r, right, 0.95 * c + 1.0 * split)
-      rotateBoneWorld(bones.spine_01, right, 0.3 * c + 0.12 * split)
-      // brazos al revés que las piernas, abiertos
-      rotateBoneWorld(bones.upperarm_l, right, 0.3 * c + 0.7 * split)
-      rotateBoneWorld(bones.upperarm_r, right, 0.3 * c - 0.9 * split)
-      root.current.position.y -= 0.11 * c // (en root: se recalcula cada frame, no se acumula)
-    }
-    root.current.position.y += g.jumpY
+    root.current.position.y += g.jumpY + heightAt(g.z) + stoneLift(g.x, g.z)
 
-    // De rodillas, acaba de nacer y no entiende nada: mira a su alrededor, ladea la cabeza,
-    // se mira las manos… (coreografía de la cabeza sincronizada con la canción)
-    if ((g.phase === 'intro' && g.started) || g.phase === 'rise') {
-      // Mira despacio de un lado a otro: primero cabeza baja, luego la levanta y gira a derecha e izquierda.
-      // (En la pose de rodillas la cabeza ya viene girada hacia la cámara: HEAD_FRONT la corrige al frente.
-      //  Comprobado con una vista previa desde la cámara del juego.)
-      const t = g.phase === 'intro' ? g.musicT : MUSIC.RISE_AT + g.phaseT
-      const wake = smooth(clamp01((t - 0.8) / 2.2)) // 0 cabeza baja → 1 despierta
-      const yaw = HEAD_FRONT + HEAD_SWAY * Math.sin(((t - 3) / HEAD_PERIOD) * Math.PI * 2) * wake
-      const pitch = 0.4 * (1 - wake) + 0.06 * Math.sin(t * 0.9) * wake
-      const roll = 0
-      const fade = g.phase === 'rise' ? 1 - clamp01(g.phaseT / 0.8) : 1
-      // Giros en los ejes de SU cabeza (su izquierda/derecha, arriba/abajo), sea cual sea su postura
-      rotateBoneLocal(bones.neck_01, axes.neck.up, yaw * 0.4 * fade)
-      rotateBoneLocal(bones.Head, axes.head.up, yaw * 0.6 * fade)
-      rotateBoneLocal(bones.Head, axes.head.left, pitch * fade)
-      if (roll) rotateBoneLocal(bones.Head, axes.head.fwd, roll * fade)
+    // En el título: brazos relajados junto al cuerpo y el rostro hacia la cámara
+    if (!g.started) {
+      root.current.updateMatrixWorld(true)
+      const fwdT = TMP_FWD.set(0, 0, 1).applyQuaternion(root.current.quaternion)
+      rotateBoneWorld(bones.upperarm_r, fwdT, TITLE_ARM)
+      rotateBoneWorld(bones.upperarm_l, fwdT, -TITLE_ARM)
+      rotateBoneLocal(bones.neck_01, axes.neck.up, TITLE_HEAD * 0.4)
+      rotateBoneLocal(bones.Head, axes.head.up, TITLE_HEAD * 0.6)
     }
 
     // Mira a la persona que tiene cerca: gira y baja la cabeza hacia su cara
@@ -411,7 +407,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
         // si la persona queda detrás de ella, no se retuerce: deja de mirarla
         want = 1 - smoothstep(1.3, 1.9, Math.abs(yawRaw))
         const yawT = THREE.MathUtils.clamp(yawRaw, -1.3, 1.3)
-        const pitchT = THREE.MathUtils.clamp(Math.atan2(EYE_H + g.jumpY - lookAt.h, Math.hypot(dx, dz)), inGiftScene() ? -0.95 : -0.2, 0.85)
+        const pitchT = THREE.MathUtils.clamp(Math.atan2(EYE_H + g.jumpY - KNEEL.EYE_DROP * clamp01(a.listenT / KNEEL.LEN) - lookAt.h, Math.hypot(dx, dz)), inGiftScene() ? -0.95 : -0.2, 0.85)
         a.atYaw += (yawT - a.atYaw) * damp(4, dt)
         a.atPitch += (pitchT - a.atPitch) * damp(4, dt)
       }
@@ -465,19 +461,20 @@ export function Character({ echo = false }: { echo?: boolean }) {
     const dim = 1 - 0.85 * g.fear * (1 - g.courage)
     const awake = Math.max(0, 1 - (g.time - g.awakeAt) / 2.5)
     if (echo) {
-      light.current.intensity = 0 // la sombra no da luz
       return
     }
     // cada persona a la que ayudó le devuelve luz: su luz es más fuerte y llega más lejos
     const helped = helpedLights()
-    light.current.intensity = (1.2 + g.c * 3 + g.spark * 3 + helped * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14
+    // (al nacer el mundo está a oscuras: su propia luz deja verla en el suelo)
+    const newborn = g.phase === 'intro' ? 1 : g.phase === 'rise' ? 1 - clamp01(g.phaseT / RISE_TIME) : 0
+    light.current.intensity = (1.2 + g.c * 3 + g.spark * 3 + helped * 3) * dim + g.courage * g.fear * 5 + g.pulse * 6 + birthFlash + awake * 14 + newborn * 9
     light.current.distance = 9 + helped * 5
   })
 
   return (
     <group ref={root}>
       {/* su luz va por encima de la cabeza (si va delante de la cara, la "quema") */}
-      <pointLight ref={light} position={[0, 2.3, -0.3]} color="#ffdcae" distance={9} intensity={1.2} />
+      {!echo && <pointLight ref={light} position={[0, 2.3, -0.3]} color="#ffdcae" distance={9} intensity={1.2} />}
       <group ref={body}>
         <primitive object={model} />
       </group>

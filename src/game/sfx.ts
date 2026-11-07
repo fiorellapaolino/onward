@@ -20,6 +20,12 @@ function audio() {
   return ctx
 }
 
+/** Para sonidos que se arman en otro archivo. create = false: no despierta el audio si todavía no existe. */
+export function audioOut(create = true) {
+  const a = create ? audio() : ctx
+  return a && master ? { ctx: a, out: master } : null
+}
+
 // los navegadores solo dejan sonar audio después de una tecla o un toque
 if (typeof window !== 'undefined') {
   const unlock = () => audio()

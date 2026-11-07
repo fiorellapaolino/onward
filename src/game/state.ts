@@ -126,6 +126,8 @@ export const shadow = { ...game }
 export const BORN = { RISE: 1.6, RISE_LEN: 2.6, TURN: 4.0, STEP: 4.5, STEP_LEN: 2.3, FREE: 8.6 }
 
 // Controles
+export const CAM_ZOOM_MIN = 0.25
+export const CAM_ZOOM_MAX = 1.35 // (más lejos, la cámara se mete en la copa de los árboles)
 export const input = {
   forward: false,
   backward: false,
@@ -142,7 +144,7 @@ export const input = {
   // Cámara libre: arrastrar con el ratón la gira, la rueda acerca/aleja
   camYaw: 0, // hacia dónde mira la cámara en el mundo (0 = hacia delante en el sendero)
   camPitch: 0, // altura extra (-0.6 abajo … 1 arriba)
-  camZoom: 1, // 0.6 cerca … 1.8 lejos
+  camZoom: 1, // 0.25 cerca (su cara) … 1.35 lejos
   dragging: false,
 }
 
@@ -166,9 +168,10 @@ type Ui = {
   hold: number // -1 = sin barra; 0..1 = cuánto lleva manteniendo E
   say: string | null // lo que dice la niña
   goal: string | null // qué hay que hacer ahora (arriba a la izquierda)
+  titleReady: boolean // la escena del título ya se puede mostrar
   cine: boolean // franjas negras de cine (también sin diálogo: el miedo y el nacimiento de la sombra)
 }
-let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, prompt: null, hold: -1, say: null, goal: null, cine: false }
+let ui: Ui = { start: true, hint: false, title: false, msg: null, fade: false, final: false, prompt: null, hold: -1, say: null, goal: null, cine: false, titleReady: false }
 const listeners = new Set<() => void>()
 
 export function setUi(patch: Partial<Ui>) {

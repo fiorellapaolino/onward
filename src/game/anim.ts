@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { JUMP_AIR, JUMP_CROUCH, JUMP_LAND } from './config'
 /** Nombre de un hueso del esqueleto (pelvis, spine_01, upperarm_l…). */
 export type BoneName = string
 import walkJson from '../anims/walk.json'
@@ -6,6 +7,10 @@ import runJson from '../anims/run.json'
 import idleJson from '../anims/idle.json'
 import lookJson from '../anims/look.json'
 import standupJson from '../anims/standup.json'
+import jumpJson from '../anims/jump.json'
+import kneelJson from '../anims/kneel.json'
+import wakeJson from '../anims/wake.json'
+import turnJson from '../anims/turn.json'
 
 /*
  * Animaciones de Mixamo (captura de movimiento) traspasadas al esqueleto de la elfa.
@@ -21,6 +26,7 @@ export type ClipData = {
   offset: number[]
   speed?: number // metros por segundo a velocidad normal (caminar / correr)
   sync?: number // momento del ciclo (0..1) en que el pie izquierdo está más adelante
+  turn?: number[] // solo en el giro: cuánto giró (0..1) en cada frame; el giro del cuerpo lo aplica el juego
 }
 
 export const CLIPS = {
@@ -29,6 +35,10 @@ export const CLIPS = {
   idle: idleJson as ClipData,
   look: lookJson as ClipData,
   standup: standupJson as ClipData,
+  jump: jumpJson as ClipData,
+  kneel: kneelJson as ClipData,
+  wake: wakeJson as ClipData,
+  turn: turnJson as ClipData,
 }
 
 /** Duración en segundos (en clips en bucle, el último frame repite el primero). */
@@ -75,6 +85,28 @@ export function sampleAt(c: ClipData, t: number, out: Sample) {
     o[i * 3 + 2] + (o[j * 3 + 2] - o[i * 3 + 2]) * u,
   )
   return out
+}
+
+/*
+ * El salto de Mixamo dura 1,67 s: se ajusta al tiempo del juego por tramos.
+ * La preparación se acorta (tiene que responder enseguida); el aire va casi a su velocidad; la caída, un poco más rápida.
+ */
+const JUMP_CLIP = { PREP: 0.3, OFF: 0.57, LAND: 1.1, END: 1.5 }
+/** Dado el tiempo del salto en el juego, el instante del clip. */
+export function jumpClipTime(jt: number) {
+  const lerp = (a: number, b: number, u: number) => a + (b - a) * Math.min(1, u)
+  if (jt < JUMP_CROUCH) return lerp(JUMP_CLIP.PREP, JUMP_CLIP.OFF, jt / JUMP_CROUCH)
+  if (jt < JUMP_CROUCH + JUMP_AIR) return lerp(JUMP_CLIP.OFF, JUMP_CLIP.LAND, (jt - JUMP_CROUCH) / JUMP_AIR)
+  return lerp(JUMP_CLIP.LAND, JUMP_CLIP.END, (jt - JUMP_CROUCH - JUMP_AIR) / JUMP_LAND)
+}
+
+/** Cuánto giró (0..1) en el instante t del clip de girar. */
+export function turnAt(c: ClipData, t: number) {
+  const a = c.turn!
+  const f = Math.min(Math.max(t * c.fps, 0), a.length - 1)
+  const i = Math.floor(f)
+  const j = Math.min(i + 1, a.length - 1)
+  return a[i] + (a[j] - a[i]) * (f - i)
 }
 
 /** Lee el clip en un momento del ciclo (0..1), alineado para que los pasos coincidan entre clips. */

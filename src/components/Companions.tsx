@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { heightAt } from '../game/config'
 import { RETURN_TIME, game } from '../game/state'
 import { useGlowTexture } from './TheLight'
 
@@ -23,23 +24,22 @@ export function Companions() {
     () => new THREE.SpriteMaterial({ map: tex, color: '#ffb84a', transparent: true, opacity: 0.45, depthWrite: false, toneMapped: false }),
     [tex],
   )
-  const refs = useRef<{ core: THREE.Sprite | null; glow: THREE.Sprite | null; light: THREE.PointLight | null }[]>(
-    Array.from({ length: MAX }, () => ({ core: null, glow: null, light: null })),
+  const refs = useRef<{ core: THREE.Sprite | null; glow: THREE.Sprite | null }[]>(
+    Array.from({ length: MAX }, () => ({ core: null, glow: null })),
   )
 
   useFrame(() => {
     const g = game
     const t = g.time
     // el pecho de la elfa
-    const chest = TMP.set(g.x, 0.75 + g.jumpY, g.z)
+    const chest = TMP.set(g.x, 0.75 + g.jumpY + heightAt(g.z), g.z)
     refs.current.forEach((r, i) => {
       const ret = g.returns[i]
       const k = ret ? (t - ret.at) / RETURN_TIME : -1
       const on = !!ret && k >= 0 && g.phase !== 'intro'
       if (r.core) r.core.visible = on
       if (r.glow) r.glow.visible = on
-      if (r.light) r.light.intensity = 0
-      if (!on || !r.core || !r.glow || !r.light) return
+      if (!on || !r.core || !r.glow) return
       let x: number, y: number, z: number
       if (k < 1) {
         // vuela hacia ella en un arco, y entra en su pecho
@@ -59,11 +59,9 @@ export function Companions() {
         y = chest.y + 0.5 * grow + Math.sin(t * 1.7 + i) * 0.12
         r.core.scale.setScalar(0.22)
         r.glow.scale.setScalar(0.7)
-        r.light.intensity = 1.6 * grow
       }
       r.core.position.set(x, y, z)
       r.glow.position.set(x, y, z)
-      r.light.position.set(x, y, z)
     })
   })
 
@@ -73,7 +71,6 @@ export function Companions() {
         <group key={i}>
           <sprite ref={(el) => (r.core = el)} material={mat} visible={false} />
           <sprite ref={(el) => (r.glow = el)} material={halo} visible={false} />
-          <pointLight ref={(el) => (r.light = el)} color="#ffd79a" distance={7} intensity={0} />
         </group>
       ))}
     </group>

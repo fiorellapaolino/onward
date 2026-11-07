@@ -32,12 +32,34 @@ export function musicLevel(t: number) {
 let audio: HTMLAudioElement | null = null
 let startedAt = -1 // reloj propio, por si el audio falla
 let endedAt = -1
+let useClock = false
+let primed: HTMLAudioElement | null = null
+const AUDIO_WAIT = 6000 // cuánto se espera a que empiece a sonar (ms)
+
+/**
+ * Si aprietan Begin antes de que termine de cargar, el juego arranca después, sin un clic que autorice el sonido.
+ * Por eso, en ese mismo clic, se reproduce un instante en silencio: el navegador ya deja sonar ese reproductor.
+ */
+export function primeMusic() {
+  if (primed) return
+  try {
+    primed = new Audio(`${import.meta.env.BASE_URL}audio/theme.flac`)
+    primed.muted = true
+    void primed.play().then(() => {
+      if (audio !== primed) primed?.pause() // (si el juego ya arrancó, sigue sonando)
+    }).catch(() => {})
+  } catch {
+    primed = null
+  }
+}
 
 /** Empieza la música (debe llamarse desde un clic: los navegadores lo exigen). */
 export function startMusic() {
   startedAt = performance.now()
   try {
-    audio = new Audio(`${import.meta.env.BASE_URL}audio/theme.flac`)
+    audio = primed ?? new Audio(`${import.meta.env.BASE_URL}audio/theme.flac`)
+    audio.muted = false
+    audio.currentTime = 0
     audio.volume = 0.9
     audio.addEventListener('ended', () => (endedAt = performance.now()))
     void audio.play().catch(() => {
@@ -54,7 +76,10 @@ export function musicTime() {
   if (startedAt < 0) return -1
   if (audio) {
     if (endedAt >= 0) return MUSIC.END + (performance.now() - endedAt) / 1000
-    return audio.currentTime // mientras carga se queda en 0: el nacimiento espera a la música
+    // mientras carga se queda en 0: el nacimiento espera a la música…
+    // …pero no para siempre: con mala conexión la historia sigue con el reloj propio (la música entra cuando pueda)
+    if (!useClock && audio.currentTime === 0 && performance.now() - startedAt > AUDIO_WAIT) useClock = true
+    if (!useClock) return audio.currentTime
   }
   return (performance.now() - startedAt) / 1000
 }

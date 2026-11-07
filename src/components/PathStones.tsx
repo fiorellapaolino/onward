@@ -1,18 +1,20 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { PATH_END, SHADOW_S, damp, natureUrl, pathAt, rng, sideAt } from '../game/config'
-import { game } from '../game/state'
-import { DynamicModel, placeMatrix } from './instancing'
+import { PATH_END, pathAt, rng, sideAt } from '../game/config'
+import type { Placement } from '../game/forestLayout'
+import { ChunkedModels } from './Forest'
+import { placeMatrix } from './instancing'
 
 /*
- * El sendero: piedras planas que aparecen delante de la elfa a medida que avanza
- * (más lejos cuanto más confianza tiene) y se deshacen en luz detrás de ella.
+ * El sendero: piedras planas fijas en el suelo. Están ahí desde el principio
+ * (el piso no aparece ni desaparece mientras la elfa camina).
  */
 const MODELS = ['RockPath_Round_Wide', 'RockPath_Round_Thin', 'RockPath_Round_Small_1']
 const SPACING = 1.15
-const BEHIND = 30
+const STONES_FADE_FROM = 47
+const STONES_FADE_TO = 51 // (termina justo donde el empedrado ya se ve entero: no van las dos capas juntas)
 
-type Stone = { s: number; x: number; z: number; rot: number; scale: number; a: number }
+type Stone = { s: number; x: number; z: number; rot: number; scale: number }
 
 function buildStones() {
   const r = rng(3)
@@ -20,41 +22,29 @@ function buildStones() {
   const p = new THREE.Vector3()
   const sd = new THREE.Vector3()
   for (let s = -2; s < PATH_END; s += SPACING) {
+    // antes de la calle empedrada las piedras se espacian y se achican hasta terminar
+    const into = (s - STONES_FADE_FROM) / (STONES_FADE_TO - STONES_FADE_FROM)
+    if (s < 104 && into >= 1) continue
+    const thin = s < 104 && into > 0 ? into : 0
+    if (r() < thin * thin * 0.8 + thin * 0.2) continue
     pathAt(s, p)
     sideAt(s, sd)
     const off = (r() - 0.5) * 0.35
     const k = r() < 0.5 ? 0 : r() < 0.6 ? 1 : 2
-    byModel[k].push({ s, x: p.x + sd.x * off, z: p.z + sd.z * off, rot: r() * Math.PI * 2, scale: 0.85 + r() * 0.25, a: 0 })
+    byModel[k].push({ s, x: p.x + sd.x * off, z: p.z + sd.z * off, rot: r() * Math.PI * 2, scale: (0.85 + r() * 0.25) * (1 - thin * 0.45) })
   }
   return byModel
 }
 
-const m = new THREE.Matrix4()
+const RANGE = { behind: 30, ahead: 50, size: 10 }
 
 export function PathStones() {
-  const stones = useMemo(buildStones, [])
-
-  const update = (list: Stone[]) => (set: (i: number, mx: THREE.Matrix4, b?: number) => void) => {
-    const g = game
-    const dt = 1 / 60
-    const ahead = g.phase === 'end' ? 25 : 2 + g.c * 14
-    // el sendero no se ve dentro de la sombra
-    const visibleMax = Math.min(g.p + ahead, g.shadowOpen ? Infinity : SHADOW_S - 1)
-    const k = damp(5, dt)
-    list.forEach((st, i) => {
-      const target = st.s <= visibleMax && st.s >= g.p - BEHIND ? 1 : 0
-      st.a += (target - st.a) * k
-      const a = st.a < 0.002 ? 0 : st.a
-      placeMatrix(st.x, -(1 - a) * 0.35 + 0.01, st.z, st.rot, st.scale * a, m)
-      set(i, m, 1 + (1 - a) * 2.5) // brillan al aparecer y al deshacerse
+  const list = useMemo(() => {
+    const out: Placement[] = []
+    buildStones().forEach((stones, k) => {
+      for (const st of stones) out.push({ model: MODELS[k], s: st.s, matrix: placeMatrix(st.x, 0.01, st.z, st.rot, st.scale) })
     })
-  }
-
-  return (
-    <>
-      {MODELS.map((name, k) => (
-        <DynamicModel key={name} url={natureUrl(name)} count={stones[k].length} onFrame={update(stones[k])} />
-      ))}
-    </>
-  )
+    return out
+  }, [])
+  return <ChunkedModels list={list} range={RANGE} />
 }

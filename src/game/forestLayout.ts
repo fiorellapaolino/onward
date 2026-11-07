@@ -50,17 +50,24 @@ const oneOf = <T,>(list: T[], r: () => number) => list[Math.floor(r() * list.len
 // En el claro de la aldea no hay árboles (los grandes de las filas de atrás sí, rodeándola)
 // (ni junto al árbol de las semillas ni dentro del prado de flores)
 const inMeadow = (x: number, z: number, extra = 0) => Math.hypot(x - MEADOW.x, z - MEADOW.z) < MEADOW_R + extra
+// El abrazo del final (la elfa frena en z = PATH_LEN - 12): la cámara va a un costado, nada puede taparlas
+const inEndShot = (x: number, z: number) => z > PATH_LEN - 19 && z < PATH_LEN - 8 && Math.abs(x - pathAt(z).x) < 6
 const treeKeep: Keep = (x, z, model) =>
+  !inEndShot(x, z) &&
   distToVillage(x, z) > VILLAGE_R + (model.startsWith('Twisted') ? 6 : 1) &&
   Math.hypot(x - SEED_TREE.x, z - SEED_TREE.z) > 3.5 &&
   !inMeadow(x, z, 2.5)
 // Plantas: nunca encima de una casa; dentro de la aldea, solo pasto (nada de hongos, arbustos ni rocas)
+// (en la calle empedrada nada de plantas verdes: ahí van las matas secas de StreetScene)
+const inStreet = (x: number, z: number) => z > 52 && z < 80 && Math.abs(x - pathAt(z).x) < 13
 const plantKeep: Keep = (x, z, model) =>
+  !inEndShot(x, z) &&
   !blockedByVillage(x, z) &&
+  !inStreet(x, z) &&
   (distToVillage(x, z) > VILLAGE_R || model.startsWith('Grass') || model === 'Clover_1') &&
   (!inMeadow(x, z, 0.5) || model === 'Grass_Common_Short' || model === 'Grass_Wispy_Short')
 // Flores: la sombra las apagó
-const flowerKeep: Keep = (x, z) => distToVillage(x, z) > VILLAGE_R + 4 && !inMeadow(x, z, 1)
+const flowerKeep: Keep = (x, z) => !inEndShot(x, z) && distToVillage(x, z) > VILLAGE_R + 4 && !inMeadow(x, z, 1)
 
 export function buildTrees(): Placement[] {
   const r = rng(7)
@@ -72,7 +79,7 @@ export function buildTrees(): Placement[] {
     const clearing = s > PATH_LEN - 14
     for (const side of [-1, 1]) {
       for (const row of [0, 1, 2]) {
-        if (r() > [0.5, 0.55, 0.45][row]) continue
+        if (r() > [0.42, 0.38, 0.26][row]) continue
         let dist = row === 0 ? 4 + r() * 4 : row === 1 ? 9 + r() * 8 : 18 + r() * 16
         if (clearing) dist += 16 // el claro final queda abierto
 
@@ -100,8 +107,8 @@ export function buildUndergrowth(): Placement[] {
     const dark = f < 0.33
     for (const side of [-1, 1]) {
       const near = (min: number, max: number) => min + r() * (max - min)
-      if (r() < 0.85) add(oneOf(['Grass_Common_Short', 'Grass_Common_Tall', 'Grass_Wispy_Short'], r), s, side, near(1.6, 9), 0.35 + r() * 0.25)
-      if (r() < 0.45) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + 0.7, side, near(1.4, 5), 0.3 + r() * 0.2)
+      if (r() < 0.5) add(oneOf(['Grass_Common_Short', 'Grass_Common_Tall', 'Grass_Wispy_Short'], r), s, side, near(1.6, 9), 0.35 + r() * 0.25)
+      if (r() < 0.25) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + 0.7, side, near(1.4, 5), 0.3 + r() * 0.2)
       if (r() < 0.16) add('Fern_1', s, side, near(3, 9), 0.35 + r() * 0.25)
       if (r() < 0.12) add('Bush_Common', s, side, near(3, 11), 0.7 + r() * 0.5)
       if (r() < 0.12) add(oneOf(['Plant_1_Big', 'Plant_7', 'Clover_1'], r), s, side, near(2, 8), 0.5 + r() * 0.4)
@@ -113,11 +120,11 @@ export function buildUndergrowth(): Placement[] {
   // Hierba extra: matas densas al borde del sendero y salpicadas por el pasto
   for (let s = -20; s < PATH_END + 30; s += 0.6) {
     for (const side of [-1, 1]) {
-      if (r() < 0.7) {
+      if (r() < 0.35) {
         const d = 1.7 + r() * 1.6
         add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short', 'Grass_Common_Tall'], r), s + r() * 0.6, side, d, 0.28 + r() * 0.25)
       }
-      if (r() < 0.55) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + r() * 0.6, side, 3.2 + r() * 14, 0.3 + r() * 0.3)
+      if (r() < 0.22) add(oneOf(['Grass_Common_Short', 'Grass_Wispy_Short'], r), s + r() * 0.6, side, 3.2 + r() * 14, 0.3 + r() * 0.3)
       if (r() < 0.06) add('Clover_1', s, side, 2 + r() * 6, 0.35 + r() * 0.2)
     }
   }
@@ -149,10 +156,10 @@ export function buildFlowers(): Placement[] {
 }
 
 /** Agrupa por modelo y por bloque de CHUNK metros. */
-export function groupByChunk(list: Placement[]) {
+export function groupByChunk(list: Placement[], size = CHUNK) {
   const chunks = new Map<number, Map<string, THREE.Matrix4[]>>()
   for (const pl of list) {
-    const c = Math.floor(pl.s / CHUNK)
+    const c = Math.floor(pl.s / size)
     if (!chunks.has(c)) chunks.set(c, new Map())
     const byModel = chunks.get(c)!
     if (!byModel.has(pl.model)) byModel.set(pl.model, [])

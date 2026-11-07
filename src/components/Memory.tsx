@@ -197,14 +197,12 @@ function MemorySeeds() {
     [tex],
   )
   const refs = useRef<(THREE.Sprite | null)[]>([])
-  const light = useRef<THREE.PointLight>(null!)
   const seeds = useMemo(() => Array.from({ length: 14 }, (_, i) => ({ a: i * 2.4, d: 0.5 + ((i * 37) % 10) / 4, p: 4 + (i % 5), o: i * 0.7 })), [])
   useFrame(() => {
     const m = game.memory
     // el material de las figuras también sigue al recuerdo
     GHOST_MAT.opacity = 0.7 * m
     mat.opacity = 0.9 * m
-    light.current.intensity = 6 * m
     const t = game.time
     seeds.forEach((sd, i) => {
       const o = refs.current[i]
@@ -220,7 +218,6 @@ function MemorySeeds() {
       {seeds.map((_, i) => (
         <sprite key={i} ref={(el) => (refs.current[i] = el)} material={mat} scale={0.18} />
       ))}
-      <pointLight ref={light} position={[GIRL_TREE.x, 3, GIRL_TREE.z]} color="#ffcf8a" distance={22} intensity={0} />
     </group>
   )
 }

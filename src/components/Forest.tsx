@@ -3,29 +3,36 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { natureUrl } from '../game/config'
-import { CHUNK, buildTrees, buildUndergrowth, groupByChunk } from '../game/forestLayout'
+import { buildTrees, buildUndergrowth, groupByChunk, type Placement } from '../game/forestLayout'
 import { game } from '../game/state'
 import { InstancedModel } from './instancing'
 
-// Solo se dibuja el bosque cercano: un poco hacia atrás y bastante hacia adelante.
-const BEHIND = 35
-const AHEAD = 150
+/*
+ * Solo se dibuja lo cercano, por bloques a lo largo del sendero.
+ * Los árboles se ven de lejos; la hierba y las flores, solo cerca.
+ * Y solo los árboles cercanos proyectan sombra: es la parte más cara de todas.
+ */
+type Range = { behind: number; ahead: number; size: number; shadow?: { behind: number; ahead: number } }
 
-/** Árboles, hierba, helechos, hongos y rocas (todo fijo). */
-export function Forest() {
-  const chunks = useMemo(() => {
-    const all = [...buildTrees(), ...buildUndergrowth()]
-    return [...groupByChunk(all).entries()].sort((a, b) => a[0] - b[0])
-  }, [])
-
+export function ChunkedModels({ list, range }: { list: Placement[]; range: Range }) {
+  const chunks = useMemo(() => [...groupByChunk(list, range.size).entries()].sort((a, b) => a[0] - b[0]), [list, range.size])
   const groups = useRef<(THREE.Group | null)[]>([])
+  const casting = useRef<boolean[]>([])
 
   useFrame(() => {
     chunks.forEach(([c], i) => {
       const g = groups.current[i]
       if (!g) return
-      const start = c * CHUNK
-      g.visible = start + CHUNK > game.p - BEHIND && start < game.p + AHEAD
+      const start = c * range.size
+      const end = start + range.size
+      g.visible = end > game.p - range.behind && start < game.p + range.ahead
+      if (!range.shadow) return
+      const near = g.visible && end > game.p - range.shadow.behind && start < game.p + range.shadow.ahead
+      if (casting.current[i] === near) return
+      casting.current[i] = near
+      g.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh) o.castShadow = near
+      })
     })
   })
 
@@ -43,6 +50,21 @@ export function Forest() {
           ))}
         </group>
       ))}
+    </>
+  )
+}
+
+const TREES: Range = { behind: 30, ahead: 120, size: 20, shadow: { behind: 12, ahead: 30 } }
+const PLANTS: Range = { behind: 22, ahead: 50, size: 10 }
+
+/** Árboles, hierba, helechos, hongos y rocas (todo fijo). */
+export function Forest() {
+  const trees = useMemo(buildTrees, [])
+  const plants = useMemo(buildUndergrowth, [])
+  return (
+    <>
+      <ChunkedModels list={trees} range={TREES} />
+      <ChunkedModels list={plants} range={PLANTS} />
     </>
   )
 }

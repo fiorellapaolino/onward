@@ -22,6 +22,7 @@ function createWindow() {
     webPreferences: { contextIsolation: true },
   })
   Menu.setApplicationMenu(null)
+  win.webContents.setVisualZoomLevelLimits(1, 1) // (el pellizco del trackpad mueve la cámara, no amplía la ventana)
   win.loadURL('app://game/index.html')
 
   // F11 = pantalla completa

@@ -371,7 +371,6 @@ function GroveFireflies() {
     [tex],
   )
   const refs = useRef<(THREE.Sprite | null)[]>([])
-  const light = useRef<THREE.PointLight>(null!)
   const flies = useMemo(() => {
     const r = rng(31)
     return Array.from({ length: FLIES }, () => ({
@@ -404,8 +403,6 @@ function GroveFireflies() {
       s.scale.setScalar(0.18 + 0.06 * Math.sin(t * 3))
     })
     // la luz de las luciérnagas: en el bosquecillo, o con ella cuando la siguen
-    light.current.position.set(GROVE.x + (g.x - GROVE.x) * c, 1, GROVE.z + (g.z - GROVE.z) * c)
-    light.current.intensity = 1.5 + c * 1.5
   })
 
   return (
@@ -419,7 +416,6 @@ function GroveFireflies() {
           material={mat}
         />
       ))}
-      <pointLight ref={light} color="#d8ff8a" distance={5} intensity={1.5} />
     </group>
   )
 }

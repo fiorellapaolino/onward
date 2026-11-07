@@ -37,18 +37,18 @@ export function useModelParts(url: string): Part[] {
 const tmp = new THREE.Matrix4()
 
 /** Copias fijas de un modelo, una por cada matriz. */
-export function InstancedModel({ url, matrices }: { url: string; matrices: THREE.Matrix4[] }) {
+export function InstancedModel({ url, matrices, castShadow = false, receiveShadow = false }: { url: string; matrices: THREE.Matrix4[]; castShadow?: boolean; receiveShadow?: boolean }) {
   const parts = useModelParts(url)
   return (
     <>
       {parts.map((part, i) => (
-        <StaticPart key={i} part={part} matrices={matrices} />
+        <StaticPart key={i} part={part} matrices={matrices} castShadow={castShadow} receiveShadow={receiveShadow} />
       ))}
     </>
   )
 }
 
-function StaticPart({ part, matrices }: { part: Part; matrices: THREE.Matrix4[] }) {
+function StaticPart({ part, matrices, castShadow, receiveShadow }: { part: Part; matrices: THREE.Matrix4[]; castShadow: boolean; receiveShadow: boolean }) {
   const ref = useRef<THREE.InstancedMesh>(null!)
   useLayoutEffect(() => {
     const m = ref.current
@@ -56,7 +56,7 @@ function StaticPart({ part, matrices }: { part: Part; matrices: THREE.Matrix4[] 
     m.instanceMatrix.needsUpdate = true
     m.computeBoundingSphere()
   }, [matrices, part])
-  return <instancedMesh ref={ref} args={[part.geometry, part.material, matrices.length]} />
+  return <instancedMesh ref={ref} args={[part.geometry, part.material, matrices.length]} castShadow={castShadow} receiveShadow={receiveShadow} />
 }
 
 export type SetInstance = (i: number, matrix: THREE.Matrix4, brightness?: number) => void
@@ -95,6 +95,7 @@ export function DynamicModel({ url, count, onFrame }: { url: string; count: numb
           }}
           args={[part.geometry, part.material, count]}
           frustumCulled={false}
+          receiveShadow
         />
       ))}
     </>

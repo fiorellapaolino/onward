@@ -5,6 +5,7 @@ import { PATH_LEN, damp, pathAt } from '../game/config'
 import { game } from '../game/state'
 import { ELDER, GIRL, PLATES } from '../game/village'
 import { inGiftScene } from '../game/gift'
+import { sombraMode } from '../game/sombra'
 import { FIRES, fires, nearestLit, nextUnlit } from '../game/fires'
 import { useGlowTexture } from './TheLight'
 
@@ -20,7 +21,7 @@ type Target = { key: string; x: number; z: number; y: number; near: number } | n
 
 function currentTarget(): Target {
   const g = game
-  if (g.phase !== 'play' || g.talk || inGiftScene()) return null
+  if (g.phase !== 'play' || g.talk || inGiftScene() || sombraMode) return null // (en ?sombra se orienta por el oído)
   // primero, las hogueras del bosque: la luz va hacia la siguiente apagada (o, sin brasa, a la última encendida)
   if (false) {
     const n = nextUnlit()
