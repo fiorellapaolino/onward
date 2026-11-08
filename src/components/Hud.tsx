@@ -3,6 +3,7 @@ import { useProgress } from '@react-three/drei'
 import { consumePointer, game, input, isTouch, setUi, useUi } from '../game/state'
 import { TouchControls } from './TouchControls'
 import { primeMusic, startMusic } from '../game/music'
+import { PROMPT_COOL, PROMPT_STAY } from '../game/story'
 
 // Textos en pantalla. Están en inglés porque las reglas lo piden;
 // la traducción está en el comentario de al lado.
@@ -108,7 +109,8 @@ export function Hud() {
         {ui.hold >= 0 ? (
           <>
             {/* "Mantén E" / "Mantén el dedo aquí" */}
-            {isTouch ? 'Hold' : <><kbd>E</kbd> hold</>} · {ui.prompt}
+            {/* (mantener solo en "Stay"; en el fuelle se aprieta varias veces) */}
+            {ui.prompt === PROMPT_COOL ? ui.prompt : <>{ui.prompt === PROMPT_STAY ? (isTouch ? 'Hold' : <><kbd>E</kbd> hold</>) : isTouch ? 'Tap' : <kbd>E</kbd>} · {ui.prompt}</>}
             <span className="bar">
               <span style={{ transform: `scaleX(${ui.hold})` }} />
             </span>

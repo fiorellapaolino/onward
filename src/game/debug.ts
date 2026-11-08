@@ -84,6 +84,26 @@ export function applyDebug() {
     input.camYaw = game.yaw
     setUi({ cine: true, msg: 'The dark closes in.' })
   }
+  if (params.has('forge')) {
+    // ya subió el farol y nació su sombra: ir a la herrería (con &bend, directo a la barra al rojo)
+    game.story = params.has('bend') ? 'forgeBend' : 'smith'
+    game.shadowOn = true
+    game.shadowAt = game.time - 20
+    game.liftAt = game.time - 10
+    game.lightAwake = true
+    game.lit = game.lit.map(() => game.time - 10)
+    setUi({ goal: params.has('bend') ? 'The iron is on the anvil. Ask the smith to forge the key.' : 'Find the smith at the forge.' })
+  }
+  if (params.has('altar')) {
+    // el herrero ya pidió el hierro de estrella: ir al altar (?at=50&altar)
+    game.story = 'altar'
+    game.shadowOn = true
+    game.shadowAt = game.time - 20
+    game.liftAt = game.time - 10
+    game.lightAwake = true
+    game.lit = game.lit.map(() => game.time - 10)
+    setUi({ goal: 'Find the old altar by the trees.' })
+  }
   if (params.has('music')) {
     game.story = 'music'
     game.shadowOn = true
@@ -105,15 +125,15 @@ export function applyDebug() {
     if (params.has('endT')) {
       // directamente dentro del final, en el segundo endT (la elfa ya se dio vuelta y fue hasta su sombra)
       const T = Number(params.get('endT'))
-      const back = pathAt(s - 3.4)
+      const back = pathAt(s - 2.4)
       game.phase = 'end'
       game.phaseT = T
       game.endStart = { x: game.x, z: game.z }
       game.endShadow = { x: back.x, z: back.z }
       if (T > 4) {
         const a = Math.atan2(back.x - game.x, back.z - game.z)
-        game.x = back.x - Math.sin(a) * 0.85
-        game.z = back.z - Math.cos(a) * 0.85
+        game.x = back.x - Math.sin(a) * 0.7
+        game.z = back.z - Math.cos(a) * 0.7
         game.yaw = a
       }
     }

@@ -2,9 +2,9 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, clamp01, damp, smoothstep, heightAt, stoneLift } from '../game/config'
-import { game, shadow, helpedLights } from '../game/state'
-import { ELDER, GIRL } from '../game/village'
+import { BIRTH_TIME, GATHER_TIME, RISE_TIME, JUMP_AIR, JUMP_CROUCH, JUMP_LAND, RUN_SPEED, clamp01, damp, smoothstep, heightAt, stoneLift } from '../game/config'
+import { body as prayingBody, game, shadow, helpedLights } from '../game/state'
+import { ELDER, GIRL, SMITH } from '../game/village'
 import { GIFT, elfHand, giftSeedPos, inGiftScene, girlStand, STAND_STEP } from '../game/gift'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { MUSIC, musicLevel } from '../game/music'
@@ -55,6 +55,8 @@ const smooth = (t: number) => t * t * (3 - 2 * t)
 // Desde acostada: hasta WAKE.STIR casi no se mueve; en WAKE.UP ya está de pie (segundos de la animación)
 const WAKE = { STIR: 2.9, UP: 8.6 }
 const TITLE_TURN = 0.5
+const RUN_CADENCE_MAX = 1.25 // a lo sumo, un 25 % más rápido que la carrera original (más, parece que tiembla; menos, patina)
+const JUMP_BLEND = 0.16 // segundos de mezcla entre un salto y el siguiente
 const TITLE_ARM = 0.16
 const TITLE_HEAD = -0.42
 const TMP_FWD = new THREE.Vector3()
@@ -140,12 +142,14 @@ const HIDE_ELF = new URLSearchParams(location.search).has('noelf')
 // Altura de sus ojos y de la cara de cada persona de la aldea (sentados), en metros
 const EYE_H = 1.05
 // Arrodillarse para escuchar: de la animación se salta la preparación (1,3 s) y se usa hasta el final, algo acelerada
+/** Cuánto bajan sus ojos en cuclillas (metros): para mirar a la cara a quien tiene cerca. */
+const CROUCH_EYE_DROP = 0.38
 const KNEEL = { FROM: 1.3, LEN: 2.95, DOWN: 1.5, UP: 2, EYE_DROP: 0.36 }
-const FACE = { girl: 0.64, elder: 0.76 }
+const FACE = { girl: 0.64, elder: 0.76, smith: 1.22 }
 const LOOK_DIST = { girl: 5.5, elder: 4.5 }
 
 /** A quién mira: a quien la está hablando, o a la persona de la aldea más cercana (si está cerca). */
-function whoToLookAt(x: number, z: number, talk: 'girl' | 'elder' | null) {
+function whoToLookAt(x: number, z: number, talk: 'girl' | 'elder' | 'smith' | null) {
   // (después de la semilla está de pie: un paso adelante y la cara más alta)
   const st = girlStand()
   const girl = { x: GIRL.x + Math.sin(GIRL.rot) * STAND_STEP * st, z: GIRL.z + Math.cos(GIRL.rot) * STAND_STEP * st, h: FACE.girl + 0.2 * st }
@@ -161,6 +165,7 @@ function whoToLookAt(x: number, z: number, talk: 'girl' | 'elder' | null) {
   const elder = { x: ELDER.x, z: ELDER.z, h: FACE.elder }
   if (talk === 'girl') return girl
   if (talk === 'elder') return elder
+  if (talk === 'smith') return { x: SMITH.x, z: SMITH.z, h: FACE.smith }
   const dg = Math.hypot(x - GIRL.x, z - GIRL.z)
   const de = Math.hypot(x - ELDER.x, z - ELDER.z)
   if (false && dg < LOOK_DIST.girl && dg <= de) return girl // (sin la niña)
@@ -172,7 +177,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
   const root = useRef<THREE.Group>(null!)
   const body = useRef<THREE.Group>(null!)
   const light = useRef<THREE.PointLight>(null!)
-  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false, listenT: 0, atW: 0, atYaw: 0, atPitch: 0 })
+  const anim = useRef({ phase: 0, move: 0, mago: 0, look: 0, lookT: 0, run: 0, yawRate: 0, prevYaw: 0, lookOn: false, listenT: 0, lastJumpT: -1, oldJumpT: 0, oldJumpW: 0, atW: 0, atYaw: 0, atPitch: 0 })
   const S = useMemo(() => ({ base: makeSample(), tmp: makeSample(), tmp2: makeSample(), smooth: makeSample() }), [])
 
   const bodyG = useGLTF(BODY_URL)
@@ -255,12 +260,15 @@ export function Character({ echo = false }: { echo?: boolean }) {
     const dt = Math.min(rawDt, 0.05)
     if (HIDE_ELF && !echo) root.current.visible = false // (?noelf: para capturas de prueba)
     // (la sombra lee el pasado de la elfa; solo se ve cuando ya nació)
-    const g = echo ? shadow : game
+    // (mientras el jugador maneja a su sombra, ella es su cuerpo: arrodillada en el altar)
+    const g = echo ? shadow : game.plane ? prayingBody : game
     const a = anim.current
     if (echo) {
       const born = game.shadowOn ? Math.min(1, (game.time - game.shadowAt) / 1.5) : 0
-      root.current.visible = born > 0
-      SHADOW_MAT.opacity = 0.72 * born
+      // al final entra en ella (la integró): se desvanece en su cuerpo
+      const merged = game.phase === 'end' ? clamp01((game.phaseT - 8.6) / 0.9) : 0
+      root.current.visible = born > 0 && merged < 1
+      SHADOW_MAT.opacity = 0.72 * born * (1 - merged)
       // al final, después del abrazo, la sombra se vuelve luz cálida
       const warm = game.phase === 'end' ? clamp01((game.phaseT - 6) / 4) : 0
       SHADOW_MAT.emissive.copy(SHADOW_EMISSIVE).lerp(WARM_EMISSIVE, warm)
@@ -315,7 +323,9 @@ export function Character({ echo = false }: { echo?: boolean }) {
     a.mago += (magoTarget - a.mago) * damp(g.phase === 'rise' ? 7 : 3, dt)
 
     // ── Ritmo del paso: los pies avanzan lo mismo que ella (sin patinar) ──
-    const cycle = cycleLength(CLIPS.walk) + (cycleLength(CLIPS.run) - cycleLength(CLIPS.walk)) * a.run
+    // (corriendo más rápido que la captura, alarga el paso en vez de acelerar las piernas: si no, parece que tiembla)
+    const runStride = Math.max(1, g.speed / ((CLIPS.run.speed ?? RUN_SPEED) * RUN_CADENCE_MAX))
+    const cycle = cycleLength(CLIPS.walk) + (cycleLength(CLIPS.run) * runStride - cycleLength(CLIPS.walk)) * a.run
     a.phase += (g.speed * dt) / cycle
 
     // ── Mezcla ─────────────────────────────────────────────────
@@ -342,11 +352,24 @@ export function Character({ echo = false }: { echo?: boolean }) {
       if (a.listenT > 0.001) blendInto(base, sampleAt(CLIPS.kneel, KNEEL.FROM + a.listenT, S.tmp), smooth(clamp01(a.listenT / 0.35)))
     }
     // El salto: captura de movimiento de Mixamo, ajustada al tiempo del juego (entra y sale suave)
+    // (si vuelve a saltar apenas cae, el salto nuevo empieza mientras el anterior se desvanece: sin tirón)
+    if (g.jumpT >= 0 && a.lastJumpT >= 0 && g.jumpT < a.lastJumpT - 0.01) {
+      a.oldJumpT = a.lastJumpT
+      a.oldJumpW = 1
+    }
+    a.lastJumpT = g.jumpT
     if (g.jumpT >= 0) {
-      const inW = smooth(clamp01(g.jumpT / 0.05))
+      const inW = a.oldJumpW > 0 ? 1 : smooth(clamp01(g.jumpT / 0.05))
       const outW = 1 - smooth(clamp01((g.jumpT - JUMP_CROUCH - JUMP_AIR - JUMP_LAND + 0.14) / 0.14))
       blendInto(base, sampleAt(CLIPS.jump, jumpClipTime(g.jumpT), S.tmp), inW * outW)
     }
+    if (a.oldJumpW > 0.001) {
+      a.oldJumpT += dt
+      a.oldJumpW = Math.max(0, a.oldJumpW - dt / JUMP_BLEND)
+      blendInto(base, sampleAt(CLIPS.jump, jumpClipTime(a.oldJumpT), S.tmp), smooth(a.oldJumpW))
+    }
+    // Al quedarse con la oscuridad: en cuclillas ("Male Crouch Pose"); al nacer su sombra se levanta
+    if (g.sit > 0.001) blendInto(base, sampleAt(CLIPS.crouch, 0, S.tmp), smooth(g.sit))
     if (!g.started) {
       const breath = Math.sin(g.time * 1.15)
       base.q.spine_02?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, -0.018 * breath))
@@ -407,7 +430,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
         // si la persona queda detrás de ella, no se retuerce: deja de mirarla
         want = 1 - smoothstep(1.3, 1.9, Math.abs(yawRaw))
         const yawT = THREE.MathUtils.clamp(yawRaw, -1.3, 1.3)
-        const pitchT = THREE.MathUtils.clamp(Math.atan2(EYE_H + g.jumpY - KNEEL.EYE_DROP * clamp01(a.listenT / KNEEL.LEN) - lookAt.h, Math.hypot(dx, dz)), inGiftScene() ? -0.95 : -0.2, 0.85)
+        const pitchT = THREE.MathUtils.clamp(Math.atan2(EYE_H + g.jumpY - KNEEL.EYE_DROP * clamp01(a.listenT / KNEEL.LEN) - CROUCH_EYE_DROP * smooth(g.sit) - lookAt.h, Math.hypot(dx, dz)), inGiftScene() ? -0.95 : -0.2, 0.85)
         a.atYaw += (yawT - a.atYaw) * damp(4, dt)
         a.atPitch += (pitchT - a.atPitch) * damp(4, dt)
       }

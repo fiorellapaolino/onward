@@ -8,7 +8,7 @@ import { SITES, placeListener, sombra } from '../game/sombra'
 import { useGlowTexture } from './TheLight'
 
 /** La silueta de la sombra: cuerpo y cabeza, borrosos, de los pies (abajo) hacia lejos (arriba). */
-function useShadowTexture() {
+export function useShadowTexture() {
   return useMemo(() => {
     const c = document.createElement('canvas')
     c.width = 128

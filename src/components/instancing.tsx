@@ -14,6 +14,45 @@ export type Part = {
   matrix: THREE.Matrix4 // posición de la pieza dentro del modelo
 }
 
+/**
+ * El vacío del plano negativo (ver Altar.tsx): ahí no se dibuja lo que está bajo (hierba, flores, piedras del camino).
+ * x = z cercana, y = z lejana, z = centro x, w = medio ancho; top = altura hasta la que se esconde; on = 1 en el plano negativo.
+ */
+export const voidUniforms = {
+  uVoid: { value: new THREE.Vector4(0, 0, 0, 0) },
+  uVoidTop: { value: 0 },
+  uVoidOn: { value: 0 },
+}
+export function hideInVoid(mat: THREE.Material) {
+  if (mat.userData.voidHook) return
+  mat.userData.voidHook = true
+  const prev = mat.onBeforeCompile
+  mat.onBeforeCompile = (shader, renderer) => {
+    prev?.call(mat, shader, renderer)
+    Object.assign(shader.uniforms, voidUniforms)
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVoidW;')
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        vec4 voidP = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          voidP = instanceMatrix * voidP;
+        #endif
+        vVoidW = (modelMatrix * voidP).xyz;`,
+      )
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVoidW;\nuniform vec4 uVoid;\nuniform float uVoidTop;\nuniform float uVoidOn;')
+      .replace(
+        'void main() {',
+        `void main() {
+        if (uVoidOn > 0.5 && vVoidW.z < uVoid.x && vVoidW.z > uVoid.y && abs(vVoidW.x - uVoid.z) < uVoid.w && vVoidW.y < uVoidTop) discard;`,
+      )
+  }
+  mat.customProgramCacheKey = () => 'void-hook'
+  mat.needsUpdate = true
+}
+
 /** Devuelve las piezas (geometría + material) de un modelo glTF. */
 export function useModelParts(url: string): Part[] {
   const { scene } = useGLTF(url)
@@ -23,6 +62,14 @@ export function useModelParts(url: string): Part[] {
     scene.traverse((o) => {
       const mesh = o as THREE.Mesh
       if (mesh.isMesh) {
+        // hojas y flores recortadas (alphaTest): con antialiasing en el borde, no titilan de lejos al moverse
+        const mat = mesh.material as THREE.MeshStandardMaterial
+        if (mat.alphaTest > 0 && !mat.alphaToCoverage) {
+          mat.alphaToCoverage = true
+          mat.needsUpdate = true
+        }
+        if (mat.map && mat.map.anisotropy < 4) mat.map.anisotropy = 4
+        hideInVoid(mat)
         parts.push({
           geometry: mesh.geometry,
           material: mesh.material as THREE.Material,

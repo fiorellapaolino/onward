@@ -63,10 +63,16 @@ export function CameraRig() {
   const bornSide = useRef(0)
 
   const onTitle = useRef(true)
+  // (la cámara normal, relativa a la elfa: al volver de un plano de cine se recalcula desde donde quedó)
+  const camOffset = useRef(new THREE.Vector3())
+  const lookOffset = useRef(new THREE.Vector3())
+  const following = useRef(false)
 
   useFrame(({ camera }, rawDt) => {
     const dt = Math.min(rawDt, 0.05)
     const g = game
+    const followedLast = following.current // (¿el cuadro anterior fue la cámara normal?)
+    following.current = false
 
     // ── Pantalla de título: solo la elfa, de frente ──
     if (titleShowing()) {
@@ -290,7 +296,15 @@ export function CameraRig() {
     const faceY = pos.y + FACE_H + g.jumpY * 0.5 // (pos solo sube la mitad del salto; la cara, todo)
     const followY = Math.max(0.4, pos.y + up + pulled * CAM_LIFT, heightAt(target.z) + 0.35 + 1.65 * Math.min(1, zoom))
     target.y = followY + (Math.max(faceY + FACE_ABOVE + input.camPitch * 3 * zoom, heightAt(target.z) + 0.35) - followY) * close
-    camera.position.lerp(target, justStarted ? 1 : damp(input.dragging ? 12 : intro ? 2 : 6, dt))
+    // La cámara va pegada a la elfa y solo se suaviza su posición RELATIVA a ella (giro, distancia, altura).
+    // Si se suavizara la posición absoluta, el retraso cambiaría con cada cuadro desparejo y la elfa temblaría en pantalla.
+    following.current = true
+    if (!followedLast || justStarted) {
+      camOffset.current.copy(camera.position).sub(pos)
+      lookOffset.current.copy(lookSmooth.current).sub(pos)
+    }
+    camOffset.current.lerp(tmpV.copy(target).sub(pos), justStarted ? 1 : damp(input.dragging ? 12 : intro ? 2 : 6, dt))
+    camera.position.copy(pos).add(camOffset.current)
 
     // mira un poco por delante de ella (en la dirección de la cámara); si la cámara está alta, mira más a ella
     ahead.copy(pos).addScaledVector(fwd, intro ? 3 : 6)
@@ -301,7 +315,8 @@ export function CameraRig() {
     if (lying > 0) look.lerp(tmpV.copy(pos).setY(0.25), lying * 0.9)
     if (close > 0) look.lerp(tmpV.copy(pos).setY(faceY), close)
 
-    lookSmooth.current.lerp(look, justStarted ? 1 : damp(input.dragging ? 12 : 5, dt))
+    lookOffset.current.lerp(tmpV.copy(look).sub(pos), justStarted ? 1 : damp(input.dragging ? 12 : 5, dt))
+    lookSmooth.current.copy(pos).add(lookOffset.current)
     camera.lookAt(lookSmooth.current)
   })
 

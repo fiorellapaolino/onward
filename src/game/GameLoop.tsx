@@ -1,13 +1,15 @@
 import { useFrame } from '@react-three/fiber'
-import { RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST, PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, smoothstep, damp, headingAt, pathAt, sideAt, tangentAt, STAIR_END, STAIR_Z0, STREET_HALF, streetToWorld, worldToStreet } from './config'
+import { clamp01, RISE_TIME, GATHER_TIME, LOOK_TIME, PATH_HALF_WIDTH, SHADOW_S, TALK_DIST, PATH_LEN, JUMP_AIR, JUMP_BOOST, JUMP_CROUCH, JUMP_HEIGHT, JUMP_LAND, RUN_SPEED, WALK_SPEED, PATH_END, smoothstep, damp, headingAt, pathAt, sideAt, tangentAt, STAIR_END, STAIR_Z0, STREET_HALF, streetToWorld, worldToStreet } from './config'
 import * as THREE from 'three'
-import { BORN, ECHO_DELAY, RETURN_TIME, game, input, setUi, shadow, trail, type Phase } from './state'
+import { BORN, ECHO_DELAY, RETURN_TIME, body, game, input, setUi, shadow, trail, type Phase } from './state'
+import { altarLocks, fallDrop, updateAltar } from './altar'
 import { MUSIC, musicTime, playThemeAgain } from './music'
 import { CLIPS, duration } from './anim'
-import { BELLS, BELL_R, BOXES, COLLIDERS, ELDER, GIRL, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE } from './village'
-import { NOTES, bell, chord, flute, heartbeat, voice } from './sfx'
+import { BELLS, BELL_R, BELLOWS, BOXES, COLLIDERS, ELDER, FORGE_R, GIRL, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE, SMITH, ANVIL, ANVIL_R, COOL_STONE, shadowCovers } from './village'
+import { NOTES, bell, chord, flute, heartbeat, hiss, voice } from './sfx'
 import {
   ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
+  SMITH_LINES, SMITH_THANKS, SMITH_EARLY, GOAL_SMITH, PROMPT_WARMER, PROMPT_RIGHT, PROMPT_TOO_HOT, GOAL_FIRE, GOAL_BEND, BEND_MSG, HOT_MSG, GATE_MSG, GOAL_KEY, PROMPT_PUMP, PROMPT_FORGE, PROMPT_TAKE, GOAL_TAKE, SMITH_HOT, GOAL_COOL, PROMPT_COOL, SMITH_ALTAR, SMITH_IRON, GOAL_ALTAR,
 } from './story'
 import { applyDebug, debugFF, debugMode, debugPause, debugStay } from './debug'
 import { MEMORY_LINES } from './story'
@@ -46,6 +48,143 @@ export function GameLoop() {
 let ffLeft = debugFF
 
 /** Un paso del juego (dt en segundos). */
+/** Las frases de quien habla (el herrero tiene dos: el encargo y el agradecimiento). */
+function linesOf(who: 'girl' | 'elder' | 'smith' | null) {
+  if (who === 'girl') return GIRL_LINES
+  if (who === 'smith') return game.story === 'forgeDone' ? SMITH_THANKS : game.story === 'keyHot' ? SMITH_HOT : game.story === 'smith' ? SMITH_LINES : game.story === 'altar' ? SMITH_ALTAR : game.story === 'starIron' ? SMITH_IRON : SMITH_EARLY
+  return ELDER_LINES
+}
+
+/*
+ * La herrería, paso a paso:
+ *   forgeFire  parada sobre el fuelle, cada E aviva el fuego; se apaga solo. Hay que tenerlo en su punto un rato.
+ *   forgeBend  el hierro al rojo espera en el yunque: con E, el herrero se pone a trabajar.
+ *   forging    el herrero martilla (golpes, chispas) y el hierro se vuelve una llave.
+ *   keyHot     la llave quema, sobre una piedra delante del yunque: el fuego está detrás de ella,
+ *              y su sombra tiene que caer sobre la llave para enfriarla.
+ *   forgeDone  el herrero habla; keyReady: ella toma la llave con E.
+ */
+const FORGE_GOOD = [0.45, 0.9] // el fuego en su punto (margen ancho)
+const FORGE_HOT = 0.97
+const FORGE_PUMP = 0.13 // cuánto aviva cada E
+const PUMP_GAP = 0.35 // segundos entre bombeos (el fuelle tiene que volver a llenarse)
+const FORGE_COOL = 0.06 // cuánto baja por segundo
+const FORGE_HOLD = 3 // segundos en su punto para que esté listo
+const FORGE_BEAT = 0.75 // segundos entre martillazos
+const FORGE_STRIKES = 5
+const COOL_TIME = 2.6 // segundos de sombra para que se enfríe
+let hotShown = false
+let nextHiss = 0
+let smithQuiet = false // ya le dijo que vuelva más tarde: no insistir hasta que se aleje
+function updateForge(dt: number, startTalk: (who: 'smith', lines: string[]) => void) {
+  const g = game
+  const onIt = (p: { x: number; z: number }, r: number, who: { x: number; z: number; jumpY: number }) => Math.hypot(who.x - p.x, who.z - p.z) < r && who.jumpY < 0.15
+  if (g.story === 'forgeFire') {
+    const atBellows = onIt(BELLOWS, FORGE_R, g)
+    g.forgeHeat = Math.max(0.05, g.forgeHeat - FORGE_COOL * dt)
+    if (atBellows && input.interact && g.time - g.forgePumpAt > PUMP_GAP) {
+      g.forgeHeat = Math.min(1, g.forgeHeat + FORGE_PUMP)
+      g.forgePumpAt = g.time // (llamarada en el horno)
+      flute(180 + g.forgeHeat * 220, 0.22, 0.6) // el soplido del fuelle
+    }
+    const good = g.forgeHeat > FORGE_GOOD[0] && g.forgeHeat < FORGE_GOOD[1]
+    const hot = g.forgeHeat > FORGE_HOT
+    if (hot !== hotShown) {
+      hotShown = hot
+      setUi({ msg: hot ? HOT_MSG : null })
+    }
+    // demasiado caliente: baja rápido (en un momento vuelve a su punto) y casi no pierde lo avanzado
+    if (hot) {
+      g.forgeHeat = Math.max(FORGE_GOOD[1] - 0.05, g.forgeHeat - dt * 0.25)
+      g.forgeGood = Math.max(0, g.forgeGood - dt * 0.1)
+    } else g.forgeGood = good ? Math.min(1, g.forgeGood + dt / FORGE_HOLD) : Math.max(0, g.forgeGood - dt * 0.15)
+    // el aviso dice cómo está el fuego, y la barra muestra su calor (sube con cada E)
+    // (con puntos que se van llenando: cuánto falta para que esté listo)
+    const dots = ' ' + '●'.repeat(Math.floor(g.forgeGood * 4)) + '○'.repeat(4 - Math.floor(g.forgeGood * 4))
+    const label = (hot ? PROMPT_TOO_HOT : good ? PROMPT_RIGHT : g.forgeHeat > 0.3 ? PROMPT_WARMER : PROMPT_PUMP) + dots
+    setUi({ prompt: atBellows ? label : null, hold: atBellows ? Math.round(g.forgeHeat * 40) / 40 : -1 })
+    if (g.forgeGood >= 1) {
+      // el herrero saca el hierro del fuego y lo pone en el yunque
+      g.story = 'forgeBend'
+      g.forgeHits = 0
+      g.pulse = 0.6
+      hotShown = false
+      bell(NOTES[0])
+      setUi({ prompt: null, hold: -1, goal: GOAL_BEND, msg: BEND_MSG })
+    }
+    return
+  }
+  const nearAnvil = Math.hypot(g.x - ANVIL.x, g.z - ANVIL.z) < ANVIL_R
+  if (g.story === 'forgeBend') {
+    // el hierro al rojo espera en el yunque: con E, el herrero se pone a trabajar
+    setUi({ prompt: nearAnvil ? PROMPT_FORGE : null, hold: -1 })
+    if (nearAnvil && input.interact) {
+      g.story = 'forging'
+      g.forgingAt = g.time
+      g.forgeHits = 0
+      setUi({ prompt: null, msg: null })
+    }
+    return
+  }
+  if (g.story === 'forging') {
+    // martilla: un golpe cada FORGE_BEAT, con chispas; la barra se va doblando hasta ser una llave
+    const k = g.time - g.forgingAt
+    const hit = Math.floor((k - 0.55) / FORGE_BEAT) + 1
+    if (hit > g.forgeHits && hit <= FORGE_STRIKES) {
+      g.forgeHits = hit
+      g.forgeHitAt = g.time
+      g.pulse = 0.35
+      bell(NOTES[Math.min(4, hit)])
+    }
+    if (k > 0.55 + FORGE_STRIKES * FORGE_BEAT + 0.5) {
+      // forjada… pero al rojo: la deja sobre la piedra y explica que hay que enfriarla
+      g.story = 'keyHot'
+      g.keyCool = 0
+      g.pulse = 0.6
+      bell(NOTES[4])
+      setUi({ goal: null })
+      startTalk('smith', SMITH_HOT)
+    }
+    return
+  }
+  if (g.story === 'keyHot') {
+    if (g.talk) return
+    // su sombra (el fuego del horno está detrás de ella) tiene que caer sobre la llave
+    const covered = g.jumpY < 0.3 && shadowCovers(g.x, g.z, COOL_STONE.x, COOL_STONE.z)
+    if (covered) {
+      g.keyCool = Math.min(1, g.keyCool + dt / COOL_TIME)
+      g.keyShadeAt = g.time
+      if (g.time >= nextHiss) {
+        hiss(1 - 0.6 * g.keyCool)
+        nextHiss = g.time + 0.42
+      }
+    }
+    setUi({ prompt: covered ? PROMPT_COOL : null, hold: covered ? Math.round(g.keyCool * 40) / 40 : -1 })
+    if (g.keyCool >= 1) {
+      // ¡se enfrió! ahora sí es una llave: el herrero la mira… y habla
+      g.story = 'forgeDone'
+      g.forgeDoneAt = g.awakeAt = g.time
+      g.pulse = 1
+      chord()
+      setUi({ prompt: null, hold: -1, goal: null })
+      startTalk('smith', SMITH_THANKS)
+    }
+    return
+  }
+  if (g.story === 'keyReady') {
+    // la llave queda sobre la piedra: hay que tomarla
+    const nearKey = Math.hypot(g.x - COOL_STONE.x, g.z - COOL_STONE.z) < ANVIL_R
+    setUi({ prompt: nearKey ? PROMPT_TAKE : null, hold: -1 })
+    if (nearKey && input.interact) {
+      g.story = 'key'
+      g.keyAt = g.time
+      g.pulse = 1
+      chord()
+      setUi({ prompt: null, goal: GOAL_KEY })
+    }
+  }
+}
+
 /** Hasta dónde se guía a la elfa hacia el hueco de la escalera: metros antes del muro y a los lados del hueco. */
 const STAIR_GUIDE = { ahead: 1.6, reach: 3 }
 /** Los muros de la terraza, en metros de la calle (dejando el grosor de su cuerpo para que no los atraviese). */
@@ -81,10 +220,13 @@ function step(rawDt: number) {
         g.z = START_Z
         g.p = g.pMax = START_Z
         g.yaw = headingAt(START_Z)
-        // Nace de rodillas y respira con la música; cuando entran los graves, se levanta sola
-        // (el jugador toma el control cuando ella ya está de pie)
+        // Al apretar Begin ya está de pie, mirando hacia el camino, y el jugador la mueve
+        // (las fases rise/gather/look de la intro anterior quedaron sin uso)
         if (!g.started) g.phaseT = 0 // espera al clic de inicio
-        if (g.musicT >= MUSIC.RISE_AT) setPhase('rise')
+        else {
+          setPhase('play')
+          setUi({ hint: true }) // se muestran los controles
+        }
         break
 
       case 'rise':
@@ -115,12 +257,13 @@ function step(rawDt: number) {
         }
         // Escuchando a alguien: la elfa se queda quieta mirándole; E / Espacio / clic pasa a la siguiente frase
         if (g.talk) {
-          const who = g.talk === 'girl' ? GIRL : ELDER
-          const lines = g.talk === 'girl' ? GIRL_LINES : ELDER_LINES
+          const who = g.talk === 'girl' ? GIRL : g.talk === 'smith' ? SMITH : ELDER
+          const lines = linesOf(g.talk)
           g.speed += (0 - g.speed) * damp(8, dt)
           const want = Math.atan2(who.x - g.x, who.z - g.z)
           g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(5, dt)
           if (g.talk === 'girl') g.girlNear += (1 - g.girlNear) * damp(1.5, dt)
+          else if (g.talk === 'smith') g.smithNear += (1 - g.smithNear) * damp(1.5, dt)
           else g.elderNear += (1 - g.elderNear) * damp(1.5, dt)
           g.lineT += dt
           const next = (input.interact || input.jumpPressed) && g.lineT > 0.35
@@ -131,7 +274,7 @@ function step(rawDt: number) {
             g.lineT = 0
             if (g.line < lines.length) {
               setUi({ say: lines[g.line] })
-              voice(lines[g.line], g.talk === 'elder' ? 120 : 260)
+              voice(lines[g.line], g.talk === 'girl' ? 260 : g.talk === 'smith' ? 95 : 120)
             }
             else {
               const was = g.talk
@@ -142,6 +285,26 @@ function step(rawDt: number) {
                 g.story = 'seed'
                 g.pulse = 0.5
                 setUi({ goal: GOAL_SEED })
+              } else if (was === 'smith' && g.story === 'smith') {
+                // el encargo: no tiene hierro… el de la estrella solo se ve desde el altar
+                g.story = 'altar'
+                smithQuiet = true // (no lo repite enseguida si aprieta E de más)
+                setUi({ goal: GOAL_ALTAR })
+              } else if (was === 'smith' && g.story === 'starIron') {
+                // trajo el hierro de estrella: ahora el fuego
+                g.story = 'forgeFire'
+                g.forgeGood = 0
+                setUi({ goal: GOAL_FIRE })
+              } else if (was === 'smith' && g.story === 'keyHot') {
+                // ahora: su sombra sobre la llave
+                setUi({ goal: GOAL_COOL })
+              } else if (was === 'smith' && g.story !== 'forgeDone') {
+                // (le habló antes de tiempo: no lo repite hasta que ella se vaya y vuelva)
+                smithQuiet = true
+              } else if (was === 'smith') {
+                // la llave queda sobre el yunque: ahora hay que tomarla
+                g.story = 'keyReady'
+                setUi({ goal: GOAL_TAKE, msg: null })
               } else {
                 // el anciano tiene miedo… y la oscuridad se acerca también a ella
                 g.story = 'fear'
@@ -159,8 +322,8 @@ function step(rawDt: number) {
           const k = g.time - g.shadowAt
           g.fear += (0 - g.fear) * damp(1.2, dt)
           const r = smoothstep(BORN.RISE, BORN.RISE + BORN.RISE_LEN, k)
-          g.kneelT = r * duration(CLIPS.standup)
-          g.kneel = 1 - smoothstep(0.85, 1, r)
+          g.sit = 1 - r // se incorpora
+          g.kneel = 0
           if (k > BORN.TURN) {
             const want = Math.atan2(POLE.x - g.x, POLE.z - g.z)
             g.yaw += Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)) * damp(3, dt)
@@ -194,8 +357,8 @@ function step(rawDt: number) {
         const cy = input.camYaw
         MOVE.set(Math.sin(cy) * fIn - Math.cos(cy) * sIn, 0, Math.cos(cy) * fIn + Math.sin(cy) * sIn)
         if (debugStay && g.story === 'fear') input.hold = true
-        // (con miedo, mientras mantiene E se queda: de rodillas, sin caminar)
-        const moving = MOVE.lengthSq() > 0.04 && !(g.story === 'fear' && input.hold) // (con la palanca, un toque mínimo no la mueve)
+        // (con la palanca, un toque mínimo no la mueve; y mientras dice "Stay" no camina: se queda con el anciano)
+        const moving = MOVE.lengthSq() > 0.04 && g.story !== 'fear' && !altarLocks()
         if (moving) MOVE.normalize()
         // ── Al llegar a la escalera, si va hacia adelante y apenas le erra al hueco, camina hacia él (no se queda contra el muro) ──
         const here = worldToStreet(g.x, g.z)
@@ -285,6 +448,15 @@ function step(rawDt: number) {
         g.p = g.z
         g.pMax = Math.max(g.pMax, g.p)
 
+        // con la llave, al llegar al portal: gira la llave y se abre
+        if (g.story === 'key' && !g.shadowOpen && g.z >= maxZ - 0.6) {
+          g.story = 'next'
+          g.shadowOpen = true
+          g.awakeAt = g.time
+          g.pulse = 1
+          chord()
+          setUi({ goal: null, msg: GATE_MSG })
+        }
         // empuja contra la sombra: duda, y un texto lo explica
         g.blocked = !sombraMode && !g.shadowOpen && g.z >= maxZ - 0.05
         if (g.blocked && moving && MOVE.z > 0.3) {
@@ -300,17 +472,26 @@ function step(rawDt: number) {
         g.girlNear += ((gd < 6 ? 1 : 0) - g.girlNear) * damp(1.5, dt)
         const ed = Math.hypot(g.x - ELDER.x, g.z - ELDER.z)
         g.elderNear += ((ed < 5 ? 1 : 0) - g.elderNear) * damp(1.5, dt)
-        const startTalk = (who: 'girl' | 'elder', lines: string[]) => {
+        const startTalk = (who: 'girl' | 'elder' | 'smith', lines: string[]) => {
           g.talk = who
           g.line = 0
           g.lineT = 0
           setUi({ prompt: null, hint: false, msg: null, say: lines[0] })
-          voice(lines[0], who === 'elder' ? 120 : 260)
+          voice(lines[0], who === 'girl' ? 260 : who === 'smith' ? 95 : 120)
         }
-        // a quién puede escuchar ahora (la niña primero; el anciano después de ella)
-        const listen = g.story === 'seek' && gd < TALK_DIST ? 'girl' : g.story === 'help' && ed < TALK_DIST ? 'elder' : null
-        if (g.story === 'seek' || g.story === 'help') setUi({ prompt: listen ? PROMPT_LISTEN : null, hold: -1 })
-        if (listen && input.interact) startTalk(listen, listen === 'girl' ? GIRL_LINES : ELDER_LINES)
+        g.smithNear += ((Math.hypot(g.x - SMITH.x, g.z - SMITH.z) < 5 ? 1 : 0) - g.smithNear) * damp(1.5, dt)
+        updateForge(dt, startTalk)
+        // a quién puede escuchar ahora (la niña; el anciano; y al herrero siempre que no esté en pleno trabajo)
+        const sd = Math.hypot(g.x - SMITH.x, g.z - SMITH.z)
+        const smithFree = !g.plane && g.prayAt < 0 && (g.story === 'help' || g.story === 'plates' || g.story === 'smith' || g.story === 'altar' || g.story === 'starIron')
+        if (sd > 5 || g.story === 'smith') smithQuiet = false
+        const nearSmith = smithFree && !smithQuiet && sd < TALK_DIST + 0.4
+        const listen =
+          g.story === 'seek' && gd < TALK_DIST ? 'girl' : g.story === 'help' && ed < TALK_DIST && !(nearSmith && sd < ed) ? 'elder' : nearSmith ? 'smith' : null
+        if (g.story === 'seek' || smithFree) setUi({ prompt: listen ? PROMPT_LISTEN : null, hold: -1 })
+        if (listen && input.interact) startTalk(listen, linesOf(listen))
+        // el altar: rezar, y su yo oscuro en el plano que la luz esconde
+        updateAltar(dt)
 
         // ── La semilla para la niña: quieta bajo su árbol → una semilla baja a su mano → se la lleva ──
         if (g.story === 'seed') {
@@ -343,9 +524,8 @@ function step(rawDt: number) {
           g.fear += (1 - g.fear) * damp(0.7, dt)
           const staying = input.hold && g.speed < 0.4
           g.courage = staying ? Math.min(1, g.courage + dt / 2.6) : Math.max(0, g.courage - dt / 1.5)
-          // al quedarse se arrodilla (como cuando renació); si suelta, se vuelve a poner de pie
-          g.kneel = staying ? Math.min(1, g.kneel + dt / 0.8) : Math.max(0, g.kneel - dt / 0.6)
-          g.kneelT = 0
+          // al quedarse se agacha en cuclillas; si suelta, se vuelve a poner de pie
+          g.sit = staying ? Math.min(1, g.sit + dt / 1.1) : Math.max(0, g.sit - dt / 0.7)
           setUi({ prompt: PROMPT_STAY, hold: Math.round(g.courage * 40) / 40 })
           // el corazón late rápido con la oscuridad; al quedarse, se va calmando
           if (g.time >= nextBeat) {
@@ -354,11 +534,11 @@ function step(rawDt: number) {
           }
           if (g.courage >= 1) {
             // nace su sombra: desde ahora repite lo que ella hizo unos segundos antes
-            // (empieza de rodillas en su mismo sitio: se ve que es ella)
+            // (empieza agachada en su mismo sitio: se ve que es ella)
             g.story = 'born'
             g.shadowOn = true
             g.shadowAt = g.awakeAt = g.time
-            g.kneel = 1
+            g.sit = 1
             trail.length = 0
             g.pulse = 1
             chord()
@@ -376,7 +556,7 @@ function step(rawDt: number) {
           })
           if (g.story === 'plates' && g.plates.every(Boolean)) {
             // ¡sube! y los faroles de la aldea se encienden en cadena desde la plaza
-            g.story = 'next'
+            g.story = 'smith' // (el portal viejo sigue cerrado: la llave la tiene el herrero)
             g.liftAt = g.awakeAt = g.time
             g.lightAwake = true
             g.pulse = 1
@@ -384,14 +564,10 @@ function step(rawDt: number) {
             LANTERNS.forEach((l, i) => (g.lit[i] = g.time + 1.2 + Math.hypot(l.x - POLE.x, l.z - POLE.z) * 0.12))
             // el anciano ve la luz y se levanta su ánimo: su luz también vuelve a ella
             g.returns.push({ x: ELDER.x, y: 1.0, z: ELDER.z, at: g.time + 2.2 })
-            setUi({ goal: null, msg: LIT_MSG })
+            setUi({ goal: GOAL_SMITH, msg: LIT_MSG })
           }
         }
-        // con la aldea iluminada, la sombra de la salida se deshace: el camino sigue hacia adelante
-        if (g.liftAt >= 0 && !g.shadowOpen && g.time - g.liftAt > 6) {
-          g.shadowOpen = true
-          g.pulse = 0.6
-        }
+        // (el portal se abre cuando el herrero le da la llave: ver la herrería)
         // ── La música escondida: tocar su melodía en las campanas; la sombra la repite detrás (canon) ──
         if (g.story === 'music' || g.story === 'next') {
           const since = g.time - g.awakeAt
@@ -460,7 +636,7 @@ function step(rawDt: number) {
               })
           }
         }
-        if (g.story === 'next' && g.time - g.awakeAt > 6) setUi({ msg: null })
+        if ((g.story === 'next' || g.story === 'smith' || g.story === 'key') && g.time - g.awakeAt > 6 && g.time - g.awakeAt < 6.2) setUi({ msg: null })
 
         // ── Momentos de estar viva (semilla, charcos, luciérnagas, flores…) ──
         updateMoments(dt)
@@ -472,7 +648,7 @@ function step(rawDt: number) {
           g.speed = 0
           g.jumpT = -1
           g.endStart = { x: g.x, z: g.z }
-          const back = pathAt(g.z - 3.4, TMP)
+          const back = pathAt(g.z - 2.4, TMP) // (cerca: tiene que llegar hasta ella y abrazarla de verdad)
           g.endShadow = { x: back.x, z: back.z }
           setUi({ msg: null, goal: null, hint: false, prompt: null })
         }
@@ -485,8 +661,8 @@ function step(rawDt: number) {
         //  1.6–4.6  se da vuelta y camina despacio hasta ella
         //  4.6–5.6  se arrodilla frente a ella
         //  5.6–8.0  la abraza: "You are not alone."
-        //  8.0–10   se levantan las dos (la sombra se vuelve luz)
-        //  10–      caminan juntas, una al lado de la otra, hacia la luz; vuelve la canción
+        //  8.0–10   la sombra entra en ella (la integró: ahora es parte de ella); destello, y se levanta sola
+        //  10–      camina hacia la luz, entera, con su luz más fuerte; vuelve la canción
         const T = g.phaseT
         const sh = shadow
         const toShadow = Math.atan2(g.endShadow.x - g.x, g.endShadow.z - g.z)
@@ -512,7 +688,7 @@ function step(rawDt: number) {
         } else if (T < 4.6) {
           turn(toShadow, 4)
           const d = Math.hypot(g.endShadow.x - g.x, g.endShadow.z - g.z)
-          const want = d > 0.85 && T > 2.2 ? 0.6 : 0
+          const want = d > 0.7 && T > 2.2 ? 0.8 : 0
           g.speed += (want - g.speed) * damp(4, dt)
           g.x += Math.sin(g.yaw) * g.speed * dt
           g.z += Math.cos(g.yaw) * g.speed * dt
@@ -526,28 +702,41 @@ function step(rawDt: number) {
           if (T > 5.6 && T - dt <= 5.6) g.pulse = 1
           if (T > 5.8) setUi({ msg: ELF_WORDS })
         } else if (T < 10) {
-          // se levantan juntas (el resto de "Standing Up")
-          const u = (T - 8) / 2
-          g.hug = sh.hug = Math.max(0, 1 - u * 2)
-          g.kneelT = sh.kneelT = u * duration(CLIPS.standup)
-          g.kneel = sh.kneel = 1 - Math.max(0, (u - 0.85) / 0.15)
+          // la sombra entra en ella: se acerca hasta ocupar su mismo lugar y se apaga (ver Character: se desvanece)
+          const m = smoothstep(8, 9.4, T)
+          sh.x = g.endShadow.x + (g.x - g.endShadow.x) * m
+          sh.z = g.endShadow.z + (g.z - g.endShadow.z) * m
+          sh.yaw = g.yaw
+          sh.hug = g.hug = Math.max(0, 1 - (T - 8) * 1.4)
+          sh.kneel = 1
+          if (T > 9.4 && T - dt <= 9.4) {
+            // ahora es parte de ella: su luz estalla
+            g.pulse = 1
+            g.awakeAt = g.time
+            g.c = 1
+            chord()
+          }
+          // y se levanta sola (el resto de "Standing Up")
+          const u = clamp01((T - 9.2) / 0.8)
+          g.kneelT = u * 0.85 * duration(CLIPS.standup)
+          g.kneel = 1
           if (T > 9.2) setUi({ msg: null })
         } else {
-          // caminan juntas hacia adelante, la sombra a su lado (ya no detrás)
+          // camina hacia adelante, entera: su sombra ya es parte de ella
           if (T - dt <= 10) playThemeAgain()
-          g.kneel = sh.kneel = 0
+          const rise = clamp01((T - 10) / 1.2) // (termina de incorporarse)
+          g.kneelT = (0.85 + 0.15 * rise) * duration(CLIPS.standup)
+          g.kneel = 1 - rise
+          sh.kneel = 0
           g.hug = sh.hug = 0
           g.c += (1 - g.c) * dt
-          g.speed += (1.1 - g.speed) * damp(1.2, dt)
+          g.speed += ((rise >= 1 ? 1.1 : 0) - g.speed) * damp(1.2, dt)
           const t = tangentAt(g.z, TMP)
           turn(Math.atan2(t.x, t.z), 2)
           g.x += Math.sin(g.yaw) * g.speed * dt
           g.z = Math.min(g.z + Math.cos(g.yaw) * g.speed * dt, PATH_END - 4)
           g.x += (pathAt(g.z, TMP2).x - 0.45 - g.x) * damp(1, dt)
-          Object.assign(sh, g)
-          const side = sideAt(g.z, TMP2)
-          sh.x = g.x + side.x * 0.9
-          sh.z = g.z + side.z * 0.9
+          Object.assign(sh, g) // (dentro de ella: ya no se ve)
           sh.talk = null
           sh.fear = 0
           // "Siempre hay un paso más."
@@ -583,7 +772,7 @@ function step(rawDt: number) {
     if (!(g.jumpT >= 0)) g.jumpT = -1 // (nunca queda en un valor raro)
     // (puede volver a saltar apenas toca el piso: no hace falta esperar a que termine de amortiguar)
     const landedFor = g.jumpT - (JUMP_CROUCH + JUMP_AIR)
-    if (jumpBuf > 0 && (g.jumpT < 0 || landedFor >= 0) && g.phase === 'play' && !g.talk && !inGiftScene()) {
+    if (jumpBuf > 0 && (g.jumpT < 0 || landedFor >= 0) && g.phase === 'play' && !g.talk && g.story !== 'fear' && !inGiftScene() && !altarLocks()) {
       g.jumpT = 0
       jumpBuf = 0
     }
@@ -598,8 +787,28 @@ function step(rawDt: number) {
     g.idle = g.speed < 0.15 && g.jumpT < 0 ? g.idle + dt : 0
 
     // ── La sombra: guarda lo que hace ella y la sombra lo repite ECHO_DELAY segundos después ──
-    if (g.phase !== 'end') {
-    trail.push({ t: g.time, x: g.x, z: g.z, yaw: g.yaw, speed: g.speed, jumpT: g.jumpT, jumpY: g.jumpY, idle: g.idle, kneel: g.kneel, kneelT: g.kneelT })
+    if (g.plane) {
+      // el jugador maneja a su sombra (sin retraso); su cuerpo queda arrodillado en el altar
+      Object.assign(shadow, g)
+      shadow.sit = 0
+      shadow.talk = null
+      shadow.jumpY = g.jumpY - fallDrop()
+      Object.assign(body, g)
+      body.x = g.bodyX
+      body.z = g.bodyZ
+      body.yaw = g.bodyYaw
+      body.speed = 0
+      body.jumpT = -1
+      body.jumpY = 0
+      body.idle = 5
+      body.sit = 1
+      body.kneel = 0
+      body.talk = null
+      body.fear = 0
+      body.blocked = false
+      trail.length = 0 // (al volver, la sombra sale de su mismo sitio)
+    } else if (g.phase !== 'end') {
+    trail.push({ t: g.time, x: g.x, z: g.z, yaw: g.yaw, speed: g.speed, jumpT: g.jumpT, jumpY: g.jumpY, idle: g.idle, kneel: g.kneel, kneelT: g.kneelT, sit: g.sit })
     const past = g.time - ECHO_DELAY
     while (trail.length > 2 && trail[1].t <= past) trail.shift() // (solo hace falta desde ahí)
     Object.assign(shadow, g)
@@ -615,6 +824,7 @@ function step(rawDt: number) {
     shadow.idle = a.idle
     shadow.kneel = a.kneel + (b.kneel - a.kneel) * u
     shadow.kneelT = a.kneelT + (b.kneelT - a.kneelT) * u
+    shadow.sit = a.sit + (b.sit - a.sit) * u
     shadow.talk = null
     shadow.fear = 0
     shadow.blocked = false

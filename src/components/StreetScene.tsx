@@ -2,8 +2,9 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Clone, useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
+import { hideInVoid } from './instancing'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { STAIR_END, STAIR_TOP, STAIR_Z0, STREET_YAW, TERRACE_END, TERRACE_H, damp, natureUrl, pathAt, rng, sideAt, streetOrigin, streetToWorld } from '../game/config'
+import { COBBLE_FROM, PATH_END, STAIR_END, STAIR_TOP, STAIR_Z0, STREET_YAW, TERRACE_END, TERRACE_H, damp, natureUrl, pathAt, rng, sideAt, streetOrigin, streetToWorld } from '../game/config'
 import { litFraction } from '../game/state'
 import { clayTiles, cobbles, dressedStone, oldWood, plaster as plasterSurface, stoneWall, type Surface } from '../game/textures'
 import { BOXES, CAMERA_BOXES, ELDER, PLATES, PLATE_R, TALL_HOUSES, inBox, type TallHouse } from '../game/village'
@@ -670,14 +671,18 @@ export function StreetScene() {
 
   const cobble = useMemo(() => {
     const sf = cobbles()
+    const hide = (m: THREE.Material) => (hideInVoid(m), m)
     const t = sf.map
     const bump = sf.bump
     return {
-      road: fadingRibbon(49, STAIR_Z0 + 0.1, 0, 3.3, 0.03, 1.7, 6, 12),
-      left: fadingRibbon(53, STAIR_Z0 + 0.1, 1.76, 0.24, 0.05, 1, 4, 1),
-      right: fadingRibbon(54, STAIR_Z0 + 0.1, -1.76, 0.24, 0.05, 1, 4, 1),
-      roadMat: new THREE.MeshStandardMaterial({ map: t, bumpMap: bump, bumpScale: 4, roughness: 0.9, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }),
-      curbMat: new THREE.MeshStandardMaterial({ color: '#a39678', roughness: 1, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }),
+      // el empedrado: desde el bosque (donde terminan las piedras sueltas) hasta la escalera,
+      // y otra vez pasando la puerta grande, hasta el final (un solo tipo de piedra en todo el camino)
+      road: fadingRibbon(COBBLE_FROM, STAIR_Z0 + 0.1, 0, 3.3, 0.03, 1.7, 6, 12),
+      roadAfter: fadingRibbon(STAIR_END - 0.2, PATH_END, 0, 3.3, 0.03, 1.7, 1.5, 12),
+      left: fadingRibbon(COBBLE_FROM + 4, STAIR_Z0 + 0.1, 1.76, 0.24, 0.05, 1, 4, 1),
+      right: fadingRibbon(COBBLE_FROM + 5, STAIR_Z0 + 0.1, -1.76, 0.24, 0.05, 1, 4, 1),
+      roadMat: hide(new THREE.MeshStandardMaterial({ map: t, bumpMap: bump, bumpScale: 4, roughness: 0.9, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })),
+      curbMat: hide(new THREE.MeshStandardMaterial({ color: '#a39678', roughness: 1, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 })),
       topMat: (() => {
         const scale = (src: THREE.Texture) => {
           const c = src.clone()
@@ -715,6 +720,7 @@ export function StreetScene() {
       <mesh geometry={earth.geo} material={earth.mat} renderOrder={1} receiveShadow />
       <DryTufts />
       <mesh geometry={cobble.road} material={cobble.roadMat} renderOrder={2} receiveShadow />
+      <mesh geometry={cobble.roadAfter} material={cobble.roadMat} renderOrder={2} receiveShadow />
       <mesh geometry={cobble.left} material={cobble.curbMat} renderOrder={2} receiveShadow />
       <mesh geometry={cobble.right} material={cobble.curbMat} renderOrder={2} receiveShadow />
       <group position={[origin.x, 0, origin.z]} rotation-y={STREET_YAW}>

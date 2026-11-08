@@ -54,9 +54,13 @@ export function pathAt(s: number, out = new THREE.Vector3()) {
   return out.set(A1 * Math.sin(s * F1) + A2 * Math.sin(s * F2 + P2) - A2 * Math.sin(P2), 0, s)
 }
 /** Cuánto sube el suelo por las piedras del sendero (miden unos 12 cm): así camina y se acuesta encima, no entre ellas. */
+/** El empedrado empieza aquí (metros del sendero) y sigue hasta el final; antes, el sendero es de piedras sueltas. */
+export const COBBLE_FROM = 28
+/** Las piedras sueltas se van espaciando y terminan entre estas dos distancias (justo donde aparece el empedrado). */
+export const STONES_FADE = [COBBLE_FROM - 4, COBBLE_FROM + 2]
 export function stoneLift(x: number, z: number) {
   const band = 1 - smoothstep(1.0, 1.6, Math.abs(x - pathAt(z, _lift).x))
-  const along = z < 104 ? 1 - smoothstep(47, 51, z) : smoothstep(104, 106, z) // (en la calle y la escalera no hay piedras)
+  const along = 1 - smoothstep(STONES_FADE[0], STONES_FADE[1], z) // (sobre el empedrado no se eleva)
   return 0.12 * band * along
 }
 const _lift = new THREE.Vector3()

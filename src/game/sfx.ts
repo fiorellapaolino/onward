@@ -138,6 +138,64 @@ export function splash() {
   o.stop(t + 0.2)
 }
 
+/** Siseo del metal caliente que se enfría: ruido agudo, corto. */
+export function hiss(volume = 1) {
+  const a = audio()
+  if (!a || !master) return
+  const t = a.currentTime
+  const len = Math.floor(a.sampleRate * 0.5)
+  const buf = a.createBuffer(1, len, a.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.sin((Math.PI * i) / len)
+  const src = a.createBufferSource()
+  src.buffer = buf
+  const hp = a.createBiquadFilter()
+  hp.type = 'highpass'
+  hp.frequency.value = 3200
+  const g = a.createGain()
+  g.gain.value = 0.22 * volume
+  src.connect(hp).connect(g).connect(master)
+  src.start(t)
+}
+
+/** Crujido de piedra: un golpe seco de ruido grave (más fuerte = a punto de romperse). */
+export function crack(strength = 1) {
+  const a = audio()
+  if (!a || !master) return
+  const t = a.currentTime
+  const len = Math.floor(a.sampleRate * 0.18)
+  const buf = a.createBuffer(1, len, a.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4)
+  const src = a.createBufferSource()
+  src.buffer = buf
+  const lp = a.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.value = 900 + 900 * strength
+  const g = a.createGain()
+  g.gain.value = 0.35 + 0.45 * strength
+  src.connect(lp).connect(g).connect(master)
+  src.start(t)
+}
+
+/** Caída: un soplo que baja (se la traga el vacío). */
+export function fallSound() {
+  const a = audio()
+  if (!a || !master) return
+  const t = a.currentTime
+  const o = a.createOscillator()
+  const g = a.createGain()
+  o.type = 'sine'
+  o.frequency.setValueAtTime(420, t)
+  o.frequency.exponentialRampToValueAtTime(60, t + 1.1)
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.3, t + 0.08)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2)
+  o.connect(g).connect(master)
+  o.start(t)
+  o.stop(t + 1.3)
+}
+
 /**
  * La "voz" de quien habla: no son palabras, son murmullos suaves (una nota corta por palabra),
  * como si se oyera hablar a lo lejos. pitch = lo grave o agudo de la voz.

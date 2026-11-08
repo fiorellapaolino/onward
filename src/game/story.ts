@@ -77,3 +77,111 @@ export const PROMPT_LISTEN = 'Listen'
 export const ELF_WORDS = 'You are not alone.'
 /** Al final, caminando juntas hacia la luz. "Siempre hay un paso más." */
 export const LAST_STEP = 'There is always one more step.'
+
+// ── El herrero ───────────────────────────────────────────────────
+// Desconfía de ella; tiene la llave del portal viejo. Primero el fuego, después la barra al rojo.
+export const SMITH_LINES = [
+  // "Orejas puntiagudas. Hm."
+  'Pointed ears. Hm.',
+  // "Los tuyos creen que todo se arregla cantándole a los árboles."
+  'Your kind thinks everything gets fixed by singing to trees.',
+  // "¿El portal viejo? Su llave se perdió la noche en que entró la oscuridad."
+  'The old gate? Its key was lost the night the dark came in.',
+  // "Podría forjarte una nueva. Pero mi aprendiz salió corriendo apenas te vio, y el fuego se apaga."
+  'I could forge you a new one. But my apprentice ran off the moment he saw you, and the fire is dying.',
+  // "Y no me queda hierro. Algo cayó del cielo la noche en que entró la oscuridad: hierro de estrella… pero nadie pudo verlo nunca."
+  'And I have no iron left. Something fell from the sky the night the dark came in. Star iron… but no one has ever seen it.',
+  // "Hay un altar viejo junto a los árboles. Quizá los tuyos sepan qué hacer con él."
+  'There is an old altar by the trees. Maybe your kind knows what to do with it.',
+]
+// si vuelve a hablarle antes de traer el hierro
+export const SMITH_ALTAR = [
+  // "El altar. Junto a los árboles. Ve."
+  'The altar. By the trees. Go.',
+]
+// cuando le trae el hierro de estrella
+export const SMITH_IRON = [
+  '…',
+  // "Hierro de estrella. De verdad lo encontraste."
+  'Star iron. You actually found it.',
+  // "Entonces, el fuego. Aviva el fuelle y mantenlo firme, y forjaré tu llave."
+  'Then the fire. Work the bellows and keep it steady, and I will forge your key.',
+]
+// ── El altar: su yo oscuro ve el plano que la luz esconde ──
+// "Busca el altar viejo junto a los árboles."
+export const GOAL_ALTAR = 'Find the old altar by the trees.'
+// "Rezar"
+export const PROMPT_PRAY = 'Pray'
+// (solo se leen en su estado oscuro)
+// "Ves lo que la luz esconde."
+export const DARK_MSG = 'You see what the light hides.'
+// "Algo se mueve entre los árboles."
+export const WISP_MSG = 'Something moves between the trees.'
+// "Aquí nada aguanta mucho. No te detengas."
+export const NEG_MSG = 'Nothing here holds for long. Do not stop.'
+// "El vacío te suelta… de vuelta a ti."
+export const FALL_MSG = 'The void lets you go… back to yourself.'
+// "Hierro de estrella: frío, y lleno de luz."
+export const IRON_MSG = 'Star iron: cold, and full of light.'
+// "Lleva el hierro de estrella al herrero."
+export const GOAL_IRON = 'Bring the star iron to the smith.'
+// cuando termina de martillar: la llave está al rojo
+export const SMITH_HOT = [
+  // "Listo. Pero quema: nadie puede sostenerla así."
+  "Done. But it burns: nobody can hold it like this.",
+  // "El hierro necesita oscuridad para tomar su forma. El fuego no te la va a dar."
+  "Iron needs the dark to keep its shape. The fire won't give you that.",
+  // "Pero el fuego está detrás de ti. Deja caer tu sombra sobre ella."
+  'But the fire is behind you. Let your shadow fall on it.',
+]
+// cuando la llave se enfrió
+export const SMITH_THANKS = [
+  '…',
+  // "Fuego firme, buena sombra. Nada mal, para unas orejas puntiagudas."
+  'Steady fire, a good shadow. Not bad, for pointed ears.',
+  // "Supongo que en eso también hay un arte… en las manos correctas."
+  "I suppose there's an art in that too… in the right hands.",
+  // "Ahí está tu llave. Tómala: el portal viejo te espera."
+  'There is your key. Take it: the old gate is waiting.',
+]
+// si se le habla antes de que suba el gran farol
+export const SMITH_EARLY = [
+  // "Hm."
+  'Hm.',
+  // "Toda la aldea sentada a oscuras, ¿y vienes a verme a mí?"
+  'The whole village sits in the dark, and you come to me?',
+  // "Primero sube el gran farol. Después hablamos."
+  'Raise the great lantern first. Then we talk.',
+]
+// "Busca al herrero, en la herrería."
+export const GOAL_SMITH = 'Find the smith at the forge.'
+// "Mantén el fuego firme: ni muy frío ni muy caliente."
+export const GOAL_FIRE = 'Keep the fire steady: not too cold, not too hot.'
+// "El hierro está en el yunque. Pídele al herrero que forje la llave."
+export const GOAL_BEND = 'The iron is on the anvil. Ask the smith to forge the key.'
+// "Toma la llave."
+export const GOAL_TAKE = 'Take the key.'
+// "Enfría la llave con tu sombra."
+export const GOAL_COOL = 'Cool the key with your shadow.'
+// "Enfriando…" (mientras su sombra cubre la llave)
+export const PROMPT_COOL = 'Cooling…'
+// "Buen fuego. Ahora déjame trabajar."
+export const BEND_MSG = 'Good fire. Now let me work.'
+// "Demasiado caliente."
+export const HOT_MSG = 'Too hot.'
+// "La llave gira. El portal viejo se abre."
+export const GATE_MSG = 'The key turns. The old gate opens.'
+// "Abre el portal viejo, arriba de la escalera."
+export const GOAL_KEY = 'Open the old gate at the top of the stairs.'
+// avisos de acción (con E)
+export const PROMPT_PUMP = 'Pump the bellows'
+// "Más… está tomando calor"
+export const PROMPT_WARMER = 'Pump again… it is warming up'
+// "¡Justo así! Mantenlo"
+export const PROMPT_RIGHT = 'Just right! Keep it there'
+// "Demasiado caliente: espera"
+export const PROMPT_TOO_HOT = 'Too hot! Wait a moment'
+// "Forjar la llave"
+export const PROMPT_FORGE = 'Forge the key'
+// "Tomar la llave"
+export const PROMPT_TAKE = 'Take the key'

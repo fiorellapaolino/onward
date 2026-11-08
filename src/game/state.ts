@@ -23,9 +23,9 @@ export type Phase = 'intro' | 'rise' | 'gather' | 'look' | 'play' | 'end'
 // music     → subió el gran farol; se oye a alguien tocar a escondidas: hay que tocar su melodía en las campanas
 //             (y la sombra la repite detrás, como un canon)
 // next      → la música volvió a la aldea (lo siguiente: los dos que no se dijeron lo que sentían)
-export type Story = 'seek' | 'seed' | 'help' | 'fear' | 'born' | 'plates' | 'music' | 'next'
+export type Story = 'seek' | 'seed' | 'help' | 'fear' | 'born' | 'plates' | 'music' | 'smith' | 'altar' | 'starIron' | 'forgeFire' | 'forgeBend' | 'forging' | 'keyHot' | 'forgeDone' | 'keyReady' | 'key' | 'next'
 // Con quién está hablando (mientras alguien habla, la elfa se queda quieta escuchando)
-export type Talker = 'girl' | 'elder' | null
+export type Talker = 'girl' | 'elder' | 'smith' | null
 
 // Estado del juego. Se modifica cada frame (no es estado de React a propósito,
 // para que no se re-renderice todo 60 veces por segundo).
@@ -81,9 +81,33 @@ export const game = {
   returns: [] as { x: number; y: number; z: number; at: number }[],
   lit: [] as number[], // momento (game.time) en que se encendió cada farol (-1 = apagado)
   shadowOpen: false, // la sombra de la salida ya deja pasar
+  // ── el altar: su yo oscuro (la sombra) entra al plano que la luz esconde ──
+  plane: 0, // 0 = el mundo; 1 = su estado oscuro (ve lo sobrenatural); 2 = el plano negativo (el vacío)
+  planeAt: -99, // cuándo entró al plano actual
+  prayAt: -1, // empezó a rezar en el altar (-1 = no)
+  bodyX: 0, // dónde quedó su cuerpo, arrodillado, mientras anda su sombra
+  bodyZ: 0,
+  bodyYaw: 0,
+  fallAt: -1, // se cayó al vacío (vuelve a su cuerpo)
+  ironAt: -1, // tomó el hierro de estrella
+  stoneAt: [-1, -1, -1, -1, -1, -1, -1, -1] as number[], // cuándo pisó cada piedra flotante (se cae al rato)
+  waveAt: -1, // pisó la primera piedra: el puente se derrumba detrás de ella
+  // ── la herrería ──
+  smithNear: 0, // 0..1: lo cerca que está la elfa del herrero
+  forgeHeat: 0.3, // 0..1: el fuego del horno (en su punto entre FORGE_GOOD)
+  forgeGood: 0, // 0..1: cuánto tiempo seguido estuvo el fuego en su punto
+  forgingAt: -1, // el herrero empezó a martillar el hierro (-1 = todavía no)
+  forgeHits: 0, // martillazos dados (la barra se va doblando)
+  forgeHitAt: -99, // último golpe (para la chispa)
+  forgePumpAt: -99, // última vez que avivó el fuego (llamarada)
+  keyCool: 0, // 0..1: cuánto se enfrió la llave bajo su sombra
+  keyShadeAt: -99, // último momento en que su sombra cubrió la llave (vapor)
+  forgeDoneAt: -1, // la llave se enfrió: está lista
+  keyAt: -1, // el herrero le dio la llave (la lleva hasta el portal)
   // ── el final: se da vuelta, su sombra (su pasado) está encogida; la abraza y caminan juntas hacia adelante ──
   kneel: 0, // 0..1: cuánto está de rodillas (pose de "Standing Up")
   kneelT: 0, // momento de esa animación (0 = de rodillas … final = de pie)
+  sit: 0, // 0..1: en cuclillas (al quedarse con la oscuridad, hasta que nace su sombra)
   hug: 0, // 0..1: abrazo (brazos hacia delante, rodeando)
   endStart: { x: 0, z: 0 }, // dónde se detuvo
   endShadow: { x: 0, z: 0 }, // dónde se encoge su sombra
@@ -112,9 +136,11 @@ export function litFraction() {
  * "shadow" tiene la misma forma que "game" para poder dibujarla con el mismo personaje.
  */
 export const ECHO_DELAY = 3.5
-type Frame = { t: number; x: number; z: number; yaw: number; speed: number; jumpT: number; jumpY: number; idle: number; kneel: number; kneelT: number }
+type Frame = { t: number; x: number; z: number; yaw: number; speed: number; jumpT: number; jumpY: number; idle: number; kneel: number; kneelT: number; sit: number }
 export const trail: Frame[] = []
 export const shadow = { ...game }
+/** Su cuerpo, arrodillado en el altar, mientras el jugador maneja a su sombra (game.plane > 0). */
+export const body = { ...game }
 
 /**
  * El nacimiento de la sombra (segundos desde game.shadowAt). La elfa no se mueve sola hasta FREE:

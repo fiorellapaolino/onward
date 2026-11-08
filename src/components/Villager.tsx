@@ -6,7 +6,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { clamp01 } from '../game/config'
 import { game } from '../game/state'
 import { CLIPS, makeSample, sampleAt } from '../game/anim'
-import { ELDER, GIRL, MUSICIAN } from '../game/village'
+import { ELDER, GIRL, MUSICIAN, SMITH } from '../game/village'
 import { GIFT, STAND_STEP, elfHand, giftSeedPos, girlStand } from '../game/gift'
 import { ELDER_LANTERN_LINE } from '../game/story'
 
@@ -233,6 +233,46 @@ const MUSICIAN_SPEC: Spec = {
   },
 }
 
+// ── El herrero: grandote, de pie junto al yunque, de brazos cruzados (desconfía); al final se queda boquiabierto ──
+const ARMS_CROSSED: Pose = [
+  ['upperarm_l', 'left', -0.55],
+  ['upperarm_r', 'left', -0.55],
+  ['upperarm_l', 'fwd', 0.35],
+  ['upperarm_r', 'fwd', -0.35],
+  ['lowerarm_l', 'fwd', -1.75],
+  ['lowerarm_r', 'fwd', 1.75],
+]
+const SMITH_SPEC: Spec = {
+  parts: ['elder/body', 'elder/outfit', 'elder/hair', 'elder/beard'],
+  scale: 1.38 / 1.85, // de pie, 1.38 m (más alto que la elfa)
+  headScale: 0.95,
+  ground: 0.454,
+  hairColor: '#3a2618', // pelo y barba oscuros
+  pose: [],
+  spot: SMITH,
+  stand: () => 1,
+  gestures: (rot, t, near, yaw) => {
+    // de brazos cruzados hasta que se pone a trabajar; martilla con el brazo derecho; al terminar, satisfecho
+    const working = game.forgingAt >= 0 ? clamp01((t - game.forgingAt) / 0.4) : 0
+    const done = game.forgeDoneAt >= 0 ? clamp01((t - game.forgeDoneAt) / 0.8) : 0
+    applyPose(rot, ARMS_CROSSED, 1 - working)
+    if (game.story === 'forging') {
+      const k = t - game.forgingAt - 0.55
+      const u = k < 0 ? 0 : (k % 0.75) / 0.75
+      const lift = k < 0 ? clamp01((k + 0.55) / 0.55) : u < 0.7 ? Math.sin((u / 0.7) * Math.PI * 0.5) : 1 - (u - 0.7) / 0.3
+      rot('upperarm_r', 'left', -0.6 - 1.1 * lift)
+      rot('lowerarm_r', 'fwd', 0.5 + 0.4 * lift)
+      rot('spine_01', 'left', 0.12 - 0.08 * lift) // se inclina sobre el yunque
+    }
+    applyPose(rot, WOW, done * 0.35 * (game.story === 'forgeDone' ? 1 : 0))
+    rot('spine_02', 'left', Math.sin(t * 1.3) * 0.02 - 0.06 * done)
+    rot('neck_01', 'up', yaw * 0.4 * near)
+    rot('Head', 'up', yaw * 0.5 * near)
+    // mientras habla, asiente
+    rot('Head', 'left', game.talk === 'smith' ? Math.sin(t * 5) * 0.04 : 0)
+  },
+}
+
 const TMP_Q = new THREE.Quaternion()
 
 /*
@@ -297,8 +337,9 @@ const STAND_GROUND = 0.025 // de pie, lo más bajo del cuerpo (las botas) queda 
 export const Musician = () => <Villager spec={MUSICIAN_SPEC} />
 export const Girl = () => <Villager spec={GIRL_SPEC} nearKey="girlNear" />
 export const Elder = () => <Villager spec={ELDER_SPEC} nearKey="elderNear" />
+export const Smith = () => <Villager spec={SMITH_SPEC} nearKey="smithNear" />
 
-export function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elderNear' }) {
+export function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' | 'elderNear' | 'smithNear' }) {
   const gltfs = useGLTF(spec.parts.map(url))
   const S = useMemo(() => ({ near: 0, yaw: 0 }), [])
   const root = useRef<THREE.Group>(null!)

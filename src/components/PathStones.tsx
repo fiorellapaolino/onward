@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { PATH_END, pathAt, rng, sideAt } from '../game/config'
+import { STONES_FADE, pathAt, rng, sideAt } from '../game/config'
 import type { Placement } from '../game/forestLayout'
 import { ChunkedModels } from './Forest'
 import { placeMatrix } from './instancing'
@@ -11,8 +11,7 @@ import { placeMatrix } from './instancing'
  */
 const MODELS = ['RockPath_Round_Wide', 'RockPath_Round_Thin', 'RockPath_Round_Small_1']
 const SPACING = 1.15
-const STONES_FADE_FROM = 47
-const STONES_FADE_TO = 51 // (termina justo donde el empedrado ya se ve entero: no van las dos capas juntas)
+const [STONES_FADE_FROM, STONES_FADE_TO] = STONES_FADE // (terminan justo donde el empedrado ya se ve entero: un solo tipo de piedra)
 
 type Stone = { s: number; x: number; z: number; rot: number; scale: number }
 
@@ -21,11 +20,11 @@ function buildStones() {
   const byModel: Stone[][] = MODELS.map(() => [])
   const p = new THREE.Vector3()
   const sd = new THREE.Vector3()
-  for (let s = -2; s < PATH_END; s += SPACING) {
-    // antes de la calle empedrada las piedras se espacian y se achican hasta terminar
+  for (let s = -2; s < STONES_FADE_TO; s += SPACING) {
+    // antes del empedrado las piedras se espacian y se achican hasta terminar
     const into = (s - STONES_FADE_FROM) / (STONES_FADE_TO - STONES_FADE_FROM)
-    if (s < 104 && into >= 1) continue
-    const thin = s < 104 && into > 0 ? into : 0
+    if (into >= 1) continue
+    const thin = into > 0 ? into : 0
     if (r() < thin * thin * 0.8 + thin * 0.2) continue
     pathAt(s, p)
     sideAt(s, sd)

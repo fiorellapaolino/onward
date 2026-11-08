@@ -179,12 +179,63 @@ export const MUSICIAN = (() => {
   return { x: h.x + fx * d + fz * side, z: h.z + fz * d - fx * side, rot: h.rot }
 })()
 
+/*
+ * La herrería: a un lado de la calle, antes de la plaza. El herrero tiene la llave del portal viejo.
+ * Coordenadas propias: (lx, lz) con lz hacia el sendero (el frente) y lx a lo largo del sendero.
+ */
+const FORGE_S = VILLAGE_S - 16
+const FORGE_SIDE = -1
+const FORGE_DIST = 4.3
+export const FORGE = (() => {
+  const c = besidePath(FORGE_S, FORGE_SIDE, FORGE_DIST)
+  const p = pathAt(FORGE_S)
+  return { x: c.x, z: c.z, rot: Math.atan2(p.x - c.x, p.z - c.z) }
+})()
+/** Un punto de la herrería en el mundo. */
+export function forgeAt(lx: number, lz: number) {
+  const c = Math.cos(FORGE.rot)
+  const s = Math.sin(FORGE.rot)
+  return { x: FORGE.x + lx * c + lz * s, z: FORGE.z - lx * s + lz * c }
+}
+export const ANVIL = forgeAt(0, 0)
+export const FURNACE = forgeAt(0, -2)
+export const BELLOWS = forgeAt(1.7, -1.4) // pararse aquí y apretar E: aviva el fuego
+export const FORGE_R = 0.75 // radio de la piedra del fuelle
+/** La piedra baja donde el herrero deja la llave al rojo, delante del yunque (se enfría bajo su sombra). */
+export const COOL_STONE = forgeAt(0, 1.7)
+/** La boca del horno: de ahí sale la luz que proyecta su sombra. */
+export const FIRE_MOUTH = forgeAt(0, -1.3)
+/** Su sombra, proyectada por el fuego del horno: largo y ancho (metros). */
+export const FORGE_SHADOW = { len: 2.8, half: 0.32 }
+/** ¿La sombra de la elfa (parada en px, pz) cae sobre el punto (kx, kz)? La luz sale de la boca del horno. */
+export function shadowCovers(px: number, pz: number, kx: number, kz: number) {
+  const ux = px - FIRE_MOUTH.x
+  const uz = pz - FIRE_MOUTH.z
+  const ul = Math.hypot(ux, uz)
+  if (ul < 0.3) return false
+  const dx = ux / ul
+  const dz = uz / ul
+  // el punto, visto desde ella: tiene que estar detrás (del lado contrario al fuego), cerca de la línea
+  const along = (kx - px) * dx + (kz - pz) * dz
+  const across = Math.abs((kx - px) * dz - (kz - pz) * dx)
+  return along > -0.1 && along < FORGE_SHADOW.len && across < FORGE_SHADOW.half
+}
+/** A esta distancia del yunque se le puede pedir que forje, o tomar la llave. */
+export const ANVIL_R = 1.7
+export const SMITH = (() => {
+  const p = forgeAt(0.4, -0.95)
+  return { x: p.x, z: p.z, rot: Math.atan2(ANVIL.x - p.x, ANVIL.z - p.z) + 0.35 }
+})()
+
 /** Cosas sólidas de la aldea (círculos en el suelo): la elfa no las atraviesa. */
 export const COLLIDERS: { x: number; z: number; r: number }[] = [
   { x: GIRL_TREE.x, z: GIRL_TREE.z, r: 0.6 },
   { x: ELDER.x, z: ELDER.z, r: 0.8 },
   ...LANTERNS.map((l) => ({ x: l.x, z: l.z, r: 0.2 })),
   { x: POLE.x, z: POLE.z, r: 0.3 },
+  { x: ANVIL.x, z: ANVIL.z, r: 0.5 },
+  { x: FURNACE.x, z: FURNACE.z, r: 1.0 },
+  { x: SMITH.x, z: SMITH.z, r: 0.45 },
 ]
 
 /** Las casas son rectángulos sólidos (girados): x, z, giro, medio ancho y medio fondo. */

@@ -11,6 +11,7 @@ import jumpJson from '../anims/jump.json'
 import kneelJson from '../anims/kneel.json'
 import wakeJson from '../anims/wake.json'
 import turnJson from '../anims/turn.json'
+import crouchJson from '../anims/crouch.json'
 
 /*
  * Animaciones de Mixamo (captura de movimiento) traspasadas al esqueleto de la elfa.
@@ -39,6 +40,7 @@ export const CLIPS = {
   kneel: kneelJson as ClipData,
   wake: wakeJson as ClipData,
   turn: turnJson as ClipData,
+  crouch: crouchJson as ClipData, // "Male Crouch Pose" (Mixamo): en cuclillas, al quedarse con la oscuridad
 }
 
 /** Duración en segundos (en clips en bucle, el último frame repite el primero). */

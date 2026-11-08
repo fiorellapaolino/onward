@@ -11,7 +11,9 @@ import { Moments } from './components/Moments'
 import { Guide } from './components/Guide'
 import { Companions } from './components/Companions'
 import { Memory } from './components/Memory'
-import { Elder, Musician } from './components/Villager'
+import { Elder, Musician, Smith } from './components/Villager'
+import { Forge } from './components/Forge'
+import { Altar } from './components/Altar'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
 import { CameraRig } from './components/CameraRig'
@@ -20,6 +22,7 @@ import { AdaptiveQuality } from './components/AdaptiveQuality'
 import { StreetScene } from './components/StreetScene'
 import { SombraProto } from './components/SombraProto'
 import { TitleScene } from './components/TitleScene'
+import { Diag, diagMode } from './components/Diag'
 import { sombraMode } from './game/sombra'
 
 /** ?noshadows: sin sombras proyectadas (para comparar rendimiento o en ordenadores lentos). */
@@ -41,12 +44,15 @@ export default function App() {
           <Character />
           <ShadowSelf />
           <Elder />
+          <Smith />
           <Musician />
         </Suspense>
         <Suspense fallback={null}>
           <PathStones />
           <Flowers />
           <Village />
+          <Forge />
+          <Altar />
           <StreetScene />
           <Moments />
           <Guide />
@@ -58,6 +64,7 @@ export default function App() {
       </Canvas>
       <div className="vignette" />
       <Hud />
+      {diagMode && <Diag />}
     </>
   )
 }
