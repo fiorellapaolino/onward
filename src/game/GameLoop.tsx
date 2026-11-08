@@ -262,12 +262,9 @@ function step(rawDt: number) {
     applyDebug() // (?at=… en la dirección: empezar directamente en un punto, para probar)
 
     // ── Música del nacimiento ───────────────────────────────────
-    const prevMusic = g.musicT
     if (!debugMode) g.musicT = musicTime()
     // un destello en cada frase en la que aparece un elemento
-    // la música se corta: silencio, y aparece el título
-    if (prevMusic < MUSIC.CUT && g.musicT >= MUSIC.CUT) setUi({ title: true })
-    if (g.musicT >= MUSIC.CUT + 5.5 && g.musicT < MUSIC.CUT + 6) setUi({ title: false })
+    // (al cortarse la canción ya no aparece el título: el juego sigue sin interrupciones)
 
     input.backPressed = false
 
@@ -774,7 +771,7 @@ function step(rawDt: number) {
           Object.assign(sh, g) // (dentro de ella: ya no se ve)
           sh.talk = null
           sh.fear = 0
-          // la frase del final se queda hasta que todo se funde en luz (y vuelve en la pantalla final)
+          // la frase del final se queda hasta que todo se funde en luz
           if (T > 25) setUi({ fade: true, msg: null })
           if (T > 28) setUi({ final: true })
         }

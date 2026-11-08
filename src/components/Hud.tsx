@@ -3,7 +3,7 @@ import { useProgress } from '@react-three/drei'
 import { consumePointer, game, input, isTouch, setUi, useUi } from '../game/state'
 import { TouchControls } from './TouchControls'
 import { primeMusic, startMusic } from '../game/music'
-import { ELF_WORDS, PROMPT_COOL, PROMPT_STAY } from '../game/story'
+import { PROMPT_COOL, PROMPT_STAY } from '../game/story'
 
 // Textos en pantalla. Están en inglés porque las reglas lo piden;
 // la traducción está en el comentario de al lado.
@@ -144,7 +144,6 @@ export function Hud() {
         style={ui.final ? { pointerEvents: 'auto' } : undefined}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <p className="words">{ELF_WORDS}</p>
         <h1>Onward</h1>
         {/* "Gracias por jugar" */}
         <p>Thank you for playing.</p>
