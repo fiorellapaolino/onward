@@ -43,12 +43,12 @@ export const STONE_R = 0.55
 const STONE_LAND = 0.75 // (algo más que lo que se ve: si cae justo en el borde, se la acomoda arriba)
 const STONE_SNAP = 0.4 // (hasta dónde del centro se la acomoda al caer)
 /** Cuánto aguanta una piedra después de pisarla (s). */
-export const STONE_HOLD = 0.85
+export const STONE_HOLD = 2.5 // (se puede parar en ella; lo que apura es el derrumbe que viene detrás)
 /** Al pisar la primera piedra, el puente se derrumba detrás de ella: la piedra i cae a los WAVE_START + i·WAVE_STEP s. */
 const WAVE_START = 1.6
 const WAVE_STEP = 0.85
 /** Las piedras aparecen de a una al llegar al plano negativo. */
-export const stoneAppearAt = (i: number) => game.planeAt + 0.3 + i * 0.15
+export const stoneAppearAt = (i: number) => game.planeAt + 0.8 + i * 0.18 // (después de que se abre la grieta)
 /** El hierro de estrella, en el cráter del meteorito, del otro lado del vacío. */
 export const MINERAL = at(34.2, 1, 2.4) // (a un costado del empedrado)
 
@@ -66,7 +66,7 @@ export function stoneFallTime(i: number) {
 /** ¿La piedra i está entera (apareció y todavía no se cayó)? */
 export function stoneIntact(i: number) {
   const g = game
-  if (g.plane !== 2 || g.time < stoneAppearAt(i) + 0.3) return false
+  if (g.plane !== 2 || g.time < stoneAppearAt(i) + 0.2) return false
   return g.time < stoneFallTime(i)
 }
 
@@ -80,6 +80,8 @@ export function altarLocks() {
 export const fallDrop = () => (game.fallAt >= 0 ? Math.min(6, (game.time - game.fallAt) ** 2 * 5) : 0)
 
 const cracked = STONES.map(() => 0)
+/** Cuánto tarda en cerrarse la grieta (s). */
+export const CLOSE_TIME = 1.3
 
 function backToBody(msg: string) {
   const g = game
@@ -96,6 +98,7 @@ function backToBody(msg: string) {
   g.speed = 0
   g.stoneAt.fill(-1)
   g.waveAt = -1
+  g.closeAt = -1
   cracked.fill(0)
   g.pulse = 0.6
   setUi({ msg, prompt: null, hold: -1 })
@@ -155,12 +158,18 @@ export function updateAltar(dt: number) {
 
   // ── el plano negativo ──
   if (since >= 5 && since - dt < 5) setUi({ msg: null })
+  // al caer o al tomar el hierro: primero se cierra la grieta (se ve desde aquí), después vuelve a su cuerpo
+  const closing = (from: number) => {
+    if (g.time - from < 1.4) return false
+    if (g.closeAt < 0) g.closeAt = g.time
+    return g.time - g.closeAt > CLOSE_TIME
+  }
   if (g.fallAt >= 0) {
-    if (g.time - g.fallAt > 1.4) backToBody(FALL_MSG)
+    if (closing(g.fallAt)) backToBody(FALL_MSG)
     return
   }
   if (g.ironAt >= 0) {
-    if (g.time - g.ironAt > 1.4) {
+    if (closing(g.ironAt)) {
       backToBody(IRON_MSG)
       g.story = 'starIron'
       setUi({ goal: GOAL_IRON })

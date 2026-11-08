@@ -3,7 +3,7 @@ import { useProgress } from '@react-three/drei'
 import { consumePointer, game, input, isTouch, setUi, useUi } from '../game/state'
 import { TouchControls } from './TouchControls'
 import { primeMusic, startMusic } from '../game/music'
-import { PROMPT_COOL, PROMPT_STAY } from '../game/story'
+import { ELF_WORDS, PROMPT_COOL, PROMPT_STAY } from '../game/story'
 
 // Textos en pantalla. Están en inglés porque las reglas lo piden;
 // la traducción está en el comentario de al lado.
@@ -140,14 +140,19 @@ export function Hud() {
 
       <div
         className={`final ${ui.final ? 'show' : ''}`}
-        style={ui.final && isTouch ? { pointerEvents: 'auto' } : undefined}
-        onClick={ui.final && isTouch ? () => location.reload() : undefined}
+        // (tapa todo: ya no se puede hacer nada más que volver a empezar)
+        style={ui.final ? { pointerEvents: 'auto' } : undefined}
+        onPointerDown={(e) => e.stopPropagation()}
       >
+        <p className="words">{ELF_WORDS}</p>
         <h1>Onward</h1>
         {/* "Gracias por jugar" */}
         <p>Thank you for playing.</p>
-        {/* "Pulsa R para jugar de nuevo" (en el móvil no hay teclado: se toca la pantalla) */}
-        <small>{isTouch ? 'Tap to play again' : 'Press R to play again'}</small>
+        {/* "Volver a empezar" */}
+        <button className="again" onClick={() => location.reload()}>
+          Play again
+        </button>
+        <small>{isTouch ? '' : 'or press R'}</small>
       </div>
     </div>
   )

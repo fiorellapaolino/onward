@@ -71,7 +71,7 @@ export function Forge() {
 
     // el martillo del herrero: sube y baja sobre el hierro (un golpe cada FORGE_BEAT)
     const forging = g.story === 'forging'
-    hammer.current.visible = forging
+    hammer.current.visible = false // (el martillo ahora lo lleva el herrero en la mano: ver Villager)
     if (forging) {
       const k = g.time - g.forgingAt - 0.55
       const u = k < 0 ? 0 : (k % FORGE_BEAT) / FORGE_BEAT // 0 = recién golpeó … 1 = va a golpear

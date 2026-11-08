@@ -681,7 +681,8 @@ export function StreetScene() {
       roadAfter: fadingRibbon(STAIR_END - 0.2, PATH_END, 0, 3.3, 0.03, 1.7, 1.5, 12),
       left: fadingRibbon(COBBLE_FROM + 4, STAIR_Z0 + 0.1, 1.76, 0.24, 0.05, 1, 4, 1),
       right: fadingRibbon(COBBLE_FROM + 5, STAIR_Z0 + 0.1, -1.76, 0.24, 0.05, 1, 4, 1),
-      roadMat: hide(new THREE.MeshStandardMaterial({ map: t, bumpMap: bump, bumpScale: 4, roughness: 0.9, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })),
+      roadMat: hide(new THREE.MeshStandardMaterial({ map: t, bumpMap: bump, bumpScale: 1.6, // (con más relieve, el empedrado centellea al correr)
+         roughness: 0.9, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })),
       curbMat: hide(new THREE.MeshStandardMaterial({ color: '#a39678', roughness: 1, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 })),
       topMat: (() => {
         const scale = (src: THREE.Texture) => {
@@ -690,7 +691,7 @@ export function StreetScene() {
           c.needsUpdate = true
           return c
         }
-        return new THREE.MeshStandardMaterial({ map: scale(t), bumpMap: scale(bump), bumpScale: 4, roughness: 0.9 })
+        return new THREE.MeshStandardMaterial({ map: scale(t), bumpMap: scale(bump), bumpScale: 1.6, roughness: 0.9 })
       })(),
     }
   }, [])

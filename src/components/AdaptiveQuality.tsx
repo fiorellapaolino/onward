@@ -9,6 +9,9 @@ import { input } from '../game/state'
  *   - si los cuadros tardan demasiado, baja la resolución; si sobra margen, la sube de nuevo,
  *     cada vez con más cautela: cambiarla da un tirón, y no puede estar yendo y viniendo
  *   - nunca dibuja más de MAX_PIXELS: con la página alejada (Cmd −) el lienzo se vuelve enorme y todo va a tirones
+ *   - si bajar la resolución no mejora los cuadros, no era la compu: es el navegador el que limita (p. ej. Chrome
+ *     con "Ahorro de energía" a 30 cuadros). Entonces vuelve a la resolución anterior y deja de bajarla:
+ *     si no, todo se ve borroso (y al moverse, una doble imagen) sin ganar nada
  */
 const MAX_PIXELS = 1920 * 1080
 const MAX_DPR = 1.5
@@ -25,7 +28,7 @@ export function AdaptiveQuality() {
   const budget = base * Math.min(1, Math.sqrt(MAX_PIXELS / Math.max(1, size.width * size.height * base * base)))
   const budgetRef = useRef(budget)
   budgetRef.current = budget
-  const state = useRef({ shadowT: 0, frames: 0, elapsed: 0, level: 0, calm: 0, drops: 0 })
+  const state = useRef({ shadowT: 0, frames: 0, elapsed: 0, level: 0, calm: 0, drops: 0, before: 0, judge: false, capped: false })
 
   const scene = useThree((s) => s.scene)
   const camera = useThree((s) => s.camera)
@@ -58,7 +61,19 @@ export function AdaptiveQuality() {
     const fps = s.frames / s.elapsed
     s.frames = 0
     s.elapsed = 0
-    if (fps < 42 && s.level < LEVELS.length - 1) {
+    if (s.judge) {
+      // ¿sirvió bajarla? si casi no mejoró, el límite no es la compu: vuelve atrás y no la baja más
+      s.judge = false
+      if (fps < s.before * 1.12) {
+        s.level--
+        s.capped = true
+        setDpr(LEVELS[s.level] * budgetRef.current)
+        return
+      }
+    }
+    if (fps < 42 && s.level < LEVELS.length - 1 && !s.capped) {
+      s.before = fps
+      s.judge = true
       s.level++
       s.calm = 0
       s.drops++

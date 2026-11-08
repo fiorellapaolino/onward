@@ -92,6 +92,8 @@ export const game = {
   ironAt: -1, // tomó el hierro de estrella
   stoneAt: [-1, -1, -1, -1, -1, -1, -1, -1] as number[], // cuándo pisó cada piedra flotante (se cae al rato)
   waveAt: -1, // pisó la primera piedra: el puente se derrumba detrás de ella
+  closeAt: -1, // la grieta empieza a cerrarse (se ve desde su yo oscuro, antes de volver a su cuerpo)
+  shake: 0, // 0..1: temblor de la cámara (se abre la grieta, se rompe una piedra)
   // ── la herrería ──
   smithNear: 0, // 0..1: lo cerca que está la elfa del herrero
   forgeHeat: 0.3, // 0..1: el fuego del horno (en su punto entre FORGE_GOOD)
@@ -109,6 +111,10 @@ export const game = {
   kneelT: 0, // momento de esa animación (0 = de rodillas … final = de pie)
   sit: 0, // 0..1: en cuclillas (al quedarse con la oscuridad, hasta que nace su sombra)
   hug: 0, // 0..1: abrazo (brazos hacia delante, rodeando)
+  fuse: 0, // 0..1: la pose de rezar del final ("Praying"), mientras su sombra entra en ella
+  fuseT: 0, // momento de esa animación
+  bow: 0, // 0..1: la reverencia del final ("Quick Informal Bow"), frente a su sombra
+  bowT: 0, // momento de esa animación
   endStart: { x: 0, z: 0 }, // dónde se detuvo
   endShadow: { x: 0, z: 0 }, // dónde se encoge su sombra
   jumpT: -1, // tiempo desde que empezó el salto (-1 = no salta)

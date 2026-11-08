@@ -1,56 +1,74 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clamp01, heightAt, pathAt, stoneLift } from '../game/config'
 import { game } from '../game/state'
-import { ALTAR, MINERAL, PORTAL, STONES, STONE_R, stoneFallTime, VOID_FAR, VOID_HALF, VOID_NEAR, WISP_FROM, stoneAppearAt } from '../game/altar'
+import { ALTAR, MINERAL, PORTAL, WISP_FROM } from '../game/altar'
 import { useGlowTexture } from './TheLight'
-import { voidUniforms } from './instancing'
+import { setHum } from '../game/sfx'
 
 /*
  * El altar junto a los árboles, el cráter del meteorito, y lo que solo ve su yo oscuro:
- *   plane 1: algo que se mueve entre los árboles y el portal al que lleva.
- *   plane 2: el vacío, las piedras flotantes y el hierro de estrella.
- * El plano negativo es el mismo mundo de noche (filtro sobre la imagen, ver styles.css): el vacío es negro
- * y lo sobrenatural (las piedras, el hierro) brilla con luz propia.
+ *   plane 1: algo que se mueve entre los árboles y el círculo de hadas al que lleva (entrar en él lleva al vacío).
+ *   plane 2: el vacío, las piedras flotantes y el hierro de estrella (ver Abyss.tsx).
+ * El plano negativo es el mismo mundo de noche (filtro sobre la imagen, ver styles.css).
  */
-const STONE_MAT = new THREE.MeshStandardMaterial({ color: '#77706a', roughness: 0.95, flatShading: true })
+/** El altar: "Free Ritual Stone" (CGTrader), con las texturas achicadas para la web. Mide 0,91 m de alto. */
+const ALTAR_URL = `${import.meta.env.BASE_URL}models/altar/ritual_stone.glb`
+const ALTAR_SCALE = 1.15
+const ALTAR_TOP = 0.91 * ALTAR_SCALE
 const RUNE_MAT = new THREE.MeshBasicMaterial({ color: '#9fd8ff', toneMapped: false, transparent: true })
 const CRATER_MAT = new THREE.MeshBasicMaterial({ color: '#0b0908', transparent: true, opacity: 0.55, depthWrite: false })
 const ROCK_MAT = new THREE.MeshStandardMaterial({ color: '#3a3532', roughness: 1, flatShading: true })
-const VOID_MAT = new THREE.MeshBasicMaterial({ color: '#000000', fog: false })
-const FLOAT_MAT = new THREE.MeshBasicMaterial({ color: '#dfe9ff', toneMapped: false, fog: false })
-const FLOAT_EDGE = new THREE.MeshBasicMaterial({ color: '#6f7fa8', fog: false })
-const IRON_NEG = new THREE.MeshBasicMaterial({ color: '#c8f4ff', toneMapped: false, fog: false })
 const IRON_MAT = new THREE.MeshStandardMaterial({ color: '#cfefff', emissive: '#8fd8ff', emissiveIntensity: 1.4, roughness: 0.3, metalness: 0.5 })
 const TMP = new THREE.Vector3()
+// el círculo de hadas: hongos que brillan en anillo, lucecitas que giran adentro
+const CAP_MAT = new THREE.MeshBasicMaterial({ color: '#c4f4ff', toneMapped: false })
+const STEM_MAT = new THREE.MeshBasicMaterial({ color: '#eefcff', toneMapped: false })
+const RING_R = 0.95
+const MUSHROOMS = (() => {
+  const out: { a: number; r: number; s: number }[] = []
+  for (let i = 0; i < 15; i++) {
+    const a = (i / 15) * Math.PI * 2 + Math.sin(i * 7.3) * 0.12
+    out.push({ a, r: RING_R + Math.sin(i * 3.1) * 0.07, s: 0.8 + ((i * 37) % 10) / 16 })
+  }
+  return out
+})()
+const MOTES = 10
+const easeOutBack = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : 1 + 2.2 * (x - 1) ** 3 + 1.2 * (x - 1) ** 2)
+const TMP_COLOR = new THREE.Color('#c4f4ff')
 
 export function Altar() {
   const glowTex = useGlowTexture()
+  const { scene: altarScene } = useGLTF(ALTAR_URL)
+  const altarModel = useMemo(() => {
+    const m = altarScene.clone(true)
+    m.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (mesh.isMesh) {
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+      }
+    })
+    return m
+  }, [altarScene])
   const rune = useRef<THREE.Mesh>(null!)
   const wisp = useRef<THREE.Group>(null!)
   const portal = useRef<THREE.Group>(null!)
-  const neg = useRef<THREE.Group>(null!)
-  const stones = useRef<THREE.Group>(null!)
-  const mineral = useRef<THREE.Group>(null!)
+  const motes = useRef<THREE.Group>(null!)
   const carried = useRef<THREE.Group>(null!)
   const wispMat = useMemo(() => new THREE.SpriteMaterial({ map: glowTex, color: '#e6f4ff', transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }), [glowTex])
-  const portalGlow = useMemo(() => new THREE.SpriteMaterial({ map: glowTex, color: '#cfe9ff', transparent: true, opacity: 0.6, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }), [glowTex])
-  const ironGlowNeg = useMemo(() => new THREE.SpriteMaterial({ map: glowTex, color: '#8fe3ff', transparent: true, opacity: 0.9, depthWrite: false, fog: false, toneMapped: false, blending: THREE.AdditiveBlending }), [glowTex])
+  const ringGlow = useMemo(() => new THREE.MeshBasicMaterial({ map: glowTex, color: '#9fe6ff', transparent: true, opacity: 0.5, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }), [glowTex])
+  const moteMat = useMemo(() => new THREE.SpriteMaterial({ map: glowTex, color: '#e8fbff', transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }), [glowTex])
+  const mistMat = useMemo(() => new THREE.SpriteMaterial({ map: glowTex, color: '#cfeaff', transparent: true, opacity: 0.15, depthWrite: false, toneMapped: false }), [glowTex])
+  // cuándo cambió de plano y desde cuál (para animar lo que aparece y lo que se va)
+  const planeFx = useRef({ prev: 0, left: 0, at: -99 })
   const ironGlow = useMemo(() => new THREE.SpriteMaterial({ map: glowTex, color: '#9fdcff', transparent: true, opacity: 0.6, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }), [glowTex])
 
-  // el vacío: un rectángulo a lo ancho del sendero
-  const voidGeo = useMemo(() => {
-    const mid = (VOID_NEAR + VOID_FAR) / 2
-    const g = new THREE.PlaneGeometry(VOID_HALF * 2, VOID_NEAR - VOID_FAR)
-    g.rotateX(-Math.PI / 2)
-    g.translate(pathAt(mid, TMP).x, Math.max(heightAt(VOID_NEAR), heightAt(VOID_FAR)) + 0.02, mid)
-    return g
-  }, [])
-  useMemo(() => {
-    const mid = (VOID_NEAR + VOID_FAR) / 2
-    voidUniforms.uVoid.value.set(VOID_NEAR, VOID_FAR, pathAt(mid, TMP).x, VOID_HALF)
-    voidUniforms.uVoidTop.value = Math.max(heightAt(VOID_NEAR), heightAt(VOID_FAR)) + 0.6
+  const altarYaw = useMemo(() => {
+    const p = pathAt(ALTAR.z, new THREE.Vector3())
+    return Math.atan2(p.x - ALTAR.x, p.z - ALTAR.z)
   }, [])
   const portalYaw = useMemo(() => {
     const a = pathAt(PORTAL.z - 1, new THREE.Vector3())
@@ -69,45 +87,76 @@ export function Altar() {
     RUNE_MAT.opacity = g.story === 'altar' ? 0.35 + 0.25 * Math.sin(t * 2.2) + 0.4 * praying : 0.12
     rune.current.rotation.z = t * 0.3
 
-    // ── su estado oscuro: algo se mueve entre los árboles, del altar hacia el portal ──
+    // ── al cambiar de plano, lo de antes se va de a poco y lo nuevo aparece de a poco ──
+    const fx = planeFx.current
+    if (g.plane !== fx.prev) {
+      fx.left = fx.prev
+      fx.prev = g.plane
+      fx.at = t
+    }
+    const since = t - fx.at
+
+    // ── su estado oscuro: algo se mueve entre los árboles y termina dando vueltas en el círculo de hadas ──
     const dark = g.plane === 1
+    // el círculo brota (hongos de a uno, alrededor) y se marchita al entrar en él
+    const ringOpen = dark ? clamp01(since / 1.6) : 0
+    const ringClose = !dark && fx.left === 1 ? 1 - clamp01(since / 0.7) : 0
+    const ringK = dark ? ringOpen : ringClose
     wisp.current.visible = dark
-    portal.current.visible = dark
+    portal.current.visible = dark || ringClose > 0
+    if (portal.current.visible) {
+      portal.current.children.forEach((c, i) => {
+        if (i === 0 || i > MUSHROOMS.length) return // (el resplandor y las lucecitas van aparte)
+        const m = MUSHROOMS[i - 1]
+        const grow = dark ? easeOutBack(clamp01(ringOpen * 1.6 - ((i - 1) / MUSHROOMS.length) * 0.6)) : ringClose
+        c.scale.setScalar(Math.max(0.001, m.s * grow))
+      })
+    }
+    // cuanto más cerca, más brilla y más se oye
+    const near = dark ? 1 - THREE.MathUtils.smoothstep(Math.hypot(g.x - PORTAL.x, g.z - PORTAL.z), 1, 7) : 0
+    setHum(dark ? 0.15 + 0.85 * near : 0)
     if (dark) {
-      const u = ((t - g.planeAt) % 3.4) / 3.4
-      const k = THREE.MathUtils.smoothstep(u, 0, 1)
-      const x = WISP_FROM.x + (PORTAL.x - WISP_FROM.x) * k + Math.sin(u * Math.PI * 3) * 0.9
-      const z = WISP_FROM.z + (PORTAL.z - WISP_FROM.z) * k
-      wisp.current.position.set(x, heightAt(z) + 0.9 + Math.sin(t * 4) * 0.12, z)
-      wispMat.opacity = Math.sin(u * Math.PI) * 0.95
+      const u = ((t - g.planeAt) % 4.6) / 4.6
+      let x: number
+      let z: number
+      let y: number
+      if (u < 0.55) {
+        // viaja entre los árboles, desde el altar
+        const k = THREE.MathUtils.smoothstep(u / 0.55, 0, 1)
+        x = WISP_FROM.x + (PORTAL.x - WISP_FROM.x) * k + Math.sin(u * Math.PI * 4) * 0.8 * (1 - k)
+        z = WISP_FROM.z + (PORTAL.z - WISP_FROM.z) * k
+        y = 0.9
+      } else {
+        // y gira dentro del círculo, bajando
+        const k = (u - 0.55) / 0.45
+        const a = k * Math.PI * 3
+        x = PORTAL.x + Math.sin(a) * 0.55 * (1 - k * 0.5)
+        z = PORTAL.z + Math.cos(a) * 0.55 * (1 - k * 0.5)
+        y = 0.9 - 0.5 * k
+      }
+      wisp.current.position.set(x, heightAt(z) + y + Math.sin(t * 4) * 0.08, z)
+      wispMat.opacity = Math.min(1, u * 6) * Math.min(1, (1 - u) * 5) * 0.95
       wisp.current.children.forEach((c, i) => {
-        c.position.set(-Math.sin(u * Math.PI * 3 - i * 0.4) * 0.25 * i, -0.05 * i, 0.3 * i)
+        c.position.set(-Math.sin(u * Math.PI * 3 - i * 0.4) * 0.2 * i, -0.04 * i, 0.22 * i)
         c.scale.setScalar(0.5 - i * 0.12)
       })
-      portal.current.rotation.z = t * 0.5
-      portalGlow.opacity = 0.45 + 0.2 * Math.sin(t * 3)
-    }
-
-    // ── el plano negativo: el vacío, las piedras y el hierro ──
-    const negative = g.plane === 2
-    neg.current.visible = negative
-    voidUniforms.uVoidOn.value = negative ? 1 : 0
-    if (negative) {
-      STONES.forEach((st, i) => {
-        const s = stones.current.children[i]
-        const rise = clamp01((t - stoneAppearAt(i)) / 0.4)
-        const left = stoneFallTime(i) - t // (segundos hasta que cae)
-        const shake = left > 0 && left < 0.6 ? (1 - left / 0.6) * 0.06 * Math.sin(t * 60) : 0
-        const drop = left <= 0 ? left ** 2 * 9 : 0
-        s.visible = rise > 0 && drop < 8
-        s.position.set(st.x + shake, heightAt(st.z) + 0.04 - (1 - THREE.MathUtils.smoothstep(rise, 0, 1)) * 1.6 - drop, st.z)
-        s.rotation.y = i * 1.3
+      const glow = 0.35 + 0.65 * near
+      CAP_MAT.color.setScalar(0.55 + 0.45 * glow).multiply(TMP_COLOR)
+      ringGlow.opacity = (0.25 + 0.4 * near) * (0.85 + 0.15 * Math.sin(t * 2)) * ringK
+      mistMat.opacity = (0.06 + 0.1 * near) * ringK
+      motes.current.children.forEach((c, i) => {
+        const sp = 0.25 + (i % 4) * 0.08
+        const a = t * sp * (i % 2 ? 1 : -1) + i * 1.9
+        const r = 0.2 + ((i * 0.37) % 0.6)
+        const h = 0.1 + (((t * 0.15 + i * 0.13) % 1) * 1.1)
+        c.position.set(Math.sin(a) * r, h, Math.cos(a) * r)
+        c.scale.setScalar(0.07 + 0.05 * Math.sin(t * 3 + i))
       })
-      const got = g.ironAt >= 0 ? clamp01((t - g.ironAt) / 0.8) : 0
-      mineral.current.visible = got < 1
-      mineral.current.position.set(MINERAL.x, heightAt(MINERAL.z) + 0.55 + Math.sin(t * 1.8) * 0.06 + got * 0.6, MINERAL.z)
-      mineral.current.rotation.y = t * 0.8
-      mineral.current.scale.setScalar(1 - got)
+      moteMat.opacity = (0.5 + 0.5 * near) * ringK
+    } else if (ringClose > 0) {
+      ringGlow.opacity = 0.65 * ringClose
+      mistMat.opacity = 0.16 * ringClose
+      moteMat.opacity = ringClose
     }
 
     // el hierro de estrella va con ella hasta el herrero
@@ -133,15 +182,10 @@ export function Altar() {
 
   return (
     <>
-      {/* ── el altar: piedra vieja con una runa que late ── */}
-      <group position={[ALTAR.x, heightAt(ALTAR.z), ALTAR.z]}>
-        <mesh material={STONE_MAT} position={[0, 0.35, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.36, 0.48, 0.7, 7]} />
-        </mesh>
-        <mesh material={STONE_MAT} position={[0, 0.76, 0]} castShadow>
-          <boxGeometry args={[0.95, 0.12, 0.62]} />
-        </mesh>
-        <mesh ref={rune} material={RUNE_MAT} position={[0, 0.83, 0]} rotation-x={-Math.PI / 2}>
+      {/* ── el altar: piedra ritual vieja con una runa que late encima ── */}
+      <group position={[ALTAR.x, heightAt(ALTAR.z), ALTAR.z]} rotation-y={altarYaw}>
+        <primitive object={altarModel} scale={ALTAR_SCALE} />
+        <mesh ref={rune} material={RUNE_MAT} position={[0, ALTAR_TOP + 0.015, 0]} rotation-x={-Math.PI / 2}>
           <torusGeometry args={[0.18, 0.018, 6, 24]} />
         </mesh>
       </group>
@@ -162,36 +206,27 @@ export function Altar() {
           <sprite key={i} material={wispMat} />
         ))}
       </group>
-      <group ref={portal} visible={false} position={[PORTAL.x, heightAt(PORTAL.z) + 1.0, PORTAL.z]} rotation-y={portalYaw}>
-        <mesh>
-          <torusGeometry args={[0.85, 0.05, 8, 40]} />
-          <meshBasicMaterial color="#e8f6ff" toneMapped={false} />
+      {/* el círculo de hadas: entrar en él lleva al vacío */}
+      <group ref={portal} visible={false} position={[PORTAL.x, heightAt(PORTAL.z), PORTAL.z]} rotation-y={portalYaw}>
+        <mesh material={ringGlow} position={[0, 0.03, 0]} rotation-x={-Math.PI / 2} renderOrder={2}>
+          <planeGeometry args={[3.4, 3.4]} />
         </mesh>
-        <sprite material={portalGlow} scale={2.2} />
-      </group>
-
-      {/* ── el plano negativo ── */}
-      <group ref={neg} visible={false}>
-        <mesh geometry={voidGeo} material={VOID_MAT} renderOrder={1} />
-        <group ref={stones}>
-          {STONES.map((_, i) => (
-            <group key={i}>
-              {/* una roca flotante: la cara de arriba plana para pararse, y la punta hacia abajo */}
-              <mesh material={FLOAT_MAT} position={[0, -0.08, 0]}>
-                <cylinderGeometry args={[STONE_R, STONE_R * 0.85, 0.16, 8]} />
-              </mesh>
-              <mesh material={FLOAT_EDGE} position={[0, -0.5, 0]} rotation-x={Math.PI}>
-                <coneGeometry args={[STONE_R * 0.85, 0.7, 8]} />
-              </mesh>
-            </group>
+        {MUSHROOMS.map((m, i) => (
+          <group key={i} position={[Math.sin(m.a) * m.r, 0, Math.cos(m.a) * m.r]} scale={m.s} rotation-y={m.a}>
+            <mesh material={STEM_MAT} position={[0, 0.045, 0]}>
+              <cylinderGeometry args={[0.018, 0.025, 0.09, 6]} />
+            </mesh>
+            <mesh material={CAP_MAT} position={[0, 0.09, 0]}>
+              <sphereGeometry args={[0.055, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            </mesh>
+          </group>
+        ))}
+        <group ref={motes}>
+          {Array.from({ length: MOTES }, (_, i) => (
+            <sprite key={i} material={moteMat} />
           ))}
         </group>
-        <group ref={mineral}>
-          <mesh material={IRON_NEG}>
-            <octahedronGeometry args={[0.22, 0]} />
-          </mesh>
-          <sprite material={ironGlowNeg} scale={1.1} />
-        </group>
+        <sprite material={mistMat} position={[0, 0.6, 0]} scale={[2.6, 1.6, 1]} />
       </group>
 
       {/* el hierro de estrella, con ella (en el mundo de la luz) */}
@@ -204,3 +239,5 @@ export function Altar() {
     </>
   )
 }
+
+useGLTF.preload(ALTAR_URL)

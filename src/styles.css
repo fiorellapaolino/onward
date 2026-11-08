@@ -175,9 +175,42 @@ html, body, #root {
   color: #6b4a58;
 }
 
+.final {
+  inset: 0;
+  transform: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  text-align: center;
+  text-shadow: none;
+}
+.final .words {
+  max-width: 34em;
+  margin: 0 auto 36px;
+  font-style: italic;
+  font-size: clamp(18px, 2.4vw, 26px);
+  line-height: 1.5;
+}
+.final .again {
+  margin-top: 30px;
+  padding: 12px 34px;
+  font: inherit;
+  font-size: clamp(16px, 1.8vw, 20px);
+  letter-spacing: 0.12em;
+  color: #fff6ea;
+  background: #6b4a58;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.final .again:hover {
+  background: #7d5869;
+}
 .final small {
   display: block;
-  margin-top: 28px;
+  margin-top: 14px;
   opacity: 0.6;
   font-size: 14px;
 }

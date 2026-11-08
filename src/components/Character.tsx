@@ -383,6 +383,10 @@ export function Character({ echo = false }: { echo?: boolean }) {
         blendInto(base, sampleAt(CLIPS.wake, t, S.tmp), standW)
       } else blendInto(base, sampleAt(CLIPS.standup, g.kneelT, S.tmp), standW)
     }
+    // la fusión del final: reza de rodillas mientras su sombra entra en ella, y se levanta ("Praying")
+    if (g.fuse > 0.001) blendInto(base, sampleAt(CLIPS.pray, g.fuseT, S.tmp), smooth(g.fuse))
+    // la reverencia del final, frente a su sombra ("Quick Informal Bow")
+    if (g.bow > 0.001) blendInto(base, sampleAt(CLIPS.bow, g.bowT, S.tmp), smooth(g.bow))
     // al final levanta la mirada hacia la luz
     if (g.phase === 'end') base.q.Head?.multiply(TMP_Q.setFromAxisAngle(X_AXIS, -0.3 * clamp01((g.phaseT - 10) / 2)))
 
@@ -456,7 +460,7 @@ export function Character({ echo = false }: { echo?: boolean }) {
 
     // De rodillas: la pose de "Standing Up" trae la cabeza girada; se corrige para que mire al frente
     if (g.phase !== 'intro' && g.phase !== 'rise' && g.kneel > 0.001) {
-      const k = smooth(g.kneel)
+      const k = smooth(g.kneel) * (1 - smooth(g.fuse))
       rotateBoneLocal(bones.neck_01, axes.neck.up, HEAD_FRONT * 0.4 * k)
       rotateBoneLocal(bones.Head, axes.head.up, HEAD_FRONT * 0.6 * k)
     }

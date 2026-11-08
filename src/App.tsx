@@ -14,6 +14,7 @@ import { Memory } from './components/Memory'
 import { Elder, Musician, Smith } from './components/Villager'
 import { Forge } from './components/Forge'
 import { Altar } from './components/Altar'
+import { Abyss } from './components/Abyss'
 import { TheLight, OtherPaths } from './components/TheLight'
 import { Character, ShadowSelf } from './components/Character'
 import { CameraRig } from './components/CameraRig'
@@ -53,6 +54,7 @@ export default function App() {
           <Village />
           <Forge />
           <Altar />
+          <Abyss />
           <StreetScene />
           <Moments />
           <Guide />

@@ -67,7 +67,7 @@ function finish(size: number, fill: (x: number, y: number, rgb: number[]) => num
   hc.putImageData(hi, 0, 0)
   const tune = (t: THREE.CanvasTexture) => {
     t.wrapS = t.wrapT = THREE.RepeatWrapping
-    t.anisotropy = 4
+    t.anisotropy = 8 // (de lejos y en ángulo, sin centelleo al moverse)
     return t
   }
   const map = tune(new THREE.CanvasTexture(color))

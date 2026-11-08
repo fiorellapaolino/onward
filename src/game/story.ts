@@ -73,8 +73,11 @@ export const SHADOW_BLOCK = 'The shadow is too thick to walk through.'
 /** Aviso para escuchar a la niña. "Escuchar" */
 export const PROMPT_LISTEN = 'Listen'
 
-/** La única frase de la elfa en todo el juego (al abrazar a su sombra). "No estás sola." */
-export const ELF_WORDS = 'You are not alone.'
+/**
+ * Al final, frente a su sombra (mientras le hace la reverencia):
+ * "Avanzar no significa dejar el pasado atrás, o ignorar lo malo, sino caminar hacia adelante llevando contigo todo lo que eres."
+ */
+export const ELF_WORDS = "Moving forward doesn't mean leaving the past behind, or ignoring what hurt. It means walking ahead, carrying everything you are."
 /** Al final, caminando juntas hacia la luz. "Siempre hay un paso más." */
 export const LAST_STEP = 'There is always one more step.'
 

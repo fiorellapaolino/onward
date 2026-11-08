@@ -178,6 +178,61 @@ export function crack(strength = 1) {
   src.start(t)
 }
 
+/** El murmullo del círculo de hadas: dos notas graves y suaves que suben al acercarse (level 0..1). */
+let humGain: GainNode | null = null
+export function setHum(level: number) {
+  if (level <= 0 && !humGain) return
+  const a = audio()
+  if (!a || !master) return
+  if (!humGain) {
+    humGain = a.createGain()
+    humGain.gain.value = 0
+    humGain.connect(master)
+    for (const [f, v] of [[196, 0.6], [293.7, 0.35], [392.4, 0.15]] as const) {
+      const o = a.createOscillator()
+      const g = a.createGain()
+      o.type = 'sine'
+      o.frequency.value = f
+      g.gain.value = v
+      // un temblor lento, como un coro lejano
+      const lfo = a.createOscillator()
+      const lg = a.createGain()
+      lfo.frequency.value = 0.3 + f / 1000
+      lg.gain.value = 2.5
+      lfo.connect(lg).connect(o.frequency)
+      o.connect(g).connect(humGain)
+      o.start()
+      lfo.start()
+    }
+  }
+  humGain.gain.setTargetAtTime(Math.max(0, level) * 0.12, a.currentTime, 0.25)
+}
+
+/** Retumbo de la tierra que se abre: ruido muy grave que crece y se apaga. */
+export function rumble(seconds = 1.6, volume = 1) {
+  const a = audio()
+  if (!a || !master) return
+  const t = a.currentTime
+  const len = Math.floor(a.sampleRate * seconds)
+  const buf = a.createBuffer(1, len, a.sampleRate)
+  const d = buf.getChannelData(0)
+  let last = 0
+  for (let i = 0; i < len; i++) {
+    last = last * 0.97 + (Math.random() * 2 - 1) * 0.03 // (ruido marrón: grave)
+    const k = i / len
+    d[i] = last * 8 * Math.min(1, k * 6) * (1 - k) ** 1.5
+  }
+  const src = a.createBufferSource()
+  src.buffer = buf
+  const lp = a.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.value = 160
+  const g = a.createGain()
+  g.gain.value = 0.9 * volume
+  src.connect(lp).connect(g).connect(master)
+  src.start(t)
+}
+
 /** Caída: un soplo que baja (se la traga el vacío). */
 export function fallSound() {
   const a = audio()

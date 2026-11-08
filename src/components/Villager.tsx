@@ -42,6 +42,8 @@ export type Spec = {
   standStep?: number
   /** Saltitos (metros hacia arriba en este momento). */
   bounce?: () => number
+  /** Objetos que lleva en las manos: se pegan a sus huesos al armarlo (bones, ejes de la persona en cada hueso). */
+  attach?: (bones: Record<string, THREE.Bone>, axes: Record<string, Record<Axis, THREE.Vector3>>) => void
 }
 
 // Gestos de la niña de pie (ajustados con tools/girlpose.py sobre la pose "idle")
@@ -234,6 +236,66 @@ const MUSICIAN_SPEC: Spec = {
 }
 
 // ── El herrero: grandote, de pie junto al yunque, de brazos cruzados (desconfía); al final se queda boquiabierto ──
+// Lo que tiene en las manos al trabajar: el martillo (derecha) y las tenazas que sujetan el hierro (izquierda)
+const SMITH_PROPS: { hammer: THREE.Group | null; tongs: THREE.Group | null } = { hammer: null, tongs: null }
+const IRON_TOOL = new THREE.MeshStandardMaterial({ color: '#2f3034', roughness: 0.45, metalness: 0.7 })
+const HANDLE = new THREE.MeshStandardMaterial({ color: '#6b4a2c', roughness: 0.85 })
+/** Pega un objeto a un hueso: en el objeto, x = izquierda de la persona, y = arriba, z = adelante (en reposo), en metros. */
+function holdIn(bone: THREE.Bone, ax: Record<Axis, THREE.Vector3>, obj: THREE.Group) {
+  const holder = new THREE.Group()
+  holder.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(ax.left, ax.up, ax.fwd))
+  const s = bone.getWorldScale(new THREE.Vector3()).x
+  holder.scale.setScalar(1 / s)
+  holder.add(obj)
+  bone.add(holder)
+}
+function makeHammer() {
+  const g = new THREE.Group()
+  // el mango sale del puño hacia adelante; la cabeza, atravesada, golpea hacia abajo
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.42, 6), HANDLE)
+  handle.rotation.x = Math.PI / 2
+  handle.position.set(0, -0.02, 0.15)
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.17, 0.07), IRON_TOOL)
+  head.position.set(0, -0.04, 0.35)
+  g.add(handle, head)
+  g.visible = false
+  return g
+}
+function makeTongs() {
+  const g = new THREE.Group()
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.5), IRON_TOOL)
+    arm.position.set(side * 0.012, -0.02, 0.22)
+    arm.rotation.y = side * 0.03
+    g.add(arm)
+  }
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.05), IRON_TOOL)
+  jaw.position.set(0, -0.02, 0.48)
+  g.add(jaw)
+  g.visible = false
+  return g
+}
+/**
+ * Un martillazo, como lo da una persona (u = 0 es el golpe; el ciclo dura lo mismo que en Forge/GameLoop):
+ * rebota un poco, levanta despacio girando el torso, se frena arriba un instante y baja rápido con todo el cuerpo.
+ * Devuelve cuánto tiene el brazo levantado (0..1) y el impulso del golpe (1 justo al pegar).
+ */
+function swingAt(k: number, beat: number) {
+  if (k < 0) {
+    // antes del primer golpe: levanta y baja
+    const r = k < -0.15 ? THREE.MathUtils.smoothstep(k, -0.55, -0.22) : 1 - ((k + 0.15) / 0.15) ** 2
+    return { raise: r, hit: 0 }
+  }
+  const u = (k % beat) / beat
+  let raise: number
+  if (u < 0.08) raise = 0.18 * Math.sin((u / 0.08) * Math.PI * 0.5) // rebote del martillo
+  else if (u < 0.16) raise = 0.18 - 0.06 * ((u - 0.08) / 0.08)
+  else if (u < 0.62) raise = 0.12 + 0.88 * THREE.MathUtils.smoothstep(u, 0.16, 0.62) // levanta despacio
+  else if (u < 0.8) raise = 1 + 0.04 * Math.sin(((u - 0.62) / 0.18) * Math.PI * 0.5) // se frena arriba (toma impulso)
+  else raise = 1.04 * (1 - ((u - 0.8) / 0.2) ** 2) // baja cada vez más rápido
+  return { raise, hit: u < 0.18 ? 1 - u / 0.18 : 0 }
+}
+
 const ARMS_CROSSED: Pose = [
   ['upperarm_l', 'left', -0.55],
   ['upperarm_r', 'left', -0.55],
@@ -251,18 +313,49 @@ const SMITH_SPEC: Spec = {
   pose: [],
   spot: SMITH,
   stand: () => 1,
+  attach: (bones, axes) => {
+    SMITH_PROPS.hammer = makeHammer()
+    SMITH_PROPS.tongs = makeTongs()
+    if (bones.hand_r) holdIn(bones.hand_r, axes.hand_r, SMITH_PROPS.hammer)
+    if (bones.hand_l) holdIn(bones.hand_l, axes.hand_l, SMITH_PROPS.tongs)
+  },
   gestures: (rot, t, near, yaw) => {
     // de brazos cruzados hasta que se pone a trabajar; martilla con el brazo derecho; al terminar, satisfecho
-    const working = game.forgingAt >= 0 ? clamp01((t - game.forgingAt) / 0.4) : 0
+    const working = game.forgingAt >= 0 && game.story === 'forging' ? clamp01((t - game.forgingAt) / 0.4) : 0
     const done = game.forgeDoneAt >= 0 ? clamp01((t - game.forgeDoneAt) / 0.8) : 0
-    applyPose(rot, ARMS_CROSSED, 1 - working)
-    if (game.story === 'forging') {
+    applyPose(rot, ARMS_CROSSED, 1 - (game.story === 'forging' ? working : 0))
+    const forging = game.story === 'forging'
+    if (SMITH_PROPS.hammer) SMITH_PROPS.hammer.visible = forging
+    if (SMITH_PROPS.tongs) SMITH_PROPS.tongs.visible = forging
+    if (forging) {
       const k = t - game.forgingAt - 0.55
+      const { raise: r, hit } = swingAt(k, 0.75)
+      const w = working
+      // brazo del martillo: levanta por delante, con el codo hacia afuera; al bajar, el codo se estira y la muñeca remata
+      rot('upperarm_r', 'left', (-0.45 - 1.65 * r) * w)
+      rot('upperarm_r', 'up', -0.3 * r * w)
+      rot('lowerarm_r', 'fwd', (0.3 + 1.15 * r) * w)
+      rot('hand_r', 'left', (0.55 * r - 0.25 * hit) * w)
+      // el torso acompaña: se echa atrás y gira al levantar, se vuelca hacia adelante al pegar
+      rot('spine_01', 'left', (0.2 - 0.24 * r + 0.1 * hit) * w)
+      rot('spine_02', 'up', -0.2 * r * w)
+      rot('spine_02', 'fwd', 0.06 * r * w)
+      rot('spine_03', 'left', (0.05 * hit - 0.06 * r) * w)
+      // la mano izquierda sostiene el hierro con las tenazas sobre el yunque; tiembla al golpe
+      // y cada dos golpes lo gira (entre golpe y golpe)
+      const n = k < 0 ? 0 : Math.floor(k / 0.75)
       const u = k < 0 ? 0 : (k % 0.75) / 0.75
-      const lift = k < 0 ? clamp01((k + 0.55) / 0.55) : u < 0.7 ? Math.sin((u / 0.7) * Math.PI * 0.5) : 1 - (u - 0.7) / 0.3
-      rot('upperarm_r', 'left', -0.6 - 1.1 * lift)
-      rot('lowerarm_r', 'fwd', 0.5 + 0.4 * lift)
-      rot('spine_01', 'left', 0.12 - 0.08 * lift) // se inclina sobre el yunque
+      const turn = n % 2 === 1 ? Math.sin(THREE.MathUtils.smoothstep(u, 0.2, 0.55) * Math.PI) : 0
+      rot('upperarm_l', 'left', -0.75 * w)
+      rot('upperarm_l', 'up', 0.25 * w)
+      rot('lowerarm_l', 'fwd', (-0.85 + 0.06 * hit) * w)
+      rot('hand_l', 'fwd', 0.45 * turn * w)
+      // la cabeza no deja de mirar el hierro (compensa lo que se mueve el torso)
+      rot('neck_01', 'left', (0.25 + 0.12 * r - 0.04 * hit) * w)
+      rot('Head', 'left', (0.2 + 0.1 * r) * w)
+      rot('Head', 'up', 0.15 * r * w)
+      // respira entre golpe y golpe
+      rot('spine_02', 'left', Math.sin(t * 2.4) * 0.015 * w)
     }
     applyPose(rot, WOW, done * 0.35 * (game.story === 'forgeDone' ? 1 : 0))
     rot('spine_02', 'left', Math.sin(t * 1.3) * 0.02 - 0.06 * done)
@@ -406,6 +499,8 @@ export function Villager({ spec, nearKey }: { spec: Spec; nearKey?: 'girlNear' |
     bones.Head?.scale.setScalar(spec.headScale)
     model.scale.setScalar(spec.scale)
     model.position.y = -spec.ground * spec.scale + (spec.lift ?? 0)
+    model.updateMatrixWorld(true)
+    spec.attach?.(bones, axes)
     return { model, bones, axes, posed, standing }
   }, [gltfs, spec])
 

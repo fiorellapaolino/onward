@@ -8,7 +8,7 @@ import { CLIPS, duration } from './anim'
 import { BELLS, BELL_R, BELLOWS, BOXES, COLLIDERS, ELDER, FORGE_R, GIRL, LANTERNS, MELODY, MUSICIAN, PLATES, PLATE_R, POLE, SMITH, ANVIL, ANVIL_R, COOL_STONE, shadowCovers } from './village'
 import { NOTES, bell, chord, flute, heartbeat, hiss, voice } from './sfx'
 import {
-  ELDER_LINES, ELF_WORDS, LAST_STEP, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
+  ELDER_LINES, ELF_WORDS, FEAR_MSG, GIRL_LINES, GOAL_HELP, GOAL_SEED, GOAL_LANTERN, GOAL_MUSIC, LIT_MSG, MUSIC_DONE, MUSIC_HINT, PROMPT_LISTEN, PROMPT_STAY, SHADOW_BLOCK, SHADOW_MSG,
   SMITH_LINES, SMITH_THANKS, SMITH_EARLY, GOAL_SMITH, PROMPT_WARMER, PROMPT_RIGHT, PROMPT_TOO_HOT, GOAL_FIRE, GOAL_BEND, BEND_MSG, HOT_MSG, GATE_MSG, GOAL_KEY, PROMPT_PUMP, PROMPT_FORGE, PROMPT_TAKE, GOAL_TAKE, SMITH_HOT, GOAL_COOL, PROMPT_COOL, SMITH_ALTAR, SMITH_IRON, GOAL_ALTAR,
 } from './story'
 import { applyDebug, debugFF, debugMode, debugPause, debugStay } from './debug'
@@ -46,6 +46,8 @@ export function GameLoop() {
 }
 
 let ffLeft = debugFF
+/** La reverencia del final, más lenta que la captura (si no, no hay sentimiento). */
+const BOW_SPEED = 0.62
 
 /** Un paso del juego (dt en segundos). */
 /** Las frases de quien habla (el herrero tiene dos: el encargo y el agradecimiento). */
@@ -183,6 +185,64 @@ function updateForge(dt: number, startTalk: (who: 'smith', lines: string[]) => v
       setUi({ prompt: null, goal: GOAL_KEY })
     }
   }
+}
+
+/** Cuánto se prueba hacia adelante para ver si hay un borde o una pared (m). */
+const PROBE = 0.3
+const CONSTRAINED = { x: 0, z: 0 }
+/**
+ * Dónde puede estar de verdad: no sale del bosque, no vuelve más atrás del inicio, la sombra corta el paso,
+ * la escalera solo se entra por el hueco, y no atraviesa casas, gente ni faroles. (Devuelve siempre el mismo objeto.)
+ */
+function constrain(x0: number, z0: number, maxZ: number, dt: number) {
+  let x = x0
+  let z = THREE.MathUtils.clamp(z0, START_Z - 3, maxZ)
+  const cx = pathAt(z, TMP).x
+  x = THREE.MathUtils.clamp(x, cx - PATH_HALF_WIDTH, cx + PATH_HALF_WIDTH)
+  // ── La escalera: solo se entra por el hueco entre los muros; arriba y al bajar, por el medio ──
+  // (en coordenadas de la calle, que está girada: el muro no es una línea recta en el mundo)
+  const inStreet = worldToStreet(x, z)
+  if (inStreet.lz > WALL_FRONT && inStreet.lz < WALL_BACK) {
+    let { lx, lz } = inStreet
+    if (Math.abs(lx) > STREET_HALF + 0.4) lz = lz < WALL_BACK / 2 ? WALL_FRONT : WALL_BACK // (choca contra el muro)
+    else {
+      const inside = THREE.MathUtils.clamp(lx, -STREET_HALF, STREET_HALF)
+      lx += THREE.MathUtils.clamp(inside - lx, -2 * dt, 2 * dt) // (se acomoda al entrar, sin saltar)
+    }
+    const back = streetToWorld(lx, lz)
+    x = back.x
+    z = back.z
+  }
+  // no atraviesa a la gente ni los faroles
+  for (const c of COLLIDERS) {
+    const cdx = x - c.x
+    const cdz = z - c.z
+    const cd = Math.hypot(cdx, cdz)
+    if (cd < c.r && cd > 1e-4) {
+      x = c.x + (cdx / cd) * c.r
+      z = c.z + (cdz / cd) * c.r
+    }
+  }
+  // las casas: rectángulos girados; si queda dentro, sale por el lado más cercano
+  for (const b of BOXES) {
+    const dx = x - b.x
+    const dz = z - b.z
+    const c = Math.cos(b.rot)
+    const s = Math.sin(b.rot)
+    let lx = dx * c - dz * s
+    let lz = dx * s + dz * c
+    const px = b.hx - Math.abs(lx)
+    const pz = b.hz - Math.abs(lz)
+    if (px > 0 && pz > 0) {
+      if (px < pz) lx = Math.sign(lx || 1) * b.hx
+      else lz = Math.sign(lz || 1) * b.hz
+      x = b.x + lx * c + lz * s
+      z = b.z - lx * s + lz * c
+    }
+  }
+  CONSTRAINED.x = x
+  CONSTRAINED.z = z
+  return CONSTRAINED
 }
 
 /** Hasta dónde se guía a la elfa hacia el hueco de la escalera: metros antes del muro y a los lados del hueco. */
@@ -382,7 +442,16 @@ function step(rawDt: number) {
 
         // gira suavemente hacia donde camina (por el camino más corto)
         if (moving) {
-          const want = Math.atan2(MOVE.x, MOVE.z)
+          let want = Math.atan2(MOVE.x, MOVE.z)
+          // si en esa dirección hay un borde o una pared, mira hacia donde de verdad puede ir (a lo largo de la pared):
+          // si no, camina mirando contra el muro mientras se desliza de costado, y parece que tambalea
+          // (se prueba un paso desde donde está ahora: no depende de lo que pasó antes, así no oscila)
+          const maxZNow = sombraMode ? SOMBRA_END : g.shadowOpen ? PATH_LEN : SHADOW_S - 1.2
+          const probe = constrain(g.x + MOVE.x * PROBE, g.z + MOVE.z * PROBE, maxZNow, 0)
+          const pdx = probe.x - g.x
+          const pdz = probe.z - g.z
+          const free = Math.hypot(pdx, pdz)
+          if (free < PROBE * 0.85 && free > PROBE * 0.15) want = Math.atan2(pdx, pdz)
           const diff = Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw))
           g.yaw += diff * damp(9, dt)
         }
@@ -396,52 +465,11 @@ function step(rawDt: number) {
         g.x += Math.sin(g.yaw) * step * dt
         g.z += Math.cos(g.yaw) * step * dt
 
-        // ── Límites: no sale del bosque, no vuelve más atrás del inicio, y la sombra corta el paso ──
+        // ── Límites, muros, casas y gente (ver constrain) ──
         const maxZ = sombraMode ? SOMBRA_END : g.shadowOpen ? PATH_LEN : SHADOW_S - 1.2
-        g.z = THREE.MathUtils.clamp(g.z, START_Z - 3, maxZ)
-        const cx = pathAt(g.z, TMP).x
-        g.x = THREE.MathUtils.clamp(g.x, cx - PATH_HALF_WIDTH, cx + PATH_HALF_WIDTH)
-        // ── La escalera: solo se entra por el hueco entre los muros; arriba y al bajar, por el medio ──
-        // (en coordenadas de la calle, que está girada: el muro no es una línea recta en el mundo)
-        const inStreet = worldToStreet(g.x, g.z)
-        if (inStreet.lz > WALL_FRONT && inStreet.lz < WALL_BACK) {
-          let { lx, lz } = inStreet
-          if (Math.abs(lx) > STREET_HALF + 0.4) lz = lz < WALL_BACK / 2 ? WALL_FRONT : WALL_BACK // (choca contra el muro)
-          else {
-            const inside = THREE.MathUtils.clamp(lx, -STREET_HALF, STREET_HALF)
-            lx += THREE.MathUtils.clamp(inside - lx, -2 * dt, 2 * dt) // (se acomoda al entrar, sin saltar)
-          }
-          const back = streetToWorld(lx, lz)
-          g.x = back.x
-          g.z = back.z
-        }
-        // no atraviesa las casas, ni a la gente, ni los faroles
-        for (const c of COLLIDERS) {
-          const cdx = g.x - c.x
-          const cdz = g.z - c.z
-          const cd = Math.hypot(cdx, cdz)
-          if (cd < c.r && cd > 1e-4) {
-            g.x = c.x + (cdx / cd) * c.r
-            g.z = c.z + (cdz / cd) * c.r
-          }
-        }
-        // las casas: rectángulos girados; si queda dentro, sale por el lado más cercano
-        for (const b of BOXES) {
-          const dx = g.x - b.x
-          const dz = g.z - b.z
-          const c = Math.cos(b.rot)
-          const s = Math.sin(b.rot)
-          let lx = dx * c - dz * s
-          let lz = dx * s + dz * c
-          const px = b.hx - Math.abs(lx)
-          const pz = b.hz - Math.abs(lz)
-          if (px > 0 && pz > 0) {
-            if (px < pz) lx = Math.sign(lx || 1) * b.hx
-            else lz = Math.sign(lz || 1) * b.hz
-            g.x = b.x + lx * c + lz * s
-            g.z = b.z - lx * s + lz * c
-          }
-        }
+        const fixed = constrain(g.x, g.z, maxZ, dt)
+        g.x = fixed.x
+        g.z = fixed.z
         // si algo la frena (un muro, una casa), los pies van a lo que de verdad avanzó: no camina en el sitio
         if (dt > 0) g.speed = Math.min(g.speed, Math.hypot(g.x - fromX, g.z - fromZ) / dt)
         const gd = Math.hypot(g.x - GIRL.x, g.z - GIRL.z)
@@ -657,12 +685,11 @@ function step(rawDt: number) {
 
       case 'end': {
         // ── El final ──────────────────────────────────────────────
-        //  0.0–1.6  se detiene; detrás, su sombra (su pasado) se encoge de rodillas
+        //  0.0–1.6  se detiene; detrás, su sombra (su pasado) se arrodilla a rezar
         //  1.6–4.6  se da vuelta y camina despacio hasta ella
-        //  4.6–5.6  se arrodilla frente a ella
-        //  5.6–8.0  la abraza: "You are not alone."
-        //  8.0–10   la sombra entra en ella (la integró: ahora es parte de ella); destello, y se levanta sola
-        //  10–      camina hacia la luz, entera, con su luz más fuerte; vuelve la canción
+        //  4.6–9.0  de pie frente a ella, le hace una reverencia lenta ("Quick Informal Bow"); la frase del final (hasta 12.5)
+        //  8.0–10   la sombra entra en ella (la integró: ahora es parte de ella); destello
+        //  10.4–    camina hacia la luz, entera, con su luz más fuerte; vuelve la canción
         const T = g.phaseT
         const sh = shadow
         const toShadow = Math.atan2(g.endShadow.x - g.x, g.endShadow.z - g.z)
@@ -682,6 +709,10 @@ function step(rawDt: number) {
           sh.fear = 0
           sh.kneel = Math.min(1, T / 1.2)
           sh.kneelT = 0
+          // la sombra reza de rodillas desde el principio, esperándola ("Praying", más lento; sin llegar a levantarse)
+          sh.fuse = smoothstep(0, 1.2, T)
+          sh.fuseT = Math.min(T * 0.6, 5)
+          sh.bow = 0
         }
         if (T < 1.6) {
           g.speed = 0
@@ -695,10 +726,13 @@ function step(rawDt: number) {
         } else if (T < 8) {
           g.speed = 0
           turn(toShadow, 6)
-          g.kneel = Math.min(1, (T - 4.6) / 0.9)
-          g.kneelT = 0
-          g.hug = Math.max(0, Math.min(1, (T - 5.4) / 0.8))
-          sh.hug = g.hug
+          // de pie frente a ella, le hace una reverencia (la sombra sigue rezando de rodillas)
+          g.kneel = 0
+          g.fuse = 0
+          // (lenta: al 62 % de su velocidad, para que se sienta)
+          g.bow = smoothstep(4.6, 5.0, T) * (1 - smoothstep(8.7, 9.1, T))
+          g.bowT = (T - 4.6) * BOW_SPEED
+          g.hug = sh.hug = 0
           if (T > 5.6 && T - dt <= 5.6) g.pulse = 1
           if (T > 5.8) setUi({ msg: ELF_WORDS })
         } else if (T < 10) {
@@ -707,8 +741,11 @@ function step(rawDt: number) {
           sh.x = g.endShadow.x + (g.x - g.endShadow.x) * m
           sh.z = g.endShadow.z + (g.z - g.endShadow.z) * m
           sh.yaw = g.yaw
-          sh.hug = g.hug = Math.max(0, 1 - (T - 8) * 1.4)
+          sh.hug = g.hug = 0
           sh.kneel = 1
+          // termina de incorporarse de la reverencia mientras la sombra entra en ella
+          g.bow = 1 - smoothstep(8.7, 9.1, T)
+          g.bowT = (T - 4.6) * BOW_SPEED
           if (T > 9.4 && T - dt <= 9.4) {
             // ahora es parte de ella: su luz estalla
             g.pulse = 1
@@ -716,21 +753,19 @@ function step(rawDt: number) {
             g.c = 1
             chord()
           }
-          // y se levanta sola (el resto de "Standing Up")
-          const u = clamp01((T - 9.2) / 0.8)
-          g.kneelT = u * 0.85 * duration(CLIPS.standup)
-          g.kneel = 1
-          if (T > 9.2) setUi({ msg: null })
+          g.fuse = 0
+          g.kneel = 0
+
         } else {
           // camina hacia adelante, entera: su sombra ya es parte de ella
           if (T - dt <= 10) playThemeAgain()
-          const rise = clamp01((T - 10) / 1.2) // (termina de incorporarse)
-          g.kneelT = (0.85 + 0.15 * rise) * duration(CLIPS.standup)
-          g.kneel = 1 - rise
+          g.fuse = 0
+          g.bow = 0
+          g.kneel = 0
           sh.kneel = 0
           g.hug = sh.hug = 0
           g.c += (1 - g.c) * dt
-          g.speed += ((rise >= 1 ? 1.1 : 0) - g.speed) * damp(1.2, dt)
+          g.speed += ((T > 10.4 ? 1.1 : 0) - g.speed) * damp(1.2, dt)
           const t = tangentAt(g.z, TMP)
           turn(Math.atan2(t.x, t.z), 2)
           g.x += Math.sin(g.yaw) * g.speed * dt
@@ -739,8 +774,7 @@ function step(rawDt: number) {
           Object.assign(sh, g) // (dentro de ella: ya no se ve)
           sh.talk = null
           sh.fear = 0
-          // "Siempre hay un paso más."
-          if (T > 17 && T <= 25) setUi({ msg: LAST_STEP })
+          // la frase del final se queda hasta que todo se funde en luz (y vuelve en la pantalla final)
           if (T > 25) setUi({ fade: true, msg: null })
           if (T > 28) setUi({ final: true })
         }

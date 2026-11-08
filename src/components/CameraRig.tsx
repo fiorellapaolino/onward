@@ -318,6 +318,13 @@ export function CameraRig() {
     lookOffset.current.lerp(tmpV.copy(look).sub(pos), justStarted ? 1 : damp(input.dragging ? 12 : 5, dt))
     lookSmooth.current.copy(pos).add(lookOffset.current)
     camera.lookAt(lookSmooth.current)
+    // temblor (la tierra que se abre): no se acumula, porque la posición se recalcula cada cuadro
+    if (game.shake > 0.01) {
+      const s = game.shake * 0.09
+      camera.position.x += (Math.random() - 0.5) * s
+      camera.position.y += (Math.random() - 0.5) * s
+      camera.position.z += (Math.random() - 0.5) * s
+    }
   })
 
   return null

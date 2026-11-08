@@ -46,7 +46,9 @@ export function hideInVoid(mat: THREE.Material) {
       .replace(
         'void main() {',
         `void main() {
-        if (uVoidOn > 0.5 && vVoidW.z < uVoid.x && vVoidW.z > uVoid.y && abs(vVoidW.x - uVoid.z) < uVoid.w && vVoidW.y < uVoidTop) discard;`,
+        // (el borde del pozo, irregular: el suelo sobresale un poco, como tierra rota)
+        float voidLip = fract(sin(floor(vVoidW.x * 2.7) * 12.9898) * 43758.5453) * 0.28;
+        if (uVoidOn > 0.5 && vVoidW.z < uVoid.x - voidLip && vVoidW.z > uVoid.y + voidLip && abs(vVoidW.x - uVoid.z) < uVoid.w && vVoidW.y < uVoidTop) discard;`,
       )
   }
   mat.customProgramCacheKey = () => 'void-hook'
